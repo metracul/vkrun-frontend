@@ -1,44 +1,88 @@
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
 import {
   Panel,
   PanelHeader,
   Header,
   Button,
   Group,
-  Cell,
-  Div,
   Avatar,
   NavIdProps,
+  Card,
+  RichCell,
+  Spacing,
 } from '@vkontakte/vkui';
-import { UserInfo } from '@vkontakte/vk-bridge';
+import { Icon20FilterOutline, Icon24User } from '@vkontakte/icons';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { loadRunnerCard } from '../store/runnerCardSlice';
+
 export interface HomeProps extends NavIdProps {
-  fetchedUser?: UserInfo;
 }
 
-export const Home: FC<HomeProps> = ({ id, fetchedUser }) => {
-  const { photo_200, city, first_name, last_name } = { ...fetchedUser };
+export const Home: FC<HomeProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
+  const dispatch = useAppDispatch();
+
+  const vkUser = useAppSelector((s) => s.user.data);
+  const vkUserStatus = useAppSelector((s) => s.user.status);
+
+  const card = useAppSelector((s) => s.runnerCard.data);
+  const cardStatus = useAppSelector((s) => s.runnerCard.status);
+
+  useEffect(() => {
+    if (vkUser?.id && cardStatus === 'idle') {
+      dispatch(loadRunnerCard({ userId: vkUser.id }));
+    }
+  }, [dispatch, vkUser?.id, cardStatus]);
+
+  const fullName =
+    card?.fullName ??
+    (vkUser ? `${vkUser.first_name ?? ''} ${vkUser.last_name ?? ''}`.trim() : 'Имя Фамилия');
+
+  const cityDistrict = card?.cityDistrict ?? 'Город район';
+  const pace = card?.pace ?? 'Темп км';
+  const avatarUrl = card?.avatarUrl ?? vkUser?.photo_100;
+
+  const canShowGroup = Boolean(vkUser || card);
 
   return (
     <Panel id={id}>
-      <PanelHeader>Главная</PanelHeader>
-      {fetchedUser && (
-        <Group header={<Header size="s">User Data Fetched with VK Bridge</Header>}>
-          <Cell before={photo_200 && <Avatar src={photo_200} />} subtitle={city?.title}>
-            {`${first_name} ${last_name}`}
-          </Cell>
+      <PanelHeader delimiter="auto">
+        <Header size="l">Поиск пробежки</Header>
+      </PanelHeader>
+
+      {canShowGroup && (
+        <Group header={<Header size="s">Присоединяйся к другим</Header>}>
+          <Spacing size="m" />
+          <Button
+            appearance="accent"
+            mode="outline"
+            after={<Icon20FilterOutline />}
+            onClick={() => routeNavigator.push('persik')}
+          >
+            ФИЛЬТРЫ
+          </Button>
+          <Spacing size="m" />
+          <Card mode="shadow">
+            <RichCell
+              onClick={() => {}}
+              before={
+                <Avatar
+                  size={48}
+                  src={avatarUrl}
+                  fallbackIcon={<Icon24User />}
+                />
+              }
+              subtitle={cityDistrict}
+              extraSubtitle={pace}
+              multiline
+            >
+              {fullName}
+            </RichCell>
+          </Card>
         </Group>
       )}
-
-      <Group header={<Header size="s">Navigation Example</Header>}>
-        <Div>
-          <Button stretched size="l" mode="secondary" onClick={() => routeNavigator.push('persik')}>
-            Покажите Персика, пожалуйста!
-          </Button>
-        </Div>
-      </Group>
     </Panel>
   );
 };
