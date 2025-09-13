@@ -1,50 +1,25 @@
-import { FC, useEffect } from 'react';
+import { FC } from 'react';
 import {
-  Panel,
-  PanelHeader,
-  Header,
-  Button,
-  Group,
-  Avatar,
-  NavIdProps,
-  Card,
-  RichCell,
-  Spacing,
+  Panel, PanelHeader, Header, Button, Group, Avatar, NavIdProps,
+  Card, RichCell, Spacing, SimpleCell, Caption, Footnote,
 } from '@vkontakte/vkui';
 import { Icon20FilterOutline, Icon24User } from '@vkontakte/icons';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
+import { useGetRunsQuery } from '../store/runnersApi';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { loadRunnerCard } from '../store/runnerCardSlice';
-
-export interface HomeProps extends NavIdProps {
-}
+export interface HomeProps extends NavIdProps {}
 
 export const Home: FC<HomeProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
-  const dispatch = useAppDispatch();
 
-  const vkUser = useAppSelector((s) => s.user.data);
-  const vkUserStatus = useAppSelector((s) => s.user.status);
+  // Пример: грузим из /runs с лимитом 20; сюда же можно пробросить filters
+  const { data, isLoading, isError, refetch, isFetching } = useGetRunsQuery({
+    endpoint: '/runs',
+    limit: 20,
+    // filters: { city: 'Москва', minKm: 5 }
+  });
 
-  const card = useAppSelector((s) => s.runnerCard.data);
-  const cardStatus = useAppSelector((s) => s.runnerCard.status);
-
-  useEffect(() => {
-    if (vkUser?.id && cardStatus === 'idle') {
-      dispatch(loadRunnerCard({ userId: vkUser.id }));
-    }
-  }, [dispatch, vkUser?.id, cardStatus]);
-
-  const fullName =
-    card?.fullName ??
-    (vkUser ? `${vkUser.first_name ?? ''} ${vkUser.last_name ?? ''}`.trim() : 'Имя Фамилия');
-
-  const cityDistrict = card?.cityDistrict ?? 'Город район';
-  const pace = card?.pace ?? 'Темп км';
-  const avatarUrl = card?.avatarUrl ?? vkUser?.photo_100;
-
-  const canShowGroup = Boolean(vkUser || card);
+  const runs = data?.items ?? [];
 
   return (
     <Panel id={id}>
@@ -52,37 +27,73 @@ export const Home: FC<HomeProps> = ({ id }) => {
         <Header size="l">Поиск пробежки</Header>
       </PanelHeader>
 
-      {canShowGroup && (
-        <Group header={<Header size="s">Присоединяйся к другим</Header>}>
-          <Spacing size="m" />
-          <Button
-            appearance="accent"
-            mode="outline"
-            after={<Icon20FilterOutline />}
-            onClick={() => routeNavigator.push('persik')}
-          >
-            ФИЛЬТРЫ
-          </Button>
-          <Spacing size="m" />
-          <Card mode="shadow">
-            <RichCell
-              onClick={() => {}}
-              before={
-                <Avatar
-                  size={48}
-                  src={avatarUrl}
-                  fallbackIcon={<Icon24User />}
-                />
-              }
-              subtitle={cityDistrict}
-              extraSubtitle={pace}
-              multiline
+      <Group header={<Header size="s">Список пробежек (с backend)</Header>}>
+        <Spacing size="m" />
+        <SimpleCell>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Button
+              appearance="accent"
+              mode="outline"
+              after={<Icon20FilterOutline />}
+              onClick={() => routeNavigator.push('persik')}
             >
-              {fullName}
+              Фильтры
+            </Button>
+            <Button mode="secondary" onClick={() => refetch()} disabled={isFetching}>
+              Обновить
+            </Button>
+          </div>
+          <Spacing size="s" />
+          <Caption level="1">
+            Данные приходят по HTTP из backend-эндпоинтов в формате JSON, нормализуются в store и рендерятся ниже.
+          </Caption>
+        </SimpleCell>
+
+        <Spacing size="m" />
+
+        {isLoading && (
+          <Card mode="shadow"><RichCell multiline>Загрузка…</RichCell></Card>
+        )}
+
+        {isError && (
+          <Card mode="shadow"><RichCell multiline>Не удалось получить данные с сервера</RichCell></Card>
+        )}
+
+        {!isLoading && !isError && runs.length === 0 && (
+          <Card mode="shadow"><RichCell multiline>Пока пусто. Попробуй изменить фильтры.</RichCell></Card>
+        )}
+
+        {runs.map((r) => (
+          <Card key={r.id} mode="shadow" style={{ marginTop: 8 }}>
+            <RichCell
+              before={<Avatar size={48} src={r.avatarUrl} fallbackIcon={<Icon24User />} />}
+              subtitle={[r.cityDistrict, formatDate(r.dateISO)].filter(Boolean).join(' • ')}
+              extraSubtitle={[
+                r.distanceKm ? `${r.distanceKm} км` : null,
+                r.pace ? `${r.pace}` : null,
+              ].filter(Boolean).join(' • ')}
+              multiline
+              onClick={() => {
+                // навигация на детали пробежки
+                // routeNavigator.push(`/run/${r.id}`)
+              }}
+            >
+              {r.title} — {r.fullName}
+              {r.notes ? <Footnote style={{ marginTop: 4 }}>{r.notes}</Footnote> : null}
             </RichCell>
           </Card>
-        </Group>
-      )}
+        ))}
+      </Group>
     </Panel>
   );
 };
+
+function formatDate(dateISO?: string) {
+  if (!dateISO) return '';
+  const d = new Date(dateISO);
+  if (isNaN(d.getTime())) return '';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}.${mm}.${yyyy}`;
+}

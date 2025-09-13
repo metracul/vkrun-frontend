@@ -9,7 +9,7 @@ import { router } from './routes';
 import { App } from './App';
 
 import { Provider } from 'react-redux';
-import { store } from './store/store';
+import { store } from './store';
 
 export const AppConfig = () => {
   const vkBridgeAppearance = useAppearance() || undefined;
