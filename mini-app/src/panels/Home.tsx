@@ -3,9 +3,10 @@ import {
   Panel, PanelHeader, Header, Button, Group, Avatar, NavIdProps,
   Card, RichCell, Spacing, SimpleCell, Caption, Footnote,
 } from '@vkontakte/vkui';
-import { Icon20FilterOutline, Icon24User } from '@vkontakte/icons';
+import { Icon20FilterOutline, Icon24User, Icon28AddCircleOutline } from '@vkontakte/icons';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import { useGetRunsQuery } from '../store/runnersApi';
+import { DEFAULT_VIEW_PANELS } from '../routes';
 
 export interface HomeProps extends NavIdProps {}
 
@@ -20,6 +21,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
   });
 
   const runs = data?.items ?? [];
+  
 
   return (
     <Panel id={id}>
@@ -35,17 +37,24 @@ export const Home: FC<HomeProps> = ({ id }) => {
               appearance="accent"
               mode="outline"
               after={<Icon20FilterOutline />}
-              onClick={() => routeNavigator.push('persik')}
+              onClick={() => routeNavigator.push('/persik')}
             >
               Фильтры
             </Button>
             <Button mode="secondary" onClick={() => refetch()} disabled={isFetching}>
               Обновить
             </Button>
+            <Button
+            mode="primary"
+            before={<Icon28AddCircleOutline />}
+            onClick={() => routeNavigator.push('/create')}
+            >
+            Создать пробежку
+            </Button>
           </div>
           <Spacing size="s" />
           <Caption level="1">
-            Данные приходят по HTTP из backend-эндпоинтов в формате JSON, нормализуются в store и рендерятся ниже.
+            Выбери с кем бежать!
           </Caption>
         </SimpleCell>
 
