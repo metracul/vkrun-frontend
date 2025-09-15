@@ -37,7 +37,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
               appearance="accent"
               mode="outline"
               after={<Icon20FilterOutline />}
-              onClick={() => routeNavigator.push('/persik')}
+              onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.PERSIK)}
             >
               Фильтры
             </Button>
@@ -47,7 +47,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
             <Button
             mode="primary"
             before={<Icon28AddCircleOutline />}
-            onClick={() => routeNavigator.push('/create')}
+            onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}
             >
             Создать пробежку
             </Button>

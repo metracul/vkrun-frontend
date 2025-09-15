@@ -10,8 +10,6 @@ import { fetchUser } from './store/userSlice';
 export const App = () => {
   const { panel: activePanel = DEFAULT_VIEW_PANELS.HOME } = useActiveVkuiLocation();
   const dispatch = useAppDispatch();
-
-  const user = useAppSelector((s) => s.user.data);
   const userStatus = useAppSelector((s) => s.user.status);
 
   useEffect(() => {
@@ -26,9 +24,9 @@ export const App = () => {
     <SplitLayout popout={popoutNode}>
       <SplitCol>
         <View activePanel={activePanel}>
-          <Home id="home" />
-          <CreateRun id="create" />
-          <Persik id="persik" />
+          <Home id={DEFAULT_VIEW_PANELS.HOME} />
+          <CreateRun id={DEFAULT_VIEW_PANELS.CREATE} />
+          <Persik id={DEFAULT_VIEW_PANELS.PERSIK} />
         </View>
       </SplitCol>
     </SplitLayout>
