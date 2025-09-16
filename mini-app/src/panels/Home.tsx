@@ -30,7 +30,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
         <Header size="l">Поиск пробежки</Header>
       </PanelHeader>
 
-      <Group header={<Header size="s">Список пробежек (с backend)</Header>}>
+      <Group header={<Header size="s">Список пробежек</Header>}>
         <Spacing size="m" />
         <SimpleCell>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

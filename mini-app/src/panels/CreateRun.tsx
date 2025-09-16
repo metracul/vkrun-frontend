@@ -1,7 +1,6 @@
 import { FC } from 'react';
-import { NavIdProps, Panel, PanelHeader, PanelHeaderBack, Placeholder } from '@vkontakte/vkui';
+import { NavIdProps, Panel, PanelHeader, PanelHeaderBack, Header, Group, Textarea, Spacing } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
-import PersikImage from '../assets/persik.png';
 
 export const CreateRun: FC<NavIdProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
@@ -9,11 +8,13 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
   return (
     <Panel id={id}>
       <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.back()} />}>
-        Создание пробежки
+        <Header size="l">Создание пробежки</Header>
       </PanelHeader>
-      <Placeholder>
-        <img width={230} src={PersikImage} alt="Persik The Cat" />
-      </Placeholder>
+
+      <Group header={<Header size="s">Настрой свою пробежку</Header>}>
+      <Spacing size="m" />
+      <Textarea name="text" placeholder="Опиши свою пробежку" />
+      </Group>
     </Panel>
   );
 };
