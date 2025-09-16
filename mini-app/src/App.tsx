@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { View, SplitLayout, SplitCol, ScreenSpinner } from '@vkontakte/vkui';
 import { useActiveVkuiLocation } from '@vkontakte/vk-mini-apps-router';
-import { Persik, Home, CreateRun } from './panels';
+import { Home, CreateRun } from './panels';
 import { DEFAULT_VIEW_PANELS } from './routes';
 
 import { useAppDispatch, useAppSelector } from './store/hooks';
@@ -26,7 +26,6 @@ export const App = () => {
         <View activePanel={activePanel}>
           <Home id={DEFAULT_VIEW_PANELS.HOME} />
           <CreateRun id={DEFAULT_VIEW_PANELS.CREATE} />
-          <Persik id={DEFAULT_VIEW_PANELS.PERSIK} />
         </View>
       </SplitCol>
     </SplitLayout>
