@@ -1,6 +1,6 @@
 import { FC, useMemo, useState } from 'react';
 import {
-  NavIdProps, Panel, PanelHeader, PanelHeaderBack, Header, Select, InfoRow, Button,
+  NavIdProps, Panel, PanelHeader, PanelHeaderBack, Header, Select, InfoRow, Button, DateInput,
   Group, CustomSelectOption, Textarea, Spacing, CustomSelect, Input
 } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
@@ -14,6 +14,21 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
   const [desc, setDesc] = useState('');
   const [distanceStr, setDistanceStr] = useState('');
   const [pace, setPace] = useState('05:30');
+  const [date, setDate] = useState<Date | null>(null);
+  const [timeStr, setTimeStr] = useState('');
+
+  const startOfToday = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+  const toYMD = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+  const minDateStr = toYMD(startOfToday);
 
   const cityOptions = [
     { value: 0, label: 'Анапа', country: 'Россия' },
@@ -21,7 +36,7 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
     { value: 2, label: 'Краснодар', country: 'Рай' },
     { value: 3, label: 'Москва', country: 'Россия' },
     { value: 4, label: 'Новосибирск', country: 'Россия' },
-    { value: 5, label: 'Омск', country: 'Мордор' },
+    { value: 5, label: 'Омск', country: 'хз наверное далеко' },
   ];
 
   const paceOptions = [
@@ -53,15 +68,37 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
     return formatDuration(totalSeconds);
   }, [distanceStr, pace]);
 
-  // Валидация обязательных полей
+  const parseTime = (t: string) => {
+    const m = t.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+    if (!m) return null;
+    return { h: parseInt(m[1], 10), m: parseInt(m[2], 10) };
+  };
+  const combineDateTime = (d: Date, t: string): Date | null => {
+    const tm = parseTime(t);
+    if (!tm) return null;
+    const x = new Date(d);
+    x.setHours(tm.h, tm.m, 0, 0);
+    return x;
+  };
+
   const isFormValid = useMemo(() => {
     const hasCity = city !== undefined && city !== '' && city !== null;
     const hasDistrict = district.trim().length > 0;
     const hasPace = !!pace && paceToSeconds(pace) != null;
     const km = parseFloat(distanceStr.replace(',', '.'));
     const hasDistance = isFinite(km) && km > 0;
-    return hasCity && hasDistrict && hasPace && hasDistance;
-  }, [city, district, pace, distanceStr]);
+    const hasDate = date instanceof Date && !isNaN(date.getTime()) && date >= startOfToday;
+    const hasTime = parseTime(timeStr) !== null;
+
+    if (!(hasCity && hasDistrict && hasPace && hasDistance && hasDate && hasTime)) return false;
+
+    const now = new Date();
+    const dt = combineDateTime(date!, timeStr);
+    if (!dt) return false;
+    if (date!.toDateString() === now.toDateString() && dt < now) return false;
+
+    return true;
+  }, [city, district, pace, distanceStr, date, timeStr, startOfToday]);
 
   return (
     <Panel id={id}>
@@ -72,18 +109,7 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
       <Group header={<Header size="s">Настрой свою пробежку</Header>}>
         <Spacing size="m" />
 
-        <Header size="m">Описание</Header>
-        <Spacing size="s" />
-        <Textarea
-          name="text"
-          placeholder="Опишите свою пробежку (необязательно)"
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
-        />
-
-        <Spacing size="s" />
-        <Header size="m">Укажите данные о пробежке</Header>
-
+        <Header size="m">Укажите ваш город</Header>
         <CustomSelect
           options={cityOptions}
           value={city}
@@ -103,6 +129,26 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
           placeholder="Введите район пробежки"
           value={district}
           onChange={(e) => setDistrict(e.target.value)}
+        />
+
+        <Spacing size="s" />
+        <Header size="m">Выберите дату забега</Header>
+        <DateInput
+          value={date ?? undefined}
+          onChange={(value) => {
+            const next = value ?? null;
+            if (next && next < startOfToday) return;
+            setDate(next);
+          }}
+          min={minDateStr}
+        />
+
+        <Spacing size="s" />
+        <Header size="m">Выберите время начала</Header>
+        <Input
+          type="time"
+          value={timeStr}
+          onChange={(e) => setTimeStr(e.target.value)}
         />
 
         <Spacing size="s" />
@@ -129,16 +175,26 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
           {timeDisplay}
         </InfoRow>
 
+        <Spacing size="s" />
+        <Header size="m">Описание</Header>
+        <Textarea
+          name="text"
+          placeholder="Опишите свою пробежку (необязательно)"
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+        />
+
         <Spacing size="xl" />
         <Button
           appearance="accent"
           mode="primary"
           disabled={!isFormValid}
           onClick={() => {
-            // здесь можно собрать полезную нагрузку и отправить на бэкенд
-            // пример:
-            // const payload = { city, district, desc, distanceKm: parseFloat(distanceStr.replace(',', '.')), pace };
-            // submit(payload)
+            const km = parseFloat(distanceStr.replace(',', '.'));
+            const startAt = date && timeStr ? combineDateTime(date, timeStr) : null;
+            const payload = { city, district, startAt, desc, distanceKm: km, pace };
+            console.log('Создать пробежку', payload);
+            // здесь можно отправить payload на сервер
           }}
         >
           Создать
