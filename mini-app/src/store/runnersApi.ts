@@ -1,3 +1,4 @@
+// store/runnersApi.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from './index';
 
@@ -13,30 +14,47 @@ export type RunCard = {
   notes?: string;
 };
 
-type BackendList<T> = { items: T[]; nextCursor?: string } | T[];
-type RunDto = any;
+type RunDto = {
+  id: number;
+  creatorId: number;              // vkUserId автора
+  cityName: string;
+  districtName?: string | null;
+  startAt: string;                // ISO OffsetDateTime
+  durationMinutes: number;
+  distanceKm: number;
+  paceSecPerKm?: number | null;
+  description?: string | null;
+  participantsCount: number;
+};
 
-function asArray<T>(input: BackendList<T>): { items: T[]; nextCursor?: string } {
-  return Array.isArray(input) ? { items: input } : input;
+function secToPace(sec?: number | null): string {
+  if (sec == null || sec <= 0) return '';
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, '0')} /км`;
 }
-function normalize(dto: RunDto, idx: number): RunCard {
+
+function normalize(dto: RunDto): RunCard {
   return {
-    id: dto.id ?? idx,
-    fullName: String(dto.fullName ?? dto.userName ?? 'Имя Фамилия'),
-    avatarUrl: dto.avatarUrl ?? dto.avatar ?? '',
-    cityDistrict: dto.cityDistrict ?? dto.city ?? '',
-    dateISO: dto.dateISO ?? dto.date ?? '',
-    distanceKm: dto.distanceKm ?? dto.km ?? dto.distance_km,
-    pace: dto.pace ?? '',
-    title: dto.title ?? dto.type ?? 'Пробежка',
-    notes: dto.notes ?? dto.comment ?? '',
+    id: dto.id,
+    // в бэке нет имени/аватарки — делаем безопасные плейсхолдеры
+    fullName: `id${dto.creatorId}`,
+    avatarUrl: '',
+    cityDistrict: [dto.cityName, dto.districtName || ''].filter(Boolean).join(', '),
+    dateISO: dto.startAt,
+    distanceKm: dto.distanceKm,
+    pace: secToPace(dto.paceSecPerKm ?? undefined),
+    title: 'Пробежка',
+    notes: dto.description || '',
   };
 }
 
 export interface GetRunsArgs {
   endpoint?: string;
   page?: number;
-  limit?: number;
+  size?: number; // <-- важно: бэкенд ждёт size
+  // фильтры РОВНО такие, как ждёт контроллер:
+  // cityName (обяз), districtName, paceFrom, paceTo, kmFrom, kmTo, dateFrom, dateTo
   filters?: Record<string, string | number | boolean | undefined>;
 }
 
@@ -54,18 +72,23 @@ export const runnersApi = createApi({
   endpoints: (b) => ({
     getRuns: b.query<{ items: RunCard[]; nextCursor?: string }, GetRunsArgs | void>({
       query: (args) => {
-        const { endpoint = '/runs', page, limit, filters = {} } = args ?? {};
+        const { endpoint = '/api/v1/runs', page, size, filters = {} } = args ?? {};
         const params = new URLSearchParams();
         if (page != null) params.set('page', String(page));
-        if (limit != null) params.set('limit', String(limit));
+        if (size != null) params.set('size', String(size));
         Object.entries(filters).forEach(([k, v]) => {
-          if (v !== undefined && v !== null) params.set(k, String(v));
+          if (v !== undefined && v !== null && v !== '') params.set(k, String(v));
         });
+
+        const base = import.meta.env.VITE_API_BASE_URL ?? '';
+        const qs = params.toString();
+  
+        console.log('[getRuns] →', `${base}${endpoint}${qs ? `?${qs}` : ''}`);
         return { url: endpoint, method: 'GET', params };
       },
-      transformResponse: (raw: BackendList<RunDto>) => {
-        const { items, nextCursor } = asArray(raw);
-        return { items: items.map(normalize), nextCursor };
+      transformResponse: (raw: RunDto[]) => {
+        const items = Array.isArray(raw) ? raw.map(normalize) : [];
+        return { items };
       },
     }),
   }),

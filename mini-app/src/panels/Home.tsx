@@ -1,9 +1,9 @@
 import { FC, useMemo, useState } from 'react';
 import {
   Panel, PanelHeader, Header, Button, Group, Avatar, NavIdProps, ModalRoot, ModalPage, Placeholder, ButtonGroup, ModalCard,
-  Card, RichCell, Spacing, SimpleCell, Caption, Footnote, FixedLayout, usePlatform, FormItem, Input,
+  Card, RichCell, Spacing, SimpleCell, Caption, Footnote, FixedLayout, usePlatform, FormItem, Input, CustomSelect, CustomSelectOption
 } from '@vkontakte/vkui';
-import { Icon20FilterOutline, Icon24User, Icon28AddCircleOutline } from '@vkontakte/icons';
+import { Icon20FilterOutline, Icon24User, Icon28AddCircleOutline, Icon20LocationMapOutline } from '@vkontakte/icons';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import { useGetRunsQuery } from '../store/runnersApi';
 import { DEFAULT_VIEW_PANELS } from '../routes';
@@ -12,30 +12,40 @@ export interface HomeProps extends NavIdProps {}
 
 type ModalId = 'filters' | 'modal2' | null;
 
+const CITY_OPTIONS = [
+  { value: 'Москва', label: 'Москва', country: 'Россия' },
+  { value: 'Санкт-Петербург', label: 'Санкт-Петербург', country: 'Россия' },
+  { value: 'Новосибирск', label: 'Новосибирск', country: 'Россия' },
+  { value: 'Краснодар', label: 'Краснодар', country: 'Россия' },
+  { value: 'Екатеринбург', label: 'Екатеринбург', country: 'Россия' },
+];
+
 export const Home: FC<HomeProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
   const platform = usePlatform();
   const isDesktop = platform === 'vkcom';
 
-  // Локальные поля формы фильтров
-  const [city, setCity] = useState<string>('');
-  const [distanceStr, setDistanceStr] = useState<string>(''); // храним как строку, перед запросом конвертируем
+  // Город — отдельная "кнопка"-выпадашка на главной. Дефолт: Москва.
+  const [cityName, setCityName] = useState<string>('Москва');
+
+  // Остальные фильтры — как раньше, из модалки
+  const [distanceStr, setDistanceStr] = useState<string>('');
   const [pace, setPace] = useState<string>('');
 
-  // Собираем объект filters только из непустых значений
+  // Собираем фильтры под бэкенд (он ждёт cityName, kmFrom, paceFrom/To — сейчас отправим только kmFrom)
   const filters = useMemo(() => {
     const f: Record<string, string | number> = {};
-    if (city.trim()) f.city = city.trim();
+    if (cityName.trim()) f.cityName = cityName.trim();
     const km = Number(distanceStr.replace(',', '.'));
-    if (!Number.isNaN(km) && distanceStr.trim() !== '') f.minKm = km; // пример: используем ключ minKm
-    if (pace.trim()) f.pace = pace.trim();
+    if (!Number.isNaN(km) && distanceStr.trim() !== '') f.kmFrom = km;
+    // pace у тебя строка "5:30" — бэк ждёт секунды (paceFrom/paceTo). Оставим на потом.
     return f;
-  }, [city, distanceStr, pace]);
+  }, [cityName, distanceStr]);
 
-  // Пример: грузим из /runs с лимитом 20; фильтры пробрасываются из стейта
+  // Грузим список
   const { data, isLoading, isError, refetch, isFetching } = useGetRunsQuery({
-    endpoint: '/runs',
-    limit: 20,
+    endpoint: '/api/v1/runs',
+    size: 20,
     filters,
   });
 
@@ -45,17 +55,13 @@ export const Home: FC<HomeProps> = ({ id }) => {
   const close = () => setActiveModal(null);
 
   const applyFilters = () => {
-    // Достаточно закрыть модалку — useGetRunsQuery уже подписан на изменения filters (через стейт)
     close();
-    // На всякий случай можно принудительно обновить:
     refetch();
   };
 
   const resetFilters = () => {
-    setCity('');
     setDistanceStr('');
     setPace('');
-    // После сброса фильтров произойдёт новый запрос; можно дернуть refetch
     refetch();
   };
 
@@ -63,13 +69,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
     <ModalRoot activeModal={activeModal} onClose={close}>
       <ModalPage id="filters" onClose={close} header={<Header>Фильтры</Header>}>
         <Group>
-          <FormItem top="Город">
-            <Input
-              placeholder="Например: Москва"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-            />
-          </FormItem>
+          {/* Город убрали из модалки — он выбирается на главной */}
           <FormItem top="Дистанция (км)">
             <Input
               type="text"
@@ -102,7 +102,6 @@ export const Home: FC<HomeProps> = ({ id }) => {
         </Group>
       </ModalPage>
 
-      {/* Оставил пример второй карточки, если понадобится */}
       <ModalCard id="modal2" onClose={close}>
         <Placeholder
           action={
@@ -122,8 +121,22 @@ export const Home: FC<HomeProps> = ({ id }) => {
         <Header size="l">Поиск пробежки</Header>
       </PanelHeader>
 
-      {/* Модалки можно держать на этом уровне */}
       {modalRoot}
+
+      <Group header={<Header size="s">Город</Header>}>
+        <SimpleCell>
+          <CustomSelect
+            before={<Icon20LocationMapOutline />}
+            options={CITY_OPTIONS}
+            value={cityName}
+            onChange={(e) => setCityName((e.target as HTMLSelectElement).value)}
+            placeholder="Выберите город"
+            renderOption={({ option, ...restProps }) => (
+              <CustomSelectOption {...restProps} description={(option as any).country} />
+            )}
+          />
+        </SimpleCell>
+      </Group>
 
       <Group header={<Header size="s">Список пробежек</Header>}>
         <Spacing size="m" />
@@ -142,7 +155,6 @@ export const Home: FC<HomeProps> = ({ id }) => {
               Обновить
             </Button>
 
-            {/* На desktop размещаем кнопку рядом с "Обновить" */}
             {isDesktop && (
               <Button
                 mode="primary"
@@ -181,9 +193,6 @@ export const Home: FC<HomeProps> = ({ id }) => {
                 r.pace ? `${r.pace}` : null,
               ].filter(Boolean).join(' • ')}
               multiline
-              onClick={() => {
-                // routeNavigator.push(`/run/${r.id}`)
-              }}
             >
               {r.title} — {r.fullName}
               {r.notes ? <Footnote style={{ marginTop: 4 }}>{r.notes}</Footnote> : null}
@@ -191,11 +200,9 @@ export const Home: FC<HomeProps> = ({ id }) => {
           </Card>
         ))}
 
-        {/* Отступ снизу только на мобильных, чтобы FAB не перекрывал контент */}
         {!isDesktop && <Spacing size={72} />}
       </Group>
 
-      {/* Плавающая кнопка только на мобильных */}
       {!isDesktop && (
         <FixedLayout vertical="bottom">
           <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 16 }}>
