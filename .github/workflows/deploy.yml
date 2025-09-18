@@ -40,6 +40,18 @@ jobs:
           remote_user: ${{ secrets.DEPLOY_USER }}
           remote_key:  ${{ secrets.DEPLOY_KEY }}
           remote_port: ${{ secrets.DEPLOY_PORT || 22 }}
+      - name: Pre-clean target dir (as deploy)
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            set -e
+            rm -rf /var/www/vkapp-frontend/* /var/www/vkapp-frontend/.[!.]* 2>/dev/null || true
+
+
 
       - name: Reload nginx
         uses: appleboy/ssh-action@v1.1.0
