@@ -33,7 +33,7 @@ jobs:
       - name: Deploy via rsync over SSH
         uses: burnett01/rsync-deployments@6.0.0
         with:
-          switches: -azr --delete --no-perms --no-times
+          switches: -azr --delete --no-perms --no-times --omit-dir-times --chmod=Du=rwx,Dg=rwx,Fu=rw,Fg=rw
           path: mini-app/build/
           remote_path: /var/www/vkapp-frontend/
           remote_host: ${{ secrets.DEPLOY_HOST }}
