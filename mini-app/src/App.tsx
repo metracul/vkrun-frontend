@@ -3,9 +3,9 @@ import { View, SplitLayout, SplitCol, ScreenSpinner } from '@vkontakte/vkui';
 import { useActiveVkuiLocation } from '@vkontakte/vk-mini-apps-router';
 import { Home, CreateRun } from './panels';
 import { DEFAULT_VIEW_PANELS } from './routes';
-
 import { useAppDispatch, useAppSelector } from './store/hooks';
 import { fetchUser } from './store/userSlice';
+import { initMe } from './api/me';
 
 export const App = () => {
   const { panel: activePanel = DEFAULT_VIEW_PANELS.HOME } = useActiveVkuiLocation();
@@ -15,6 +15,7 @@ export const App = () => {
   useEffect(() => {
     if (userStatus === 'idle') {
       dispatch(fetchUser());
+      initMe().catch((e) => console.warn('initMe failed', e));
     }
   }, [dispatch, userStatus]);
 

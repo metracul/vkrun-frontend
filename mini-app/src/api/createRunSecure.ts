@@ -43,10 +43,10 @@ export async function createRunSecure(body: {
 }) {
   const bodyJson = JSON.stringify(body);
   const signHeaders = await buildVkSignedHeaders(bodyJson);
+  const base = import.meta.env.VITE_API_BASE_URL ?? '';
 
-  const res = await fetch('/api/v1/runs', {
+  const res = await fetch(`${base}/api/v1/runs`, {
     method: 'POST',
-    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
