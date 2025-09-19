@@ -2,7 +2,7 @@
 import bridge from '@vkontakte/vk-bridge';
 import { getFrozenLaunchQueryString } from '../shared/vkParams';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 
 /** SHA-256 от строки, hex в нижнем регистре */
 async function sha256HexUtf8(str: string): Promise<string> {
