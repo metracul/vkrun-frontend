@@ -1,4 +1,5 @@
-import { FC, useMemo, useState } from 'react';
+// src/panels/Home.tsx
+import { FC, useMemo, useState, useEffect, useRef } from 'react';
 import {
   Panel, PanelHeader, Header, Button, Group, Avatar, NavIdProps, ModalRoot, ModalPage, Placeholder, ButtonGroup, ModalCard,
   Card, RichCell, Spacing, SimpleCell, Caption, Footnote, FixedLayout, usePlatform, FormItem, Input, CustomSelect, CustomSelectOption
@@ -7,6 +8,7 @@ import { Icon20FilterOutline, Icon24User, Icon28AddCircleOutline, Icon20Location
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import { useGetRunsQuery } from '../store/runnersApi';
 import { DEFAULT_VIEW_PANELS } from '../routes';
+import bridge from '@vkontakte/vk-bridge';
 
 export interface HomeProps extends NavIdProps {}
 
@@ -20,7 +22,7 @@ const CITY_OPTIONS = [
   { value: 'Екатеринбург', label: 'Екатеринбург', country: 'Россия' },
 ];
 
-// Формируем границы суток в ISO (локальные сутки → UTC ISO)
+// ---------- utils ----------
 function dayRangeToIso(dateStr: string) {
   const [y, m, d] = dateStr.split('-').map(Number);
   if (!y || !m || !d) return { from: '', to: '' };
@@ -39,6 +41,103 @@ function formatDate(dateISO?: string) {
   return `${dd}.${mm}.${yyyy}`;
 }
 
+function parseCreatorIdFromFallback(fullName?: string): number | undefined {
+  // ожидаем плейсхолдер вида "id{vkId}"
+  if (!fullName) return undefined;
+  const m = /^id(\d+)$/.exec(fullName.trim());
+  return m ? Number(m[1]) : undefined;
+}
+
+// ---------- hook: batch users.get ----------
+type VkUser = {
+  id: number;
+  first_name: string;
+  last_name: string;
+  photo_200?: string;
+  photo_100?: string;
+};
+type VkProfile = { fullName: string; avatarUrl?: string };
+
+function uniqueFinite(ids: Array<number | undefined | null>) {
+  const set = new Set<number>();
+  for (const id of ids) if (Number.isFinite(id as number)) set.add(Number(id));
+  return Array.from(set.values());
+}
+function chunk<T>(arr: T[], size: number): T[][] {
+  if (size <= 0) return [arr];
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+/**
+ * Загружает профили VK и возвращает мапу { [id]: { fullName, avatarUrl } }.
+ * Требует VITE_VK_APP_ID.
+ */
+function useVkUsers(userIds: number[]) {
+  const [map, setMap] = useState<Record<number, VkProfile>>({});
+  const tokenRef = useRef<string | null>(null);
+  const ids = useMemo(() => uniqueFinite(userIds), [userIds]);
+  const appId = Number(import.meta.env.VITE_VK_APP_ID);
+
+  useEffect(() => {
+    if (!ids.length) return;
+    if (!appId || Number.isNaN(appId)) {
+      console.warn('VITE_VK_APP_ID не задан — пропускаю users.get');
+      return;
+    }
+    const missing = ids.filter((id) => !map[id]);
+    if (!missing.length) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        if (!tokenRef.current) {
+          const { access_token } = await bridge.send('VKWebAppGetAuthToken', {
+            app_id: appId,
+            scope: '' // для users.get достаточно пустого
+          });
+          tokenRef.current = access_token;
+        }
+        const access_token = tokenRef.current!;
+        const batches = chunk(missing, 100);
+
+        const next: Record<number, VkProfile> = {};
+        for (const batch of batches) {
+          const resp = await bridge.send('VKWebAppCallAPIMethod', {
+            method: 'users.get',
+            params: {
+              user_ids: batch.join(','),
+              fields: 'photo_200,photo_100',
+              v: '5.199',
+              access_token
+            }
+          });
+          const users: VkUser[] = resp?.response || [];
+          for (const u of users) {
+            next[u.id] = {
+              fullName: `${u.first_name} ${u.last_name}`.trim(),
+              avatarUrl: u.photo_200 || u.photo_100
+            };
+          }
+        }
+        if (!cancelled && Object.keys(next).length) {
+          setMap((prev) => ({ ...prev, ...next }));
+        }
+      } catch (e) {
+        console.warn('users.get via vk-bridge failed', e);
+      }
+    })();
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ids, appId]);
+
+  return map;
+}
+
+// ---------- component ----------
 export const Home: FC<HomeProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
   const platform = usePlatform();
@@ -82,6 +181,16 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
   const runs = data?.items ?? [];
 
+  // Соберём creatorId (поддержим оба варианта: поле creatorId или плейсхолдер fullName="id{vkId}")
+  const creatorIds = useMemo(() => {
+    return runs
+      .map((r: any) => (typeof r.creatorId === 'number' ? r.creatorId : parseCreatorIdFromFallback(r.fullName)))
+      .filter((x): x is number => Number.isFinite(x));
+  }, [runs]);
+
+  // Карта профилей VK
+  const vkProfiles = useVkUsers(creatorIds);
+
   const [activeModal, setActiveModal] = useState<ModalId>(null);
   const close = () => setActiveModal(null);
 
@@ -101,8 +210,6 @@ export const Home: FC<HomeProps> = ({ id }) => {
     <ModalRoot activeModal={activeModal} onClose={close}>
       <ModalPage id="filters" onClose={close} header={<Header>Фильтры</Header>}>
         <Group>
-          {/* Город выбрасываем на главную, в модалке — остальные поля */}
-
           <FormItem top="Дата пробежки">
             <Input
               type="date"
@@ -226,22 +333,31 @@ export const Home: FC<HomeProps> = ({ id }) => {
           <Card mode="shadow"><RichCell multiline>Пока пусто. Попробуй изменить фильтры.</RichCell></Card>
         )}
 
-        {runs.map((r: any) => (
-          <Card key={r.id} mode="shadow" style={{ marginTop: 8 }}>
-            <RichCell
-              before={<Avatar size={48} src={r.avatarUrl} fallbackIcon={<Icon24User />} />}
-              subtitle={[r.cityDistrict, formatDate(r.dateISO)].filter(Boolean).join(' • ')}
-              extraSubtitle={[
-                r.distanceKm ? `${r.distanceKm} км` : null,
-                r.pace ? `${r.pace}` : null,
-              ].filter(Boolean).join(' • ')}
-              multiline
-            >
-              {r.title} — {r.fullName}
-              {r.notes ? <Footnote style={{ marginTop: 4 }}>{r.notes}</Footnote> : null}
-            </RichCell>
-          </Card>
-        ))}
+        {runs.map((r: any) => {
+          const vkId: number | undefined =
+            typeof r.creatorId === 'number' ? r.creatorId : parseCreatorIdFromFallback(r.fullName);
+
+          const profile = vkId ? vkProfiles[vkId] : undefined;
+          const fullName = profile?.fullName || r.fullName;
+          const avatar = profile?.avatarUrl || r.avatarUrl;
+
+          return (
+            <Card key={r.id} mode="shadow" style={{ marginTop: 8 }}>
+              <RichCell
+                before={<Avatar size={48} src={avatar} fallbackIcon={<Icon24User />} />}
+                subtitle={[r.cityDistrict, formatDate(r.dateISO)].filter(Boolean).join(' • ')}
+                extraSubtitle={[
+                  r.distanceKm ? `${r.distanceKm} км` : null,
+                  r.pace ? `${r.pace}` : null,
+                ].filter(Boolean).join(' • ')}
+                multiline
+              >
+                {r.title} — {fullName}
+                {r.notes ? <Footnote style={{ marginTop: 4 }}>{r.notes}</Footnote> : null}
+              </RichCell>
+            </Card>
+          );
+        })}
 
         {!isDesktop && <Spacing size={72} />}
       </Group>
