@@ -1,3 +1,4 @@
+// src/panels/RunDetails.tsx
 import { FC, useMemo } from 'react';
 import {
   Panel,
@@ -13,9 +14,9 @@ import {
   SimpleCell,
   Header,
   Caption,
+  NavIdProps,
 } from '@vkontakte/vkui';
 import { Icon24User } from '@vkontakte/icons';
-import { NavIdProps } from '@vkontakte/vkui';
 import { useRouteNavigator, useParams } from '@vkontakte/vk-mini-apps-router';
 import { useGetRunByIdQuery } from '../store/runnersApi';
 import { useVkUsers } from '../hooks/useVkUsers';
@@ -40,24 +41,17 @@ function formatTime(dateISO?: string) {
   return `${hh}:${mm}`;
 }
 
-// ожидаем плейсхолдер вида "id{vkId}" в RunCard.fullName
-function parseCreatorIdFromFallback(fullName?: string): number | undefined {
+// ожидаем плейсхолдер "id{vkId}" в RunCard.fullName
+function parseVkIdFromFullName(fullName?: string): number | undefined {
   if (!fullName) return undefined;
   const m = /^id(\d+)$/.exec(fullName.trim());
   return m ? Number(m[1]) : undefined;
 }
 
-function minutesToHhMm(totalMin?: number) {
-  if (totalMin == null || totalMin <= 0) return '';
-  const h = Math.floor(totalMin / 60);
-  const m = Math.round(totalMin % 60);
-  return h > 0 ? `${h} ч ${m} мин` : `${m} мин`;
-}
-
-// преобразует строку "M:SS /км" → секунд/км
+// "M:SS /км" -> секунд/км (терпимо к пробелам и суффиксу)
 function parsePaceToSec(pace?: string): number | undefined {
   if (!pace) return undefined;
-  const m = /^(\d+):(\d{2})/.exec(pace);
+  const m = /^\s*(\d+):(\d{2})(?:\s*\/?\s*км)?\s*$/i.exec(pace.trim());
   if (!m) return undefined;
   const min = Number(m[1]);
   const sec = Number(m[2]);
@@ -65,38 +59,46 @@ function parsePaceToSec(pace?: string): number | undefined {
   return min * 60 + sec;
 }
 
+function minutesToHhMm(totalMin?: number) {
+  if (totalMin == null || totalMin <= 0) return '—';
+  const h = Math.floor(totalMin / 60);
+  const m = Math.round(totalMin % 60);
+  return h > 0 ? `${h} ч ${m} мин` : `${m} мин`;
+}
+
 export const RunDetails: FC<NavIdProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
   const params = useParams<'id'>();
-  const runId = params?.id;
+  const runId = params?.id as string | undefined;
 
   const { data, isLoading, isError, refetch } = useGetRunByIdQuery(runId!, {
     skip: !runId,
-  });
+});
 
-  // creator
+  // 1) из fullName достаём VK ID создателя (строго по шаблону "id{vkId}")
   const creatorVkId = useMemo(
-    () => parseCreatorIdFromFallback(data?.fullName),
+    () => parseVkIdFromFullName(data?.fullName),
     [data?.fullName]
   );
-  const appId = Number(import.meta.env.VITE_VK_APP_ID);
-  const vkProfilesMap = useVkUsers(creatorVkId ? [creatorVkId] : [], appId);
-  const creatorProfile = creatorVkId ? vkProfilesMap[creatorVkId] : undefined;
 
-  // city / district из объединённого поля cityDistrict
+  // 2) грузим профиль через ваш useVkUsers(userIds, appId)
+  const appId = Number(import.meta.env.VITE_VK_APP_ID);
+  const profilesMap = useVkUsers(creatorVkId ? [creatorVkId] : [], appId);
+  const creatorProfile = creatorVkId ? profilesMap[creatorVkId] : undefined;
+
+  // 3) город и район из объединённого поля "Москва, Центральный"
   const { cityName, districtName } = useMemo(() => {
     const cd = data?.cityDistrict || '';
     const [city, district] = cd.split(',').map((s) => s.trim());
     return { cityName: city || '', districtName: district || '' };
   }, [data?.cityDistrict]);
 
-  // считаем длительность = distanceKm * paceSecPerKm
+  // 4) длительность считаем как distanceKm * pace
   const durationText = useMemo(() => {
     if (!data?.distanceKm || !data?.pace) return '—';
     const paceSec = parsePaceToSec(data.pace);
     if (!paceSec) return '—';
-    const totalSec = data.distanceKm * paceSec;
-    const totalMin = totalSec / 60;
+    const totalMin = (data.distanceKm * paceSec) / 60;
     return minutesToHhMm(totalMin);
   }, [data?.distanceKm, data?.pace]);
 
@@ -106,9 +108,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
       <Group>
         {isLoading && (
-          <Card mode="shadow">
-            <RichCell multiline>Загрузка…</RichCell>
-          </Card>
+          <Card mode="shadow"><RichCell multiline>Загрузка…</RichCell></Card>
         )}
 
         {isError && (
@@ -125,7 +125,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
         {!isLoading && !isError && data && (
           <>
-            {/* Шапка: аватар + имя/фамилия создателя */}
+            {/* Аватар + имя/фамилия создателя */}
             <Card mode="shadow">
               <RichCell
                 before={
