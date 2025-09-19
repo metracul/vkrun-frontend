@@ -20,27 +20,58 @@ const CITY_OPTIONS = [
   { value: 'Екатеринбург', label: 'Екатеринбург', country: 'Россия' },
 ];
 
+// Формируем границы суток в ISO (локальные сутки → UTC ISO)
+function dayRangeToIso(dateStr: string) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  if (!y || !m || !d) return { from: '', to: '' };
+  const start = new Date(y, m - 1, d, 0, 0, 0, 0);
+  const end = new Date(y, m - 1, d, 23, 59, 59, 999);
+  return { from: start.toISOString(), to: end.toISOString() };
+}
+
+function formatDate(dateISO?: string) {
+  if (!dateISO) return '';
+  const d = new Date(dateISO);
+  if (isNaN(d.getTime())) return '';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}.${mm}.${yyyy}`;
+}
+
 export const Home: FC<HomeProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
   const platform = usePlatform();
   const isDesktop = platform === 'vkcom';
 
-  // Город — отдельная "кнопка"-выпадашка на главной. Дефолт: Москва.
+  // Город — выпадашка на главной. Дефолт: Москва.
   const [cityName, setCityName] = useState<string>('Москва');
 
-  // Остальные фильтры — как раньше, из модалки
-  const [distanceStr, setDistanceStr] = useState<string>('');
-  const [pace, setPace] = useState<string>('');
+  // Остальные фильтры (в модалке)
+  const [distanceStr, setDistanceStr] = useState<string>(''); // км (строка)
+  const [pace, setPace] = useState<string>('');               // пока не отправляем
+  const [runDate, setRunDate] = useState<string>('');         // YYYY-MM-DD: одна дата
 
-  // Собираем фильтры под бэкенд (он ждёт cityName, kmFrom, paceFrom/To — сейчас отправим только kmFrom)
+  // Собираем фильтры под бэкенд
   const filters = useMemo(() => {
     const f: Record<string, string | number> = {};
+
     if (cityName.trim()) f.cityName = cityName.trim();
+
     const km = Number(distanceStr.replace(',', '.'));
     if (!Number.isNaN(km) && distanceStr.trim() !== '') f.kmFrom = km;
-    // pace у тебя строка "5:30" — бэк ждёт секунды (paceFrom/paceTo). Оставим на потом.
+
+    // Одна дата → весь день: [00:00:00.000; 23:59:59.999]
+    if (runDate) {
+      const { from, to } = dayRangeToIso(runDate);
+      if (from && to) {
+        f.dateFrom = from;
+        f.dateTo = to;
+      }
+    }
+
     return f;
-  }, [cityName, distanceStr]);
+  }, [cityName, distanceStr, runDate]);
 
   // Грузим список
   const { data, isLoading, isError, refetch, isFetching } = useGetRunsQuery({
@@ -62,6 +93,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
   const resetFilters = () => {
     setDistanceStr('');
     setPace('');
+    setRunDate('');
     refetch();
   };
 
@@ -69,7 +101,16 @@ export const Home: FC<HomeProps> = ({ id }) => {
     <ModalRoot activeModal={activeModal} onClose={close}>
       <ModalPage id="filters" onClose={close} header={<Header>Фильтры</Header>}>
         <Group>
-          {/* Город убрали из модалки — он выбирается на главной */}
+          {/* Город выбрасываем на главную, в модалке — остальные поля */}
+
+          <FormItem top="Дата пробежки">
+            <Input
+              type="date"
+              value={runDate}
+              onChange={(e) => setRunDate((e.target as HTMLInputElement).value)}
+            />
+          </FormItem>
+
           <FormItem top="Дистанция (км)">
             <Input
               type="text"
@@ -79,6 +120,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
               onChange={(e) => setDistanceStr(e.target.value)}
             />
           </FormItem>
+
           <FormItem top="Темп бега">
             <Input
               placeholder="Например: 5:30 /км"
@@ -128,7 +170,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
           <CustomSelect
             before={<Icon20LocationMapOutline />}
             options={CITY_OPTIONS}
-            style={{ width: 200 }}
+            style={{ width: 200 }} // фиксированная ширина
             value={cityName}
             onChange={(e) => setCityName((e.target as HTMLSelectElement).value)}
             placeholder="Выберите город"
@@ -137,8 +179,10 @@ export const Home: FC<HomeProps> = ({ id }) => {
             )}
           />
         </SimpleCell>
-      <Header size="s">Список пробежек</Header>
+
+        <Header size="s">Список пробежек</Header>
         <Spacing size="m" />
+
         <SimpleCell>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <Button
@@ -219,13 +263,3 @@ export const Home: FC<HomeProps> = ({ id }) => {
     </Panel>
   );
 };
-
-function formatDate(dateISO?: string) {
-  if (!dateISO) return '';
-  const d = new Date(dateISO);
-  if (isNaN(d.getTime())) return '';
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}.${mm}.${yyyy}`;
-}
