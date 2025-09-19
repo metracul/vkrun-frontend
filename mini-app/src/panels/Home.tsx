@@ -206,6 +206,20 @@ export const Home: FC<HomeProps> = ({ id }) => {
     refetch();
   };
 
+  // --- Автообновление после создания/изменения пробежек ---
+  useEffect(() => {
+    const onUpdated = () => refetch();
+    window.addEventListener('runs:updated', onUpdated);
+    return () => window.removeEventListener('runs:updated', onUpdated);
+  }, [refetch]);
+
+  // --- Обновлять при возвращении во вкладку ---
+  useEffect(() => {
+    const onVis = () => { if (document.visibilityState === 'visible') refetch(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [refetch]);
+
   const modalRoot = (
     <ModalRoot activeModal={activeModal} onClose={close}>
       <ModalPage id="filters" onClose={close} header={<Header>Фильтры</Header>}>

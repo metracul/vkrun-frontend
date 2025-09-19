@@ -121,9 +121,14 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
 
     try {
       setLoading(true);
-      const id = await createRunSecure(body);
-      console.log('Run created with id', id);
+       const id = await createRunSecure(body);
+      // Сообщаем списку, что данные изменились
+      // detail необязателен, но может пригодиться (id новой пробежки)
+      const fire = () => window.dispatchEvent(new CustomEvent('runs:updated', { detail: { id } }));
+      // Навигация может размонтировать/смонтировать панели.
+      // Дадим роутеру переключиться, затем шлём событие.
       routeNavigator.back();
+      setTimeout(fire, 0);
     } catch (e: any) {
       alert(`Ошибка: ${e.message}`);
     } finally {
