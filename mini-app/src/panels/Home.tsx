@@ -354,7 +354,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
           const openDetails = () => {
             // переход на панель /run/:id
-            routeNavigator.push(DEFAULT_VIEW_PANELS.RUN, { id: String(r.id) });
+            routeNavigator.push(`/run/${String(r.id)}`);
           };
 
           return (

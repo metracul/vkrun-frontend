@@ -6,7 +6,6 @@ import { Icon24User } from '@vkontakte/icons';
 import { NavIdProps } from '@vkontakte/vkui';
 import { useRouteNavigator, useParams } from '@vkontakte/vk-mini-apps-router';
 import { useGetRunByIdQuery } from '../store/runnersApi';
-import { DEFAULT_VIEW_PANELS } from '../routes';
 
 function formatDate(dateISO?: string) {
   if (!dateISO) return '';
@@ -69,7 +68,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
         )}
 
         <Spacing size={16} />
-        <Button mode="secondary" onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.HOME)}>
+        <Button mode="secondary" onClick={() => routeNavigator.back()}>
           Назад
         </Button>
       </Group>
