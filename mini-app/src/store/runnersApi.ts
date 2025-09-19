@@ -3,7 +3,6 @@ import type { RootState } from './index';
 
 export type RunCard = {
   id: string | number;
-  creatorId: number;
   fullName: string;
   avatarUrl?: string;
   cityDistrict?: string;
@@ -37,7 +36,6 @@ function secToPace(sec?: number | null): string {
 function normalize(dto: RunDto): RunCard {
   return {
     id: dto.id,
-    creatorId: dto.creatorId,
     fullName: `id${dto.creatorId}`,
     avatarUrl: '',
     cityDistrict: [dto.cityName, dto.districtName || ''].filter(Boolean).join(', '),

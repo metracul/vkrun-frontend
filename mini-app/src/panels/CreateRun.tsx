@@ -5,17 +5,19 @@ import {
 } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import { Icon20LocationMapOutline } from '@vkontakte/icons';
+import { createRunSecure } from '../api/createRunSecure';
 
 export const CreateRun: FC<NavIdProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
 
-  const [city, setCity] = useState<string | number | undefined>(undefined);
+  const [city, setCity] = useState<string | undefined>(undefined);
   const [district, setDistrict] = useState('');
   const [desc, setDesc] = useState('');
   const [distanceStr, setDistanceStr] = useState('');
   const [pace, setPace] = useState('05:30');
   const [date, setDate] = useState<Date | null>(null);
   const [timeStr, setTimeStr] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const startOfToday = useMemo(() => {
     const d = new Date();
@@ -31,11 +33,11 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
   const minDateStr = toYMD(startOfToday);
 
   const cityOptions = [
-    { value: 0, label: 'Москва', country: 'Россия' },
-    { value: 1, label: 'Санкт-Петербург', country: 'Россия' },
-    { value: 2, label: 'Новосибирск', country: 'Россия' },
-    { value: 3, label: 'Краснодар', country: 'Россия' },
-    { value: 4, label: 'Екатеринбург', country: 'Россия' },
+    { value: 'Москва', label: 'Москва', country: 'Россия' },
+    { value: 'Санкт-Петербург', label: 'Санкт-Петербург', country: 'Россия' },
+    { value: 'Новосибирск', label: 'Новосибирск', country: 'Россия' },
+    { value: 'Краснодар', label: 'Краснодар', country: 'Россия' },
+    { value: 'Екатеринбург', label: 'Екатеринбург', country: 'Россия' },
   ];
 
   const paceOptions = [
@@ -81,7 +83,7 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
   };
 
   const isFormValid = useMemo(() => {
-    const hasCity = city !== undefined && city !== '' && city !== null;
+    const hasCity = !!city;
     const hasDistrict = district.trim().length > 0;
     const hasPace = !!pace && paceToSeconds(pace) != null;
     const km = parseFloat(distanceStr.replace(',', '.'));
@@ -98,6 +100,36 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
 
     return true;
   }, [city, district, pace, distanceStr, date, timeStr, startOfToday]);
+
+  const handleSubmit = async () => {
+    if (!isFormValid) return;
+
+    const km = parseFloat(distanceStr.replace(',', '.'));
+    const startAtDate = date && timeStr ? combineDateTime(date, timeStr) : null;
+    if (!startAtDate) return;
+
+    const paceSec = paceToSeconds(pace) ?? 0;
+    const body = {
+      cityName: city,
+      districtName: district,
+      startAt: startAtDate.toISOString(),
+      durationMinutes: Math.max(5, Math.round(km * paceSec / 60)),
+      distanceKm: km,
+      paceSecPerKm: paceSec,
+      description: desc || undefined,
+    };
+
+    try {
+      setLoading(true);
+      const id = await createRunSecure(body);
+      console.log('Run created with id', id);
+      routeNavigator.back();
+    } catch (e: any) {
+      alert(`Ошибка: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Panel id={id}>
@@ -187,16 +219,10 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
         <Button
           appearance="accent"
           mode="primary"
-          disabled={!isFormValid}
-          onClick={() => {
-            const km = parseFloat(distanceStr.replace(',', '.'));
-            const startAt = date && timeStr ? combineDateTime(date, timeStr) : null;
-            const payload = { city, district, startAt, desc, distanceKm: km, pace };
-            console.log('Создать пробежку', payload);
-            // здесь можно отправить payload на сервер
-          }}
+          disabled={!isFormValid || loading}
+          onClick={handleSubmit}
         >
-          Создать
+          {loading ? 'Создание...' : 'Создать'}
         </Button>
       </Group>
     </Panel>
