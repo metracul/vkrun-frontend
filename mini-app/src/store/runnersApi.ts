@@ -50,7 +50,7 @@ function normalize(dto: RunDto): RunCard {
 export interface GetRunsArgs {
   endpoint?: string;
   page?: number;
-  size?: number; 
+  size?: number;
   filters?: Record<string, string | number | boolean | undefined>;
 }
 
@@ -78,7 +78,7 @@ export const runnersApi = createApi({
 
         const base = import.meta.env.VITE_API_BASE_URL ?? '';
         const qs = params.toString();
-  
+
         console.log('[getRuns] →', `${base}${endpoint}${qs ? `?${qs}` : ''}`);
         return { url: endpoint, method: 'GET', params };
       },
@@ -87,7 +87,15 @@ export const runnersApi = createApi({
         return { items };
       },
     }),
+
+    getRunById: b.query<RunCard, string | number>({
+      query: (id) => ({
+        url: `/api/v1/runs/${id}`,
+        method: 'GET',
+      }),
+      transformResponse: (raw: RunDto) => normalize(raw),
+    }),
   }),
 });
 
-export const { useGetRunsQuery } = runnersApi;
+export const { useGetRunsQuery, useGetRunByIdQuery } = runnersApi;

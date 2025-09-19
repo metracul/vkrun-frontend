@@ -1,4 +1,3 @@
-// src/panels/Home.tsx
 import { FC, useMemo, useState, useEffect, useRef } from 'react';
 import {
   Panel, PanelHeader, Header, Button, Group, Avatar, NavIdProps, ModalRoot, ModalPage, Placeholder, ButtonGroup, ModalCard,
@@ -181,7 +180,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
   const runs = data?.items ?? [];
 
-  // Соберём creatorId (поддержим оба варианта: поле creatorId или плейсхолдер fullName="id{vkId}")
+  // Соберём creatorId
   const creatorIds = useMemo(() => {
     return runs
       .map((r: any) => (typeof r.creatorId === 'number' ? r.creatorId : parseCreatorIdFromFallback(r.fullName)))
@@ -206,14 +205,12 @@ export const Home: FC<HomeProps> = ({ id }) => {
     refetch();
   };
 
-  // --- Автообновление после создания/изменения пробежек ---
   useEffect(() => {
     const onUpdated = () => refetch();
     window.addEventListener('runs:updated', onUpdated);
     return () => window.removeEventListener('runs:updated', onUpdated);
   }, [refetch]);
 
-  // --- Обновлять при возвращении во вкладку ---
   useEffect(() => {
     const onVis = () => { if (document.visibilityState === 'visible') refetch(); };
     document.addEventListener('visibilitychange', onVis);
@@ -355,8 +352,13 @@ export const Home: FC<HomeProps> = ({ id }) => {
           const fullName = profile?.fullName || r.fullName;
           const avatar = profile?.avatarUrl || r.avatarUrl;
 
+          const openDetails = () => {
+            // переход на панель /run/:id
+            routeNavigator.push(DEFAULT_VIEW_PANELS.RUN, { id: String(r.id) });
+          };
+
           return (
-            <Card key={r.id} mode="shadow" style={{ marginTop: 8 }}>
+            <Card key={r.id} mode="shadow" style={{ marginTop: 8 }} onClick={openDetails}>
               <RichCell
                 before={<Avatar size={48} src={avatar} fallbackIcon={<Icon24User />} />}
                 subtitle={[r.cityDistrict, formatDate(r.dateISO)].filter(Boolean).join(' • ')}

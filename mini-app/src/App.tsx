@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { View, SplitLayout, SplitCol, ScreenSpinner } from '@vkontakte/vkui';
 import { useActiveVkuiLocation } from '@vkontakte/vk-mini-apps-router';
-import { Home, CreateRun } from './panels';
+import { Home, CreateRun, RunDetails } from './panels';
 import { DEFAULT_VIEW_PANELS } from './routes';
 import { useAppDispatch, useAppSelector } from './store/hooks';
 import { fetchUser } from './store/userSlice';
@@ -27,6 +27,7 @@ export const App = () => {
         <View activePanel={activePanel}>
           <Home id={DEFAULT_VIEW_PANELS.HOME} />
           <CreateRun id={DEFAULT_VIEW_PANELS.CREATE} />
+          <RunDetails id={DEFAULT_VIEW_PANELS.RUN} />
         </View>
       </SplitCol>
     </SplitLayout>
