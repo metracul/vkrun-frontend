@@ -4,7 +4,19 @@ import { getFrozenLaunchQueryString } from '../shared/vkParams';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
 
-async function buildVkSignedHeaders(payload: string) {
+/** SHA-256 от строки, hex в нижнем регистре */
+async function sha256HexUtf8(str: string): Promise<string> {
+  const enc = new TextEncoder();
+  const data = enc.encode(str);
+  const hashBuf = await crypto.subtle.digest('SHA-256', data);
+  const view = new Uint8Array(hashBuf);
+  return Array.from(view).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function buildVkSignedHeaders(bodyJson: string) {
+  const bodySha256 = await sha256HexUtf8(bodyJson);
+  const payload = `body_sha256=${bodySha256}`;
+
   const { sign, ts } = await bridge.send<'VKWebAppCreateHash'>('VKWebAppCreateHash', { payload });
   const launchQs = getFrozenLaunchQueryString();
   if (!launchQs) throw new Error('No VK launch params');
@@ -19,12 +31,10 @@ async function buildVkSignedHeaders(payload: string) {
 
 /**
  * Инициализация пользователя через POST /api/v1/me.
- * vkUserId сервер достанет сам из X-VK-Params после проверки подписи.
  */
 export async function initMe() {
-  // payload можно сделать любым, например фиксированным
-  const payload = 'init_me=1';
-  const signHeaders = await buildVkSignedHeaders(payload);
+  const body = ''; // тело пустое
+  const signHeaders = await buildVkSignedHeaders(body);
 
   const res = await fetch(`${API_BASE}/api/v1/me`, {
     method: 'POST',
@@ -33,7 +43,7 @@ export async function initMe() {
       'Content-Type': 'application/json',
       ...signHeaders,
     },
-    body: '', // тело пустое
+    body,
   });
 
   if (!res.ok) {
@@ -41,6 +51,5 @@ export async function initMe() {
     throw new Error(err?.error || `HTTP ${res.status}`);
   }
 
-  // ожидаем UserDto
   return res.json();
 }
