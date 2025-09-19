@@ -31,12 +31,11 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
   const minDateStr = toYMD(startOfToday);
 
   const cityOptions = [
-    { value: 0, label: 'Анапа', country: 'Россия' },
-    { value: 1, label: 'Бишкек', country: 'Кыргызстан' },
-    { value: 2, label: 'Краснодар', country: 'Рай' },
-    { value: 3, label: 'Москва', country: 'Россия' },
-    { value: 4, label: 'Новосибирск', country: 'Россия' },
-    { value: 5, label: 'Омск', country: 'хз наверное далеко' },
+    { value: 0, label: 'Москва', country: 'Россия' },
+    { value: 1, label: 'Санкт-Петербург', country: 'Россия' },
+    { value: 2, label: 'Новосибирск', country: 'Россия' },
+    { value: 3, label: 'Краснодар', country: 'Россия' },
+    { value: 4, label: 'Екатеринбург', country: 'Россия' },
   ];
 
   const paceOptions = [
