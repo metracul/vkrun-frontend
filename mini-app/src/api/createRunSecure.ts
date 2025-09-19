@@ -14,21 +14,24 @@ async function sha256HexUtf8(str: string): Promise<string> {
 /** Собираем заголовки подписи для VKWebAppCreateHash */
 async function buildVkSignedHeaders(bodyJson: string) {
   const bodySha256 = await sha256HexUtf8(bodyJson);
-  // payload для bridge == request_id для сервера
   const payload = `body_sha256=${bodySha256}`;
 
-  const { sign, ts } = await bridge.send<'VKWebAppCreateHash'>('VKWebAppCreateHash', { payload });
+  const { sign, ts } = await bridge.send('VKWebAppCreateHash', { payload });
 
-  // launch params вы у себя кэшируете; их нужно приложить всегда
   const launchQs = getFrozenLaunchQueryString();
   if (!launchQs) throw new Error('No VK launch params');
 
   return {
-    'X-VK-Params': launchQs,           // уже есть в проекте
-    'X-VK-Request-Id': payload,        // именно строка "body_sha256=<hex>"
-    'X-VK-Sign': sign,                 // подпись от bridge
-    'X-VK-Sign-Ts': String(ts),        // Unix timestamp от bridge
+    'X-VK-Params': launchQs,
+    'X-VK-Request-Id': payload,
+    'X-VK-Sign': sign,
+    'X-VK-Sign-Ts': String(ts),
   } as const;
+}
+
+/** Склейка базового URL и пути с нормализацией слешей */
+function joinUrl(base: string, path: string) {
+  return `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
 }
 
 /** Запрос создания пробежки на ваш бэкенд */
@@ -41,25 +44,28 @@ export async function createRunSecure(body: {
   paceSecPerKm?: number;
   description?: string;
 }) {
+  const rawBase = import.meta.env.VITE_API_BASE_URL;
+  if (!rawBase) throw new Error('VITE_API_BASE_URL is not set');
+  const API_BASE = rawBase.replace(/\/+$/, '');
+
   const bodyJson = JSON.stringify(body);
   const signHeaders = await buildVkSignedHeaders(bodyJson);
-  const base = import.meta.env.VITE_API_BASE_URL ?? '';
 
-  const res = await fetch(`${base}/api/v1/runs`, {
+  const res = await fetch(joinUrl(API_BASE, '/api/v1/runs'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       ...signHeaders,
     },
-    body: bodyJson, // ВАЖНО: тело должно в точности соответствовать тому, что хэшировали
+    body: bodyJson, // тело должно в точности соответствовать тому, что хэшировали
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err?.error || `HTTP ${res.status}`);
   }
-  // Бэкенд возвращает ID (Long)
-  const id = await res.json(); // number
+
+  const id = await res.json();
   return id as number;
 }

@@ -1,30 +1,28 @@
+// src/main.tsx
 import { createRoot } from 'react-dom/client';
 import vkBridge from '@vkontakte/vk-bridge';
 import { AppConfig } from './AppConfig';
 import { ensureLaunchQueryString } from './shared/vkParams';
 
 async function bootstrap() {
-  // 1) Инициализируем bridge
   await vkBridge.send('VKWebAppInit');
+  await ensureLaunchQueryString(vkBridge);
 
-  // 2) Гарантируем наличие launch QS (sessionStorage)
- const qs = await ensureLaunchQueryString(vkBridge);
-console.debug('Launch QS:', qs);
-  // На время отладки:
-  // console.debug('Launch QS:', qs);
+  const rootEl = document.getElementById('root');
+  if (!rootEl) throw new Error('Root element not found');
+  createRoot(rootEl).render(<AppConfig />);
 
-  // 3) Рендерим приложение
-  createRoot(document.getElementById('root')!).render(<AppConfig />);
-
-  // 4) Dev-инструменты (как было)
   if (import.meta.env.MODE === 'development') {
-    import('./eruda');
+    await import('./eruda');
   }
 }
 
 bootstrap().catch((e) => {
-  // Падать явно, чтобы не отправлять пустые заголовки
-  console.error(e);
+  console.error('Bootstrap failed:', e);
   const el = document.getElementById('root');
-  if (el) el.innerText = 'Ошибка инициализации: ' + (e?.message || e);
+  if (el) {
+    el.innerHTML = `<div style="padding:16px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+      <b>Ошибка инициализации</b><br/>${e?.message ?? e}
+    </div>`;
+  }
 });

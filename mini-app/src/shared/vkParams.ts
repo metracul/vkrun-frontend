@@ -1,5 +1,11 @@
+// src/shared/vkParams.ts
 const STORAGE_KEY = '__vk_launch_qs';
 
+type BridgeLike = {
+  send(method: string, params?: Record<string, unknown>): Promise<any>;
+};
+
+/** Собирает querystring из объекта (a=1&b=2), пропуская undefined/null/'' */
 function toQS(obj: Record<string, unknown>): string {
   return Object.entries(obj)
     .filter(([, v]) => v !== undefined && v !== null && v !== '')
@@ -7,55 +13,52 @@ function toQS(obj: Record<string, unknown>): string {
     .join('&');
 }
 
+/** Возвращает закешированные/URL launch-параметры или null */
 export function getFrozenLaunchQueryString(): string | null {
   const cached = sessionStorage.getItem(STORAGE_KEY);
   if (cached) return cached;
 
-  let qs = '';
   const raw = window.location.search || '';
-  qs = raw.startsWith('?') ? raw.slice(1) : raw;
+  const qs = raw.startsWith('?') ? raw.slice(1) : raw;
 
-  if (!qs && import.meta.env?.DEV && import.meta.env.VITE_VK_LAUNCH_QS) {
-    qs = String(import.meta.env.VITE_VK_LAUNCH_QS).replace(/^\?/, '');
+  if (qs) {
+    sessionStorage.setItem(STORAGE_KEY, qs);
+    return qs;
   }
 
-  if (!qs) return null;
-  sessionStorage.setItem(STORAGE_KEY, qs);
-  return qs;
+  if (import.meta.env?.DEV && import.meta.env.VITE_VK_LAUNCH_QS) {
+    const devQs = String(import.meta.env.VITE_VK_LAUNCH_QS).replace(/^\?/, '');
+    sessionStorage.setItem(STORAGE_KEY, devQs);
+    return devQs;
+  }
+
+  return null;
 }
 
+/** Принудительно сохранить QS в sessionStorage */
 export function setLaunchQueryString(qs: string) {
   sessionStorage.setItem(STORAGE_KEY, qs.replace(/^\?/, ''));
 }
 
 /**
- * Гарантированно кладёт launch QS в sessionStorage.
- * 1) берёт из sessionStorage/URL (как раньше)
- * 2) если пусто — вызывает VKWebAppGetLaunchParams и сам собирает QS
- * Возвращает итоговый QS или кидает ошибку.
+ * Гарантирует наличие launch QS в sessionStorage.
+ * 1) Пытается взять из sessionStorage/URL/DEV.
+ * 2) Если пусто — вызывает VKWebAppGetLaunchParams и сам собирает QS.
+ * Возвращает QS или кидает ошибку.
  */
-export async function ensureLaunchQueryString(bridge: { send: Function }): Promise<string> {
+export async function ensureLaunchQueryString(bridge: BridgeLike): Promise<string> {
   const existing = getFrozenLaunchQueryString();
   if (existing) return existing;
 
-  // Пытаемся спросить у bridge
   try {
-    const lp = await bridge.send('VKWebAppGetLaunchParams');
-    // В ответе есть vk_user_id, vk_app_id, и прочие поля
+    const lp = (await bridge.send('VKWebAppGetLaunchParams')) as Record<string, unknown>;
     const qs = toQS(lp || {});
     if (qs) {
       setLaunchQueryString(qs);
       return qs;
     }
   } catch {
-    // игнор — пойдём дальше к ошибке
-  }
-
-  // В DEV можно позволить пустое, если задан VITE_VK_LAUNCH_QS
-  if (import.meta.env?.DEV && import.meta.env.VITE_VK_LAUNCH_QS) {
-    const qs = String(import.meta.env.VITE_VK_LAUNCH_QS).replace(/^\?/, '');
-    setLaunchQueryString(qs);
-    return qs;
+    // no-op
   }
 
   throw new Error('VK launch params are missing');
