@@ -33,8 +33,6 @@ async function buildVkSignedHeaders(bodyJson: string) {
 
 /** Запрос создания пробежки на ваш бэкенд */
 export async function createRunSecure(body: {
-  cityId?: number;
-  districtId?: number;
   cityName?: string;
   districtName?: string;
   startAt: string;           // ISO OffsetDateTime
