@@ -1,4 +1,3 @@
-// store/runnersApi.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from './index';
 
@@ -16,10 +15,10 @@ export type RunCard = {
 
 type RunDto = {
   id: number;
-  creatorId: number;              // vkUserId автора
+  creatorId: number;
   cityName: string;
   districtName?: string | null;
-  startAt: string;                // ISO OffsetDateTime
+  startAt: string;
   durationMinutes: number;
   distanceKm: number;
   paceSecPerKm?: number | null;
@@ -37,7 +36,6 @@ function secToPace(sec?: number | null): string {
 function normalize(dto: RunDto): RunCard {
   return {
     id: dto.id,
-    // в бэке нет имени/аватарки — делаем безопасные плейсхолдеры
     fullName: `id${dto.creatorId}`,
     avatarUrl: '',
     cityDistrict: [dto.cityName, dto.districtName || ''].filter(Boolean).join(', '),
@@ -52,9 +50,7 @@ function normalize(dto: RunDto): RunCard {
 export interface GetRunsArgs {
   endpoint?: string;
   page?: number;
-  size?: number; // <-- важно: бэкенд ждёт size
-  // фильтры РОВНО такие, как ждёт контроллер:
-  // cityName (обяз), districtName, paceFrom, paceTo, kmFrom, kmTo, dateFrom, dateTo
+  size?: number; 
   filters?: Record<string, string | number | boolean | undefined>;
 }
 

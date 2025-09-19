@@ -123,11 +123,12 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
       {modalRoot}
 
-      <Group header={<Header size="s">Город</Header>}>
+      <Group>
         <SimpleCell>
           <CustomSelect
             before={<Icon20LocationMapOutline />}
             options={CITY_OPTIONS}
+            style={{ width: 200 }}
             value={cityName}
             onChange={(e) => setCityName((e.target as HTMLSelectElement).value)}
             placeholder="Выберите город"
@@ -136,9 +137,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
             )}
           />
         </SimpleCell>
-      </Group>
-
-      <Group header={<Header size="s">Список пробежек</Header>}>
+      <Header size="s">Список пробежек</Header>
         <Spacing size="m" />
         <SimpleCell>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
