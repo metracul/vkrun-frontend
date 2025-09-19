@@ -8,7 +8,8 @@ async function bootstrap() {
   await vkBridge.send('VKWebAppInit');
 
   // 2) Гарантируем наличие launch QS (sessionStorage)
-  const qs = await ensureLaunchQueryString(vkBridge);
+ const qs = await ensureLaunchQueryString(vkBridge);
+console.debug('Launch QS:', qs);
   // На время отладки:
   // console.debug('Launch QS:', qs);
 
