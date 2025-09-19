@@ -26,6 +26,7 @@ export function getFrozenLaunchQueryString(): string | null {
     return qs;
   }
 
+  // DEV-путь: можно подложить launch QS через env
   if (import.meta.env?.DEV && import.meta.env.VITE_VK_LAUNCH_QS) {
     const devQs = String(import.meta.env.VITE_VK_LAUNCH_QS).replace(/^\?/, '');
     sessionStorage.setItem(STORAGE_KEY, devQs);
@@ -50,6 +51,7 @@ export async function ensureLaunchQueryString(bridge: BridgeLike): Promise<strin
   const existing = getFrozenLaunchQueryString();
   if (existing) return existing;
 
+  // Пытаемся получить через bridge
   try {
     const lp = (await bridge.send('VKWebAppGetLaunchParams')) as Record<string, unknown>;
     const qs = toQS(lp || {});
@@ -58,8 +60,9 @@ export async function ensureLaunchQueryString(bridge: BridgeLike): Promise<strin
       return qs;
     }
   } catch {
-    // no-op
+    // игнор — перейдем к выбросу ошибки ниже
   }
 
+  // DEV fallback уже обработан в getFrozenLaunchQueryString
   throw new Error('VK launch params are missing');
 }

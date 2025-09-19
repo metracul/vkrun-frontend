@@ -2,9 +2,7 @@
 import bridge from '@vkontakte/vk-bridge';
 import { getFrozenLaunchQueryString } from '../shared/vkParams';
 
-const rawBase = import.meta.env.VITE_API_BASE_URL;
-if (!rawBase) throw new Error('VITE_API_BASE_URL is not set');
-const API_BASE = rawBase.replace(/\/+$/, '');
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 
 /** SHA-256 от строки, hex в нижнем регистре */
 async function sha256HexUtf8(str: string): Promise<string> {
@@ -19,7 +17,7 @@ async function buildVkSignedHeaders(bodyJson: string) {
   const bodySha256 = await sha256HexUtf8(bodyJson);
   const payload = `body_sha256=${bodySha256}`;
 
-  const { sign, ts } = await bridge.send('VKWebAppCreateHash', { payload });
+  const { sign, ts } = await bridge.send<'VKWebAppCreateHash'>('VKWebAppCreateHash', { payload });
   const launchQs = getFrozenLaunchQueryString();
   if (!launchQs) throw new Error('No VK launch params');
 
@@ -33,11 +31,9 @@ async function buildVkSignedHeaders(bodyJson: string) {
 
 /**
  * Инициализация пользователя через POST /api/v1/me.
- * ВНИМАНИЕ: тело пустое ('') — сервер должен хэшировать ровно пустые байты.
- * Если сервер ожидает '{}', замените body на '{}' и хэшируйте именно '{}'.
  */
 export async function initMe() {
-  const body = ''; // либо '{}' — но тогда синхронно поменять и серверную проверку
+  const body = ''; // тело пустое
   const signHeaders = await buildVkSignedHeaders(body);
 
   const res = await fetch(`${API_BASE}/api/v1/me`, {
