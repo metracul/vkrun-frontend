@@ -1,5 +1,4 @@
-// src/panels/RunDetails.tsx
-import { FC, useMemo } from 'react';
+import { FC, useMemo, useState } from 'react';
 import {
   Panel,
   PanelHeader,
@@ -18,7 +17,7 @@ import {
 } from '@vkontakte/vkui';
 import { Icon24User } from '@vkontakte/icons';
 import { useRouteNavigator, useParams } from '@vkontakte/vk-mini-apps-router';
-import { useGetRunByIdQuery } from '../store/runnersApi';
+import { useGetRunByIdQuery, useJoinRunMutation } from '../store/runnersApi';
 import { useVkUsers } from '../hooks/useVkUsers';
 
 // --- utils ---
@@ -41,14 +40,7 @@ function formatTime(dateISO?: string) {
   return `${hh}:${mm}`;
 }
 
-// ожидаем плейсхолдер "id{vkId}" в RunCard.fullName
-function parseVkIdFromFullName(fullName?: string): number | undefined {
-  if (!fullName) return undefined;
-  const m = /^id(\d+)$/.exec(fullName.trim());
-  return m ? Number(m[1]) : undefined;
-}
-
-// "M:SS /км" -> секунд/км (терпимо к пробелам и суффиксу)
+// "M:SS /км" -> секунд/км
 function parsePaceToSec(pace?: string): number | undefined {
   if (!pace) return undefined;
   const m = /^\s*(\d+):(\d{2})(?:\s*\/?\s*км)?\s*$/i.exec(pace.trim());
@@ -73,27 +65,26 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
   const { data, isLoading, isError, refetch } = useGetRunByIdQuery(runId!, {
     skip: !runId,
-});
+  });
 
-  // 1) из fullName достаём VK ID создателя (строго по шаблону "id{vkId}")
-  const creatorVkId = useMemo(
-    () => parseVkIdFromFullName(data?.fullName),
-    [data?.fullName]
-  );
+  const [joinRun, { isLoading: isJoining }] = useJoinRunMutation();
+  const [joined, setJoined] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
 
-  // 2) грузим профиль через ваш useVkUsers(userIds, appId)
+  // профиль создателя по VK ID
   const appId = Number(import.meta.env.VITE_VK_APP_ID);
+  const creatorVkId = data?.creatorVkId;
   const profilesMap = useVkUsers(creatorVkId ? [creatorVkId] : [], appId);
   const creatorProfile = creatorVkId ? profilesMap[creatorVkId] : undefined;
 
-  // 3) город и район из объединённого поля "Москва, Центральный"
+  // город / район
   const { cityName, districtName } = useMemo(() => {
     const cd = data?.cityDistrict || '';
     const [city, district] = cd.split(',').map((s) => s.trim());
     return { cityName: city || '', districtName: district || '' };
   }, [data?.cityDistrict]);
 
-  // 4) длительность считаем как distanceKm * pace
+  // длительность = distance * pace
   const durationText = useMemo(() => {
     if (!data?.distanceKm || !data?.pace) return '—';
     const paceSec = parsePaceToSec(data.pace);
@@ -101,6 +92,20 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
     const totalMin = (data.distanceKm * paceSec) / 60;
     return minutesToHhMm(totalMin);
   }, [data?.distanceKm, data?.pace]);
+
+  const onJoin = async () => {
+    setJoinError(null);
+    if (!runId) return;
+    try {
+      await joinRun(runId).unwrap();       // POST /api/v1/runs/{id}/join  { runId }
+      setJoined(true);
+      refetch();                           // при желании обновить детали
+      // дернуть обновление списка (если нужно)
+      window.dispatchEvent(new Event('runs:updated'));
+    } catch (e: any) {
+      setJoinError(e?.data?.error || 'Не удалось записаться');
+    }
+  };
 
   return (
     <Panel id={id}>
@@ -180,6 +185,27 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
                 {durationText}
               </SimpleCell>
             </Group>
+
+            <Spacing size={12} />
+
+            {/* Кнопка записи */}
+            <Button
+              size="l"
+              appearance="accent"
+              disabled={isJoining || joined}
+              onClick={onJoin}
+            >
+              {joined ? 'Записан' : isJoining ? 'Записываю…' : 'Побегу'}
+            </Button>
+
+            {joinError && (
+              <>
+                <Spacing size={8} />
+                <Footnote style={{ color: 'var(--vkui--color_text_negative)' }}>
+                  {joinError}
+                </Footnote>
+              </>
+            )}
 
             <Spacing size={16} />
           </>

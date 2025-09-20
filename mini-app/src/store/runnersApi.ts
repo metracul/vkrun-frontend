@@ -3,7 +3,7 @@ import type { RootState } from './index';
 
 export type RunCard = {
   id: string | number;
-  creatorVkId: number;
+  creatorVkId: number;        // важно для профиля VK
   fullName: string;
   avatarUrl?: string;
   cityDistrict?: string;
@@ -16,7 +16,7 @@ export type RunCard = {
 
 type RunDto = {
   id: number;
-  creatorId: number;
+  creatorId: number;          // vkUserId
   cityName: string;
   districtName?: string | null;
   startAt: string;
@@ -62,7 +62,7 @@ export const runnersApi = createApi({
     baseUrl: import.meta.env.VITE_API_BASE_URL ?? '',
     prepareHeaders: (headers, { getState }) => {
       const qs = (getState() as RootState).vkParams.queryString;
-      if (qs) headers.set('X-VK-Params', qs);
+      if (qs) headers.set('X-VK-Params', qs); // бек ожидает
       headers.set('Accept', 'application/json');
       return headers;
     },
@@ -97,7 +97,21 @@ export const runnersApi = createApi({
       }),
       transformResponse: (raw: RunDto) => normalize(raw),
     }),
+
+    // МУТАЦИЯ: записаться на пробежку
+    joinRun: b.mutation<void, string | number>({
+      query: (id) => ({
+        url: `/api/v1/runs/${id}/join`,
+        method: 'POST',
+        body: { runId: Number(id) }, // бек требует body.runId == path id
+      }),
+    }),
   }),
 });
 
-export const { useGetRunsQuery, useGetRunByIdQuery, usePrefetch } = runnersApi;
+export const {
+  useGetRunsQuery,
+  useGetRunByIdQuery,
+  usePrefetch,
+  useJoinRunMutation, // ← экспорт хука
+} = runnersApi;
