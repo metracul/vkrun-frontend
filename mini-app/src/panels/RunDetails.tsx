@@ -1,3 +1,4 @@
+// src/panels/RunDetails.tsx
 import { FC, useEffect, useMemo, useState } from 'react';
 import {
   Panel,
@@ -7,7 +8,6 @@ import {
   RichCell,
   Spacing,
   Avatar,
-  Footnote,
   Placeholder,
   Button,
   SimpleCell,
@@ -118,27 +118,27 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
     if (!runId) return;
     try {
       await joinRun(runId).unwrap();
-      setLocalParticipant(true);  // мгновенно
+      setLocalParticipant(true);
       refetch();
       window.dispatchEvent(new Event('runs:updated'));
-    } catch { /* показывать ошибку можно по желанию */ }
+    } catch {/* можно вывести уведомление об ошибке */}
   };
 
   const onLeave = async () => {
     if (!runId) return;
     try {
       await leaveRun(runId).unwrap();
-      setLocalParticipant(false); // мгновенно
+      setLocalParticipant(false);
       refetch();
       window.dispatchEvent(new Event('runs:updated'));
-    } catch { /* показывать ошибку можно по желанию */ }
+    } catch {/* можно вывести уведомление об ошибке */}
   };
 
   return (
     <Panel id={id}>
       <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.back()} />}>
-              <Header size="l">Пробежка</Header>
-            </PanelHeader>
+        <Header size="l">Пробежка</Header>
+      </PanelHeader>
 
       <Group>
         {isLoading && <Card mode="shadow"><RichCell multiline>Загрузка…</RichCell></Card>}
@@ -153,7 +153,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
         {!isLoading && !isError && data && (
           <>
-            {/* Создатель */}
+            {/* Создатель — только аватар и ФИО */}
             <Card mode="shadow">
               <RichCell
                 before={
@@ -166,7 +166,6 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
                 multiline
               >
                 {creatorProfile?.fullName || 'Получаю данные…'}
-                {data.notes ? <Footnote style={{ marginTop: 4 }}>{data.notes}</Footnote> : null}
               </RichCell>
             </Card>
 
@@ -175,7 +174,16 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
             <Group header={<Header>Информация о пробежке</Header>}>
               <SimpleCell><Caption level="1">Дата</Caption>{formatDate(data.dateISO)}</SimpleCell>
               <SimpleCell><Caption level="1">Время</Caption>{formatTime(data.dateISO)}</SimpleCell>
-              {data.notes ? <SimpleCell><Caption level="1">Описание</Caption>{data.notes}</SimpleCell> : null}
+
+              {data.notes ? (
+                <SimpleCell>
+                  <Caption level="1">Описание</Caption>
+                  <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {data.notes}
+                  </div>
+                </SimpleCell>
+              ) : null}
+
               <SimpleCell><Caption level="1">Город</Caption>{cityName || '—'}</SimpleCell>
               <SimpleCell><Caption level="1">Район</Caption>{districtName || '—'}</SimpleCell>
               <SimpleCell><Caption level="1">Темп</Caption>{data.pace || '—'}</SimpleCell>

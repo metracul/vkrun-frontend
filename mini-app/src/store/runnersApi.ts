@@ -1,3 +1,4 @@
+// src/store/runnersApi.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from './index';
 import bridge from '@vkontakte/vk-bridge';
@@ -187,5 +188,5 @@ export const {
   useGetRunByIdQuery,
   usePrefetch,
   useJoinRunMutation,
-  useLeaveRunMutation,       // ← новый хук
+  useLeaveRunMutation,
 } = runnersApi;

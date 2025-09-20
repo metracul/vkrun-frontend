@@ -59,6 +59,16 @@ function parseCreatorIdFromFallback(fullName?: string): number | undefined {
   return m ? Number(m[1]) : undefined;
 }
 
+// "MM:SS" -> секунд/км
+function parsePaceToSec(mmss: string) {
+  if (!mmss) return undefined;
+  const m = /^(\d{1,2}):([0-5]\d)$/.exec(mmss.trim());
+  if (!m) return undefined;
+  const min = Number(m[1]);
+  const sec = Number(m[2]);
+  return min * 60 + sec;
+}
+
 // ---------- hook: batch users.get ----------
 type VkUser = {
   id: number;
@@ -159,26 +169,31 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
   // Остальные фильтры (в модалке)
   const [distanceStr, setDistanceStr] = useState<string>(''); // строгое совпадение distanceKm
-  const [pace, setPace] = useState<string>('');               // выбор из списка
+  const [pace, setPace] = useState<string>('');               // выбор из списка "MM:SS"
   const [runDate, setRunDate] = useState<string>('');         // YYYY-MM-DD
 
   // Собираем фильтры под бэкенд
   const filters = useMemo(() => {
     const f: Record<string, string | number> = {};
 
+    // обязательно
     if (cityName.trim()) f.cityName = cityName.trim();
 
+    // дистанция: точное совпадение через границы kmFrom/kmTo
     const km = Number(distanceStr.replace(',', '.'));
     if (!Number.isNaN(km) && distanceStr.trim() !== '') {
-      // строгое совпадение дистанции
-      f.distanceKm = km;
+      f.kmFrom = km;
+      f.kmTo = km;
     }
 
-    if (pace) {
-      // передаём выбранный темп как есть (например, "05:30")
-      f.pace = pace;
+    // темп: точное совпадение через paceFrom/paceTo в секундах
+    const paceSec = parsePaceToSec(pace);
+    if (paceSec != null) {
+      f.paceFrom = paceSec;
+      f.paceTo = paceSec;
     }
 
+    // дата суток: [from, to)
     if (runDate) {
       const { from, to } = dayRangeToIso(runDate);
       if (from && to) {
@@ -186,6 +201,9 @@ export const Home: FC<HomeProps> = ({ id }) => {
         f.dateTo = to;
       }
     }
+
+    // при добавлении района:
+    // if (districtName.trim()) f.districtName = districtName.trim();
 
     return f;
   }, [cityName, distanceStr, pace, runDate]);
@@ -201,7 +219,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
   // Соберём creatorId (из плейсхолдера) — временно, пока с бэка не придёт creatorVkId
   const creatorIds = useMemo(() => {
     return runs
-      .map((r: any) => (typeof r.creatorId === 'number' ? r.creatorId : parseCreatorIdFromFallback(r.fullName)))
+      .map((r: any) => (typeof r.creatorVkId === 'number' ? r.creatorVkId : parseCreatorIdFromFallback(r.fullName)))
       .filter((x): x is number => Number.isFinite(x));
   }, [runs]);
 
@@ -369,7 +387,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
         {runs.map((r: any) => {
           const vkId: number | undefined =
-            typeof r.creatorId === 'number' ? r.creatorId : parseCreatorIdFromFallback(r.fullName);
+            typeof r.creatorVkId === 'number' ? r.creatorVkId : parseCreatorIdFromFallback(r.fullName);
 
           const profile = vkId ? vkProfiles[vkId] : undefined;
           const fullName = profile?.fullName || r.fullName;
