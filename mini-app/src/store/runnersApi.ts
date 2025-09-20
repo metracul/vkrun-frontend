@@ -16,12 +16,12 @@ export type RunCard = {
   pace?: string;
   title?: string;
   notes?: string;
-  participants?: RunParticipant[];  // ← список бегущих для страницы деталей
+  participants?: RunParticipant[];  // список бегущих
 };
 
 type RunDto = {
   id: number;
-  creatorId: number;                // vkUserId создателя (по вашему примеру)
+  creatorId: number;                // vkUserId создателя
   cityId?: number;
   districtId?: number;
   cityName: string;
@@ -31,7 +31,7 @@ type RunDto = {
   distanceKm: number;
   paceSecPerKm?: number | null;
   description?: string | null;
-  participants?: Array<{ id: number; vkUserId: number }>; // ← как в ответе сервера
+  participants?: Array<{ id: number; vkUserId: number }>;
 };
 
 function secToPace(sec?: number | null): string {
@@ -58,7 +58,6 @@ function normalize(dto: RunDto): RunCard {
 }
 
 // --- подпись ТОЛЬКО для POST ---
-/** SHA-256 от строки, hex lower */
 async function sha256HexUtf8(str: string): Promise<string> {
   const enc = new TextEncoder();
   const data = enc.encode(str);
@@ -129,7 +128,7 @@ export const runnersApi = createApi({
       transformResponse: (raw: RunDto) => normalize(raw),
     }),
 
-    // POST /api/v1/runs/{id}/join c телом { runId }, с ПОДПИСЬЮ
+    // POST /api/v1/runs/{id}/join  { runId } + подпись
     joinRun: b.mutation<void, string | number>({
       async queryFn(id, _api, _extraOptions, fetchWithBQ) {
         try {
@@ -154,6 +153,32 @@ export const runnersApi = createApi({
         }
       },
     }),
+
+    // POST /api/v1/runs/{id}/leave  { runId } + подпись
+    leaveRun: b.mutation<void, string | number>({
+      async queryFn(id, _api, _extraOptions, fetchWithBQ) {
+        try {
+          const body = { runId: Number(id) };
+          const bodyJson = JSON.stringify(body);
+          const signHeaders = await buildVkSignedHeaders(bodyJson);
+
+          const res = await fetchWithBQ({
+            url: `/api/v1/runs/${id}/leave`,
+            method: 'POST',
+            body: bodyJson,
+            headers: {
+              'Content-Type': 'application/json',
+              ...signHeaders,
+            },
+          });
+
+          if (res.error) return { error: res.error as any };
+          return { data: undefined };
+        } catch (e: any) {
+          return { error: { status: 'CUSTOM_ERROR', data: e?.message || 'sign failed' } as any };
+        }
+      },
+    }),
   }),
 });
 
@@ -162,4 +187,5 @@ export const {
   useGetRunByIdQuery,
   usePrefetch,
   useJoinRunMutation,
+  useLeaveRunMutation,       // ← новый хук
 } = runnersApi;
