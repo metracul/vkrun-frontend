@@ -59,6 +59,13 @@ function parseCreatorIdFromFallback(fullName?: string): number | undefined {
   return m ? Number(m[1]) : undefined;
 }
 
+// вытащить "MM:SS" из строки темпа вида "5:30 /км" или "05:30 /км"
+function extractMmSs(pace?: string) {
+  if (!pace) return '';
+  const m = pace.match(/(\d{1,2}:\d{2})/);
+  return m ? m[1] : '';
+}
+
 // ---------- hook: batch users.get ----------
 type VkUser = {
   id: number;
@@ -107,7 +114,7 @@ function useVkUsers(userIds: number[]) {
         if (!tokenRef.current) {
           const { access_token } = await bridge.send('VKWebAppGetAuthToken', {
             app_id: appId,
-            scope: '' // для users.get достаточно пустого
+            scope: ''
           });
           tokenRef.current = access_token;
         }
@@ -162,68 +169,70 @@ export const Home: FC<HomeProps> = ({ id }) => {
   const [pace, setPace] = useState<string>('');               // выбор из списка
   const [runDate, setRunDate] = useState<string>('');         // YYYY-MM-DD
 
-  // Собираем фильтры под бэкенд
-  const filters = useMemo(() => {
-    const f: Record<string, string | number> = {};
-
-    if (cityName.trim()) f.cityName = cityName.trim();
-
-    const km = Number(distanceStr.replace(',', '.'));
-    if (!Number.isNaN(km) && distanceStr.trim() !== '') {
-      // строгое совпадение дистанции
-      f.distanceKm = km;
-    }
-
-    if (pace) {
-      // передаём выбранный темп как есть (например, "05:30")
-      f.pace = pace;
-    }
-
-    if (runDate) {
-      const { from, to } = dayRangeToIso(runDate);
-      if (from && to) {
-        f.dateFrom = from;
-        f.dateTo = to;
-      }
-    }
-
-    return f;
-  }, [cityName, distanceStr, pace, runDate]);
-
-  // Грузим список
+  // Больше не отправляем фильтры на бэк — фильтруем локально
   const { data, isLoading, isError, refetch, isFetching } = useGetRunsQuery({
     endpoint: '/api/v1/runs',
-    size: 20,
-    filters,
+    size: 200, // можно увеличить, чтобы было что фильтровать
   });
   const runs = data?.items ?? [];
 
-  // Соберём creatorId (из плейсхолдера) — временно, пока с бэка не придёт creatorVkId
+  // --- локальная фильтрация ---
+  const filteredRuns = useMemo(() => {
+    const km = Number(distanceStr.replace(',', '.'));
+    const hasKm = !Number.isNaN(km) && distanceStr.trim() !== '';
+    const hasPace = !!pace;
+    const hasDate = !!runDate;
+
+    return runs.filter((r: any) => {
+      // город: r.cityDistrict = "Город, Район" -> берём часть до запятой
+      const runCity = (r.cityDistrict || '').split(',')[0].trim();
+      if (cityName && runCity !== cityName) return false;
+
+      if (hasKm && Number(r.distanceKm) !== km) return false;
+
+      if (hasPace) {
+        const mmss = extractMmSs(r.pace);
+        if (mmss !== pace) return false;
+      }
+
+      if (hasDate) {
+        const d = new Date(r.dateISO);
+        if (Number.isNaN(d.getTime())) return false;
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const runYmd = `${yyyy}-${mm}-${dd}`;
+        if (runYmd !== runDate) return false;
+      }
+
+      return true;
+    });
+  }, [runs, cityName, distanceStr, pace, runDate]);
+
+  // Соберём creatorId для отображения имён/аватаров
   const creatorIds = useMemo(() => {
-    return runs
+    return filteredRuns
       .map((r: any) => (typeof r.creatorId === 'number' ? r.creatorId : parseCreatorIdFromFallback(r.fullName)))
       .filter((x): x is number => Number.isFinite(x));
-  }, [runs]);
+  }, [filteredRuns]);
 
-  // Карта профилей VK
   const vkProfiles = useVkUsers(creatorIds);
 
   // PREFETCH деталей пробежки
-  const prefetchRunById = usePrefetch('getRunById', { ifOlderThan: 60 }); // сек
+  const prefetchRunById = usePrefetch('getRunById', { ifOlderThan: 60 });
 
   const [activeModal, setActiveModal] = useState<ModalId>(null);
   const close = () => setActiveModal(null);
 
   const applyFilters = () => {
+    // локальная фильтрация — достаточно закрыть модалку
     close();
-    refetch();
   };
 
   const resetFilters = () => {
     setDistanceStr('');
     setPace('');
     setRunDate('');
-    refetch();
   };
 
   useEffect(() => {
@@ -250,7 +259,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
             />
           </FormItem>
 
-          <FormItem top="Дистанция (км)">
+          <FormItem top="Дистанция (км) — точное совпадение">
             <Input
               type="text"
               inputMode="decimal"
@@ -363,11 +372,11 @@ export const Home: FC<HomeProps> = ({ id }) => {
           <Card mode="shadow"><RichCell multiline>Не удалось получить данные с сервера</RichCell></Card>
         )}
 
-        {!isLoading && !isError && runs.length === 0 && (
+        {!isLoading && !isError && filteredRuns.length === 0 && (
           <Card mode="shadow"><RichCell multiline>Пока пусто. Попробуй изменить фильтры.</RichCell></Card>
         )}
 
-        {runs.map((r: any) => {
+        {filteredRuns.map((r: any) => {
           const vkId: number | undefined =
             typeof r.creatorId === 'number' ? r.creatorId : parseCreatorIdFromFallback(r.fullName);
 
