@@ -4,6 +4,7 @@ import type { RootState } from './index';
 import bridge from '@vkontakte/vk-bridge';
 import { getFrozenLaunchQueryString } from '../shared/vkParams';
 
+// ---- Типы ----
 export type RunParticipant = { id: number; vkUserId: number };
 
 export type RunCard = {
@@ -17,12 +18,12 @@ export type RunCard = {
   pace?: string;
   title?: string;
   notes?: string;
-  participants?: RunParticipant[];  // список бегущих
+  participants?: RunParticipant[];  // список бегущих (для деталей)
 };
 
 type RunDto = {
   id: number;
-  creatorId: number;                // vkUserId создателя
+  creatorId: number;                // vkUserId создателя (из бэка)
   cityId?: number;
   districtId?: number;
   cityName: string;
@@ -35,6 +36,7 @@ type RunDto = {
   participants?: Array<{ id: number; vkUserId: number }>;
 };
 
+// ---- Утилиты нормализации ----
 function secToPace(sec?: number | null): string {
   if (sec == null || sec <= 0) return '';
   const m = Math.floor(sec / 60);
@@ -46,7 +48,7 @@ function normalize(dto: RunDto): RunCard {
   return {
     id: dto.id,
     creatorVkId: dto.creatorId,
-    fullName: `id${dto.creatorId}`,
+    fullName: `id${dto.creatorId}`, // плейсхолдер, далее подтянем имя через users.get
     avatarUrl: '',
     cityDistrict: [dto.cityName, dto.districtName || ''].filter(Boolean).join(', '),
     dateISO: dto.startAt,
@@ -58,7 +60,8 @@ function normalize(dto: RunDto): RunCard {
   };
 }
 
-// --- подпись ТОЛЬКО для POST ---
+// ---- Подпись (для изменяющих запросов) ----
+/** SHA-256 от строки, hex lower */
 async function sha256HexUtf8(str: string): Promise<string> {
   const enc = new TextEncoder();
   const data = enc.encode(str);
@@ -81,6 +84,7 @@ async function buildVkSignedHeaders(bodyJson: string) {
   };
 }
 
+// ---- Аргументы списка ----
 export interface GetRunsArgs {
   endpoint?: string;
   page?: number;
@@ -90,18 +94,21 @@ export interface GetRunsArgs {
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 
+// ---- API ----
 export const runnersApi = createApi({
   reducerPath: 'runnersApi',
   baseQuery: fetchBaseQuery({
     baseUrl: API_BASE,
     prepareHeaders: (headers, { getState }) => {
+      // Для GET хватает X-VK-Params
       const qs = (getState() as RootState).vkParams.queryString;
-      if (qs) headers.set('X-VK-Params', qs); // для GET
+      if (qs) headers.set('X-VK-Params', qs);
       headers.set('Accept', 'application/json');
       return headers;
     },
   }),
   endpoints: (b) => ({
+    // Список пробежек
     getRuns: b.query<{ items: RunCard[]; nextCursor?: string }, GetRunsArgs | void>({
       query: (args) => {
         const { endpoint = '/api/v1/runs', page, size, filters = {} } = args ?? {};
@@ -121,32 +128,25 @@ export const runnersApi = createApi({
       },
     }),
 
+    // Детали по id
     getRunById: b.query<RunCard, string | number>({
-      query: (id) => ({
-        url: `/api/v1/runs/${id}`,
-        method: 'GET',
-      }),
+      query: (id) => ({ url: `/api/v1/runs/${id}`, method: 'GET' }),
       transformResponse: (raw: RunDto) => normalize(raw),
     }),
 
-    // POST /api/v1/runs/{id}/join  { runId } + подпись
+    // Записаться: POST /{id}/join  body { runId }
     joinRun: b.mutation<void, string | number>({
-      async queryFn(id, _api, _extraOptions, fetchWithBQ) {
+      async queryFn(id, _api, _extra, fetchWithBQ) {
         try {
           const body = { runId: Number(id) };
           const bodyJson = JSON.stringify(body);
           const signHeaders = await buildVkSignedHeaders(bodyJson);
-
           const res = await fetchWithBQ({
             url: `/api/v1/runs/${id}/join`,
             method: 'POST',
             body: bodyJson,
-            headers: {
-              'Content-Type': 'application/json',
-              ...signHeaders,
-            },
+            headers: { 'Content-Type': 'application/json', ...signHeaders },
           });
-
           if (res.error) return { error: res.error as any };
           return { data: undefined };
         } catch (e: any) {
@@ -155,24 +155,39 @@ export const runnersApi = createApi({
       },
     }),
 
-    // POST /api/v1/runs/{id}/leave  { runId } + подпись
+    // Отписаться: POST /{id}/leave  body { runId }
     leaveRun: b.mutation<void, string | number>({
-      async queryFn(id, _api, _extraOptions, fetchWithBQ) {
+      async queryFn(id, _api, _extra, fetchWithBQ) {
         try {
           const body = { runId: Number(id) };
           const bodyJson = JSON.stringify(body);
           const signHeaders = await buildVkSignedHeaders(bodyJson);
-
           const res = await fetchWithBQ({
             url: `/api/v1/runs/${id}/leave`,
             method: 'POST',
             body: bodyJson,
-            headers: {
-              'Content-Type': 'application/json',
-              ...signHeaders,
-            },
+            headers: { 'Content-Type': 'application/json', ...signHeaders },
           });
+          if (res.error) return { error: res.error as any };
+          return { data: undefined };
+        } catch (e: any) {
+          return { error: { status: 'CUSTOM_ERROR', data: e?.message || 'sign failed' } as any };
+        }
+      },
+    }),
 
+    // Удалить забег (только автор): DELETE /{id}
+    deleteRun: b.mutation<void, string | number>({
+      async queryFn(id, _api, _extra, fetchWithBQ) {
+        try {
+          // Тело пустое; подпись по пустой строке
+          const bodyJson = '';
+          const signHeaders = await buildVkSignedHeaders(bodyJson);
+          const res = await fetchWithBQ({
+            url: `/api/v1/runs/${id}`,
+            method: 'DELETE',
+            headers: { ...signHeaders },
+          });
           if (res.error) return { error: res.error as any };
           return { data: undefined };
         } catch (e: any) {
@@ -189,4 +204,5 @@ export const {
   usePrefetch,
   useJoinRunMutation,
   useLeaveRunMutation,
+  useDeleteRunMutation,
 } = runnersApi;

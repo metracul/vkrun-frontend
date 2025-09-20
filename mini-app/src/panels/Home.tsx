@@ -6,7 +6,8 @@ import {
 } from '@vkontakte/vkui';
 import { Icon20FilterOutline, Icon24User, Icon28AddCircleOutline, Icon20LocationMapOutline } from '@vkontakte/icons';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
-import { useGetRunsQuery, usePrefetch } from '../store/runnersApi';
+import { useGetRunsQuery, usePrefetch, useDeleteRunMutation } from '../store/runnersApi';
+import { useAppSelector } from '../store/hooks';
 import { DEFAULT_VIEW_PANELS } from '../routes';
 import bridge from '@vkontakte/vk-bridge';
 
@@ -27,21 +28,11 @@ const CITY_OPTIONS = [
   { value: 'Краснодар', label: 'Краснодар', country: 'Россия' },
 ];
 
-// варианты темпа
 const PACE_OPTIONS = [
   '02:00','02:30','03:00','03:30','04:00','04:30',
   '05:00','05:30','06:00','06:30','07:00','07:30',
   '08:00','08:30','09:00','09:30',
 ].map((label) => ({ value: label, label }));
-
-// ---------- utils ----------
-function dayRangeToIso(dateStr: string) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  if (!y || !m || !d) return { from: '', to: '' };
-  const start = new Date(y, m - 1, d, 0, 0, 0, 0);
-  const end = new Date(y, m - 1, d, 23, 59, 59, 999);
-  return { from: start.toISOString(), to: end.toISOString() };
-}
 
 function formatDate(dateISO?: string) {
   if (!dateISO) return '';
@@ -52,14 +43,11 @@ function formatDate(dateISO?: string) {
   const yyyy = d.getFullYear();
   return `${dd}.${mm}.${yyyy}`;
 }
-
 function parseCreatorIdFromFallback(fullName?: string): number | undefined {
   if (!fullName) return undefined;
   const m = /^id(\d+)$/.exec(fullName.trim());
   return m ? Number(m[1]) : undefined;
 }
-
-// "MM:SS" -> секунд/км
 function parsePaceToSec(mmss: string) {
   if (!mmss) return undefined;
   const m = /^(\d{1,2}):([0-5]\d)$/.exec(mmss.trim());
@@ -69,16 +57,9 @@ function parsePaceToSec(mmss: string) {
   return min * 60 + sec;
 }
 
-// ---------- hook: batch users.get ----------
-type VkUser = {
-  id: number;
-  first_name: string;
-  last_name: string;
-  photo_200?: string;
-  photo_100?: string;
-};
+// --- VK users.get хук (как было у вас) ---
+type VkUser = { id: number; first_name: string; last_name: string; photo_200?: string; photo_100?: string; };
 type VkProfile = { fullName: string; avatarUrl?: string };
-
 function uniqueFinite(ids: Array<number | undefined | null>) {
   const set = new Set<number>();
   for (const id of ids) if (Number.isFinite(id as number)) set.add(Number(id));
@@ -90,11 +71,6 @@ function chunk<T>(arr: T[], size: number): T[][] {
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
   return out;
 }
-
-/**
- * Загружает профили VK и возвращает мапу { [id]: { fullName, avatarUrl } }.
- * Требует VITE_VK_APP_ID.
- */
 function useVkUsers(userIds: number[]) {
   const [map, setMap] = useState<Record<number, VkProfile>>({});
   const tokenRef = useRef<string | null>(null);
@@ -111,14 +87,10 @@ function useVkUsers(userIds: number[]) {
     if (!missing.length) return;
 
     let cancelled = false;
-
     (async () => {
       try {
         if (!tokenRef.current) {
-          const { access_token } = await bridge.send('VKWebAppGetAuthToken', {
-            app_id: appId,
-            scope: '' // для users.get достаточно пустого
-          });
+          const { access_token } = await bridge.send('VKWebAppGetAuthToken', { app_id: appId, scope: '' });
           tokenRef.current = access_token;
         }
         const access_token = tokenRef.current!;
@@ -128,33 +100,19 @@ function useVkUsers(userIds: number[]) {
         for (const batch of batches) {
           const resp = await bridge.send('VKWebAppCallAPIMethod', {
             method: 'users.get',
-            params: {
-              user_ids: batch.join(','),
-              fields: 'photo_200,photo_100',
-              v: '5.199',
-              access_token
-            }
+            params: { user_ids: batch.join(','), fields: 'photo_200,photo_100', v: '5.199', access_token }
           });
           const users: VkUser[] = resp?.response || [];
           for (const u of users) {
-            next[u.id] = {
-              fullName: `${u.first_name} ${u.last_name}`.trim(),
-              avatarUrl: u.photo_200 || u.photo_100
-            };
+            next[u.id] = { fullName: `${u.first_name} ${u.last_name}`.trim(), avatarUrl: u.photo_200 || u.photo_100 };
           }
         }
-        if (!cancelled && Object.keys(next).length) {
-          setMap((prev) => ({ ...prev, ...next }));
-        }
-      } catch (e) {
-        console.warn('users.get via vk-bridge failed', e);
-      }
+        if (!cancelled && Object.keys(next).length) setMap((prev) => ({ ...prev, ...next }));
+      } catch (e) { console.warn('users.get via vk-bridge failed', e); }
     })();
-
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ids, appId]);
-
   return map;
 }
 
@@ -164,51 +122,32 @@ export const Home: FC<HomeProps> = ({ id }) => {
   const platform = usePlatform();
   const isDesktop = platform === 'vkcom';
 
-  // Город — выпадашка на главной. Дефолт: Москва.
+  // мой VK id для проверки прав удаления
+  const myVkId = useAppSelector((s) => s.user.data?.id);
+
+  // фильтры
   const [cityName, setCityName] = useState<string>('Москва');
+  const [distanceStr, setDistanceStr] = useState<string>('');
+  const [pace, setPace] = useState<string>('');
+  const [runDate, setRunDate] = useState<string>('');
 
-  // Остальные фильтры (в модалке)
-  const [distanceStr, setDistanceStr] = useState<string>(''); // строгое совпадение distanceKm
-  const [pace, setPace] = useState<string>('');               // выбор из списка "MM:SS"
-  const [runDate, setRunDate] = useState<string>('');         // YYYY-MM-DD
-
-  // Собираем фильтры под бэкенд
+  // собираем фильтры под бэкенд (как было у вас)
   const filters = useMemo(() => {
     const f: Record<string, string | number> = {};
-
-    // обязательно
     if (cityName.trim()) f.cityName = cityName.trim();
-
-    // дистанция: точное совпадение через границы kmFrom/kmTo
     const km = Number(distanceStr.replace(',', '.'));
-    if (!Number.isNaN(km) && distanceStr.trim() !== '') {
-      f.kmFrom = km;
-      f.kmTo = km;
-    }
-
-    // темп: точное совпадение через paceFrom/paceTo в секундах
-    const paceSec = parsePaceToSec(pace);
-    if (paceSec != null) {
-      f.paceFrom = paceSec;
-      f.paceTo = paceSec;
-    }
-
-    // дата суток: [from, to)
+    if (!Number.isNaN(km) && distanceStr.trim() !== '') { f.kmFrom = km; f.kmTo = km; }
+    const ps = parsePaceToSec(pace);
+    if (ps != null) { f.paceFrom = ps; f.paceTo = ps; }
     if (runDate) {
-      const { from, to } = dayRangeToIso(runDate);
-      if (from && to) {
-        f.dateFrom = from;
-        f.dateTo = to;
-      }
+      const d = new Date(runDate);
+      const from = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).toISOString();
+      const to   = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).toISOString();
+      f.dateFrom = from; f.dateTo = to;
     }
-
-    // при добавлении района:
-    // if (districtName.trim()) f.districtName = districtName.trim();
-
     return f;
   }, [cityName, distanceStr, pace, runDate]);
 
-  // Грузим список
   const { data, isLoading, isError, refetch, isFetching } = useGetRunsQuery({
     endpoint: '/api/v1/runs',
     size: 20,
@@ -216,33 +155,19 @@ export const Home: FC<HomeProps> = ({ id }) => {
   });
   const runs = data?.items ?? [];
 
-  // Соберём creatorId (из плейсхолдера) — временно, пока с бэка не придёт creatorVkId
   const creatorIds = useMemo(() => {
     return runs
       .map((r: any) => (typeof r.creatorVkId === 'number' ? r.creatorVkId : parseCreatorIdFromFallback(r.fullName)))
       .filter((x): x is number => Number.isFinite(x));
   }, [runs]);
 
-  // Карта профилей VK
   const vkProfiles = useVkUsers(creatorIds);
-
-  // PREFETCH деталей пробежки
-  const prefetchRunById = usePrefetch('getRunById', { ifOlderThan: 60 }); // сек
+  const prefetchRunById = usePrefetch('getRunById', { ifOlderThan: 60 });
 
   const [activeModal, setActiveModal] = useState<ModalId>(null);
   const close = () => setActiveModal(null);
-
-  const applyFilters = () => {
-    close();
-    refetch();
-  };
-
-  const resetFilters = () => {
-    setDistanceStr('');
-    setPace('');
-    setRunDate('');
-    refetch();
-  };
+  const applyFilters = () => { close(); refetch(); };
+  const resetFilters = () => { setDistanceStr(''); setPace(''); setRunDate(''); refetch(); };
 
   useEffect(() => {
     const onUpdated = () => refetch();
@@ -256,62 +181,43 @@ export const Home: FC<HomeProps> = ({ id }) => {
     return () => document.removeEventListener('visibilitychange', onVis);
   }, [refetch]);
 
+  // мутация удаления
+  const [deleteRun, { isLoading: isDeleting }] = useDeleteRunMutation();
+
   const modalRoot = (
     <ModalRoot activeModal={activeModal} onClose={close}>
       <ModalPage id="filters" onClose={close} header={<Header>Фильтры</Header>}>
         <Group>
           <FormItem top="Дата пробежки">
-            <Input
-              type="date"
-              value={runDate}
-              onChange={(e) => setRunDate((e.target as HTMLInputElement).value)}
-            />
+            <Input type="date" value={runDate} onChange={(e) => setRunDate((e.target as HTMLInputElement).value)} />
           </FormItem>
 
           <FormItem top="Дистанция (км)">
-            <Input
-              type="text"
-              inputMode="decimal"
-              placeholder="Например: 5"
-              value={distanceStr}
-              onChange={(e) => setDistanceStr(e.target.value)}
-            />
+            <Input type="text" inputMode="decimal" placeholder="Например: 5" value={distanceStr}
+              onChange={(e) => setDistanceStr(e.target.value)} />
           </FormItem>
 
           <FormItem top="Темп бега">
-            <CustomSelect
-              placeholder="Выберите темп"
-              options={PACE_OPTIONS}
-              value={pace}
-              onChange={(e) => setPace((e.target as HTMLSelectElement).value)}
-              allowClearButton
-            />
+            <CustomSelect placeholder="Выберите темп" options={PACE_OPTIONS} value={pace}
+              onChange={(e) => setPace((e.target as HTMLSelectElement).value)} allowClearButton />
           </FormItem>
 
           <Spacing size={12} />
           <ButtonGroup mode="vertical" align="center" gap="s">
-            <Button size="l" appearance="accent" onClick={applyFilters}>
-              Применить
-            </Button>
-            <Button size="l" mode="secondary" onClick={resetFilters}>
-              Сбросить
-            </Button>
-            <Button size="l" mode="tertiary" onClick={close}>
-              Закрыть
-            </Button>
+            <Button size="l" appearance="accent" onClick={applyFilters}>Применить</Button>
+            <Button size="l" mode="secondary" onClick={resetFilters}>Сбросить</Button>
+            <Button size="l" mode="tertiary" onClick={close}>Закрыть</Button>
           </ButtonGroup>
         </Group>
       </ModalPage>
 
       <ModalCard id="modal2" onClose={close}>
-        <Placeholder
-          action={
-            <ButtonGroup mode="vertical" align="center">
-              <Button onClick={() => setActiveModal('filters')}>Вернуться к фильтрам</Button>
-              <Button onClick={close}>Закрыть</Button>
-            </ButtonGroup>
-          }
-        />
+        <Placeholder action={
+          <ButtonGroup mode="vertical" align="center">
+            <Button onClick={() => setActiveModal('filters')}>Вернуться к фильтрам</Button>
+            <Button onClick={close}>Закрыть</Button>
+          </ButtonGroup>
+        } />
       </ModalCard>
     </ModalRoot>
   );
@@ -344,25 +250,15 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
         <SimpleCell>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Button
-              appearance="accent"
-              mode="outline"
-              after={<Icon20FilterOutline />}
-              onClick={() => setActiveModal('filters')}
-            >
+            <Button appearance="accent" mode="outline" after={<Icon20FilterOutline />} onClick={() => setActiveModal('filters')}>
               Фильтры
             </Button>
-
             <Button mode="secondary" onClick={() => refetch()} disabled={isFetching}>
               Обновить
             </Button>
-
             {isDesktop && (
-              <Button
-                mode="primary"
-                before={<Icon28AddCircleOutline />}
-                onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}
-              >
+              <Button mode="primary" before={<Icon28AddCircleOutline />}
+                onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}>
                 Создать пробежку
               </Button>
             )}
@@ -373,14 +269,8 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
         <Spacing size="m" />
 
-        {isLoading && (
-          <Card mode="shadow"><RichCell multiline>Загрузка…</RichCell></Card>
-        )}
-
-        {isError && (
-          <Card mode="shadow"><RichCell multiline>Не удалось получить данные с сервера</RichCell></Card>
-        )}
-
+        {isLoading && (<Card mode="shadow"><RichCell multiline>Загрузка…</RichCell></Card>)}
+        {isError && (<Card mode="shadow"><RichCell multiline>Не удалось получить данные с сервера</RichCell></Card>)}
         {!isLoading && !isError && runs.length === 0 && (
           <Card mode="shadow"><RichCell multiline>Пока пусто. Попробуй изменить фильтры.</RichCell></Card>
         )}
@@ -398,8 +288,38 @@ export const Home: FC<HomeProps> = ({ id }) => {
             routeNavigator.push(`/run/${String(r.id)}`);
           };
 
+          const isMine = myVkId && vkId && myVkId === vkId;
+
+          const onDeleteClick = async (e: React.MouseEvent) => {
+            e.stopPropagation(); // не открывать детали
+            if (!confirm('Удалить эту пробежку? Это действие необратимо.')) return;
+            try {
+              await deleteRun(r.id).unwrap();
+              // обновим список
+              window.dispatchEvent(new Event('runs:updated'));
+              refetch();
+            } catch (err: any) {
+              alert(err?.data?.error || 'Не удалось удалить пробежку');
+            }
+          };
+
           return (
-            <Card key={r.id} mode="shadow" style={{ marginTop: 8 }} onClick={openDetails}>
+            <Card key={r.id} mode="shadow" style={{ marginTop: 8, position: 'relative' }} onClick={openDetails}>
+              {/* Кнопка удаления только для своих забегов */}
+              {isMine ? (
+                <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }}>
+                  <Button
+                    size="s"
+                    mode="secondary"
+                    appearance="negative"
+                    disabled={isDeleting}
+                    onClick={onDeleteClick}
+                  >
+                    Удалить
+                  </Button>
+                </div>
+              ) : null}
+
               <RichCell
                 before={<Avatar size={48} src={avatar} fallbackIcon={<Icon24User />} />}
                 subtitle={[r.cityDistrict, formatDate(r.dateISO)].filter(Boolean).join(' • ')}
