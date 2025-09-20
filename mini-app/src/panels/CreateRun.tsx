@@ -126,12 +126,10 @@ const DISTRICTS: Record<(typeof CITIES)[number], string[]> = {
     'Сормовский район',
   ],
   'Краснодар': [
-    // округа
     'Западный адм. округ',
     'Карасунский адм. округ',
     'Прикубанский адм. округ',
     'Центральный адм. округ',
-    // микрорайоны/топонимы
     'Центральный микрорайон (ЦМР)',
     'Фестивальный микрорайон (ФМР)',
     'Юбилейный микрорайон (ЮМР)',
@@ -149,13 +147,11 @@ const DISTRICTS: Record<(typeof CITIES)[number], string[]> = {
   ],
 };
 
-// ===== компонент =====
 export const CreateRun: FC<NavIdProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
 
   const [city, setCity] = useState<string | undefined>(undefined);
-  const [district, setDistrict] = useState<string>('');         // теперь это выбранное значение из списка
-  const [districtQuery, setDistrictQuery] = useState<string>(''); // текст фильтра для районов
+  const [district, setDistrict] = useState<string>('');
 
   const [desc, setDesc] = useState('');
   const [distanceStr, setDistanceStr] = useState('');
@@ -219,20 +215,14 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
     return x;
   };
 
-  // Список районов для выбранного города с фильтром по началу названия (без учёта регистра)
-  const districtOptions = useMemo(() => {
+  const allDistrictOptions = useMemo(() => {
     const list = city ? DISTRICTS[city as keyof typeof DISTRICTS] ?? [] : [];
-    const q = districtQuery.trim().toLowerCase();
-    const filtered = q
-      ? list.filter((name) => name.toLowerCase().startsWith(q))
-      : list;
-    return filtered.map((name) => ({ value: name, label: name }));
-  }, [city, districtQuery]);
+    return list.map((name) => ({ value: name, label: name }));
+  }, [city]);
 
-  // Валидация формы
   const isFormValid = useMemo(() => {
     const hasCity = !!city;
-    const hasDistrict = district.trim().length > 0; // выбран из списка
+    const hasDistrict = district.trim().length > 0;
     const hasPace = !!pace && paceToSeconds(pace) != null;
     const km = parseFloat(distanceStr.replace(',', '.'));
     const hasDistance = isFinite(km) && km > 0;
@@ -280,11 +270,14 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
     }
   };
 
-  // Сброс района и строки поиска при смене города
   const onCityChange = (value: string) => {
     setCity(value);
     setDistrict('');
-    setDistrictQuery('');
+  };
+
+  const filterFn = (q: string, option: { value: string; label: string }) => {
+    if (!q) return true;
+    return option.label.toLowerCase().startsWith(q.toLowerCase());
   };
 
   return (
@@ -310,23 +303,17 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
         />
 
         <Spacing size="s" />
-        <Header>Выберите район (список зависит от города)</Header>
-
-        {/* Поле для фильтрации списка районов по началу названия */}
-        <Input
-          placeholder="Начните вводить название района"
-          value={districtQuery}
-          onChange={(e) => setDistrictQuery(e.target.value)}
-          disabled={!city}
-        />
-        <Spacing size="s" />
-
+        <Header>Выберите район (зависит от города)</Header>
         <CustomSelect
-          options={districtOptions}
+          key={city || 'no-city'}
+          options={allDistrictOptions}
           value={district}
           onChange={(e) => setDistrict((e.target as HTMLSelectElement).value)}
-          placeholder={city ? 'Выберите район' : 'Сначала выберите город'}
+          placeholder={city ? 'Начните вводить район' : 'Сначала выберите город'}
           disabled={!city}
+          searchable
+          filterFn={filterFn}
+          allowClearButton
         />
 
         <Spacing size="s" />
