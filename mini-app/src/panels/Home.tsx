@@ -163,7 +163,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
   // Больше не отправляем фильтры на бэк — фильтруем локально
   const { data, isLoading, isError, refetch, isFetching } = useGetRunsQuery({
     endpoint: '/api/v1/runs',
-    size: 200, // можно увеличить, чтобы было что фильтровать
+    size: 20, // можно увеличить, чтобы было что фильтровать
   });
   const runs = data?.items ?? [];
 
