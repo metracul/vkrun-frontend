@@ -1,3 +1,4 @@
+// src/panels/Home.tsx
 import { FC, useMemo, useState, useEffect, useRef } from 'react';
 import {
   Panel, PanelHeader, Header, Button, Group, Avatar, NavIdProps, ModalRoot, ModalPage, Placeholder, ButtonGroup, ModalCard,
@@ -5,7 +6,7 @@ import {
 } from '@vkontakte/vkui';
 import { Icon20FilterOutline, Icon24User, Icon28AddCircleOutline, Icon20LocationMapOutline } from '@vkontakte/icons';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
-import { useGetRunsQuery } from '../store/runnersApi';
+import { useGetRunsQuery, usePrefetch } from '../store/runnersApi'; // ← добавили usePrefetch
 import { DEFAULT_VIEW_PANELS } from '../routes';
 import bridge from '@vkontakte/vk-bridge';
 
@@ -41,7 +42,6 @@ function formatDate(dateISO?: string) {
 }
 
 function parseCreatorIdFromFallback(fullName?: string): number | undefined {
-  // ожидаем плейсхолдер вида "id{vkId}"
   if (!fullName) return undefined;
   const m = /^id(\d+)$/.exec(fullName.trim());
   return m ? Number(m[1]) : undefined;
@@ -95,7 +95,7 @@ function useVkUsers(userIds: number[]) {
         if (!tokenRef.current) {
           const { access_token } = await bridge.send('VKWebAppGetAuthToken', {
             app_id: appId,
-            scope: '' // для users.get достаточно пустого
+            scope: ''
           });
           tokenRef.current = access_token;
         }
@@ -146,20 +146,16 @@ export const Home: FC<HomeProps> = ({ id }) => {
   const [cityName, setCityName] = useState<string>('Москва');
 
   // Остальные фильтры (в модалке)
-  const [distanceStr, setDistanceStr] = useState<string>(''); // км (строка)
-  const [pace, setPace] = useState<string>('');               // пока не отправляем
-  const [runDate, setRunDate] = useState<string>('');         // YYYY-MM-DD: одна дата
+  const [distanceStr, setDistanceStr] = useState<string>('');
+  const [pace, setPace] = useState<string>('');
+  const [runDate, setRunDate] = useState<string>('');
 
   // Собираем фильтры под бэкенд
   const filters = useMemo(() => {
     const f: Record<string, string | number> = {};
-
     if (cityName.trim()) f.cityName = cityName.trim();
-
     const km = Number(distanceStr.replace(',', '.'));
     if (!Number.isNaN(km) && distanceStr.trim() !== '') f.kmFrom = km;
-
-    // Одна дата → весь день: [00:00:00.000; 23:59:59.999]
     if (runDate) {
       const { from, to } = dayRangeToIso(runDate);
       if (from && to) {
@@ -167,7 +163,6 @@ export const Home: FC<HomeProps> = ({ id }) => {
         f.dateTo = to;
       }
     }
-
     return f;
   }, [cityName, distanceStr, runDate]);
 
@@ -177,10 +172,9 @@ export const Home: FC<HomeProps> = ({ id }) => {
     size: 20,
     filters,
   });
-
   const runs = data?.items ?? [];
 
-  // Соберём creatorId
+  // Соберём creatorId (из плейсхолдера) — временно, пока с бэка не придёт creatorVkId
   const creatorIds = useMemo(() => {
     return runs
       .map((r: any) => (typeof r.creatorId === 'number' ? r.creatorId : parseCreatorIdFromFallback(r.fullName)))
@@ -189,6 +183,9 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
   // Карта профилей VK
   const vkProfiles = useVkUsers(creatorIds);
+
+  // PREFETCH деталей пробежки
+  const prefetchRunById = usePrefetch('getRunById', { ifOlderThan: 60 }); // сек
 
   const [activeModal, setActiveModal] = useState<ModalId>(null);
   const close = () => setActiveModal(null);
@@ -288,7 +285,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
           <CustomSelect
             before={<Icon20LocationMapOutline />}
             options={CITY_OPTIONS}
-            style={{ width: 200 }} // фиксированная ширина
+            style={{ width: 200 }}
             value={cityName}
             onChange={(e) => setCityName((e.target as HTMLSelectElement).value)}
             placeholder="Выберите город"
@@ -353,7 +350,10 @@ export const Home: FC<HomeProps> = ({ id }) => {
           const avatar = profile?.avatarUrl || r.avatarUrl;
 
           const openDetails = () => {
-            // переход на панель /run/:id
+            // 1) сразу отправляем GET /api/v1/runs/{id}
+            prefetchRunById(String(r.id)); // RTK Query prefetch
+
+            // 2) переходим на страницу
             routeNavigator.push(`/run/${String(r.id)}`);
           };
 

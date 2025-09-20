@@ -37,7 +37,7 @@ function secToPace(sec?: number | null): string {
 function normalize(dto: RunDto): RunCard {
   return {
     id: dto.id,
-    creatorVkId: dto.creatorId, // ← прокинули VK ID создателя
+    creatorVkId: dto.creatorId,
     fullName: `id${dto.creatorId}`,
     avatarUrl: '',
     cityDistrict: [dto.cityName, dto.districtName || ''].filter(Boolean).join(', '),
