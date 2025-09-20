@@ -56,9 +56,15 @@ export async function createRunSecure(body: {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error || `HTTP ${res.status}`);
+  const text = await res.text();
+  try {
+    const json = JSON.parse(text);
+    throw new Error(json?.error || json?.code || `HTTP ${res.status}`);
+  } catch {
+    throw new Error(text || `HTTP ${res.status}`);
   }
+}
+
   // Бэкенд возвращает ID (Long)
   const id = await res.json(); // number
   return id as number;
