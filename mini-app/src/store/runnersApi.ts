@@ -100,4 +100,4 @@ export const runnersApi = createApi({
   }),
 });
 
-export const { useGetRunsQuery, useGetRunByIdQuery } = runnersApi;
+export const { useGetRunsQuery, useGetRunByIdQuery, usePrefetch } = runnersApi;
