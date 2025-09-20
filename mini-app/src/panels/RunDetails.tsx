@@ -12,6 +12,7 @@ import {
   Button,
   SimpleCell,
   Header,
+  PanelHeaderBack,
   Caption,
   NavIdProps,
   Subhead,
@@ -135,7 +136,9 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
   return (
     <Panel id={id}>
-      <PanelHeader delimiter="auto">Пробежка</PanelHeader>
+      <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.back()} />}>
+              <Header size="l">Пробежка</Header>
+            </PanelHeader>
 
       <Group>
         {isLoading && <Card mode="shadow"><RichCell multiline>Загрузка…</RichCell></Card>}
