@@ -17,10 +17,16 @@ type ModalId = 'filters' | 'modal2' | null;
 const CITY_OPTIONS = [
   { value: 'Москва', label: 'Москва', country: 'Россия' },
   { value: 'Санкт-Петербург', label: 'Санкт-Петербург', country: 'Россия' },
+  { value: 'Казань', label: 'Казань', country: 'Россия' },
+  { value: 'Уфа', label: 'Уфа', country: 'Россия' },
+  { value: 'Омск', label: 'Омск', country: 'Россия' },
   { value: 'Новосибирск', label: 'Новосибирск', country: 'Россия' },
-  { value: 'Краснодар', label: 'Краснодар', country: 'Россия' },
   { value: 'Екатеринбург', label: 'Екатеринбург', country: 'Россия' },
+  { value: 'Самара', label: 'Самара', country: 'Россия' },
+  { value: 'Нижний Новгород', label: 'Нижний Новгород', country: 'Россия' },
+  { value: 'Краснодар', label: 'Краснодар', country: 'Россия' },
 ];
+
 
 // ---------- utils ----------
 function dayRangeToIso(dateStr: string) {
