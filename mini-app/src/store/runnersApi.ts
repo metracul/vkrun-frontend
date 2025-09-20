@@ -3,9 +3,11 @@ import type { RootState } from './index';
 import bridge from '@vkontakte/vk-bridge';
 import { getFrozenLaunchQueryString } from '../shared/vkParams';
 
+export type RunParticipant = { id: number; vkUserId: number };
+
 export type RunCard = {
   id: string | number;
-  creatorVkId: number;
+  creatorVkId: number;              // vk user id создателя
   fullName: string;
   avatarUrl?: string;
   cityDistrict?: string;
@@ -14,11 +16,14 @@ export type RunCard = {
   pace?: string;
   title?: string;
   notes?: string;
+  participants?: RunParticipant[];  // ← список бегущих для страницы деталей
 };
 
 type RunDto = {
   id: number;
-  creatorId: number; // vkUserId
+  creatorId: number;                // vkUserId создателя (по вашему примеру)
+  cityId?: number;
+  districtId?: number;
   cityName: string;
   districtName?: string | null;
   startAt: string;
@@ -26,7 +31,7 @@ type RunDto = {
   distanceKm: number;
   paceSecPerKm?: number | null;
   description?: string | null;
-  participantsCount: number;
+  participants?: Array<{ id: number; vkUserId: number }>; // ← как в ответе сервера
 };
 
 function secToPace(sec?: number | null): string {
@@ -48,6 +53,7 @@ function normalize(dto: RunDto): RunCard {
     pace: secToPace(dto.paceSecPerKm ?? undefined),
     title: 'Пробежка',
     notes: dto.description || '',
+    participants: dto.participants?.map(p => ({ id: p.id, vkUserId: p.vkUserId })),
   };
 }
 

@@ -14,11 +14,13 @@ import {
   Header,
   Caption,
   NavIdProps,
+  Subhead,
 } from '@vkontakte/vkui';
 import { Icon24User } from '@vkontakte/icons';
 import { useRouteNavigator, useParams } from '@vkontakte/vk-mini-apps-router';
 import { useGetRunByIdQuery, useJoinRunMutation } from '../store/runnersApi';
 import { useVkUsers } from '../hooks/useVkUsers';
+import { useAppSelector } from '../store/hooks';
 
 // --- utils ---
 function formatDate(dateISO?: string) {
@@ -71,11 +73,27 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
   const [joined, setJoined] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
 
-  // профиль создателя по VK ID
-  const appId = Number(import.meta.env.VITE_VK_APP_ID);
+  // мой vk user id из стора
+  const myVkId = useAppSelector((s) => s.user.data?.id);
+
+  // ids для загрузки профилей: создатель + участники
   const creatorVkId = data?.creatorVkId;
-  const profilesMap = useVkUsers(creatorVkId ? [creatorVkId] : [], appId);
-  const creatorProfile = creatorVkId ? profilesMap[creatorVkId] : undefined;
+  const participantVkIds = useMemo(
+    () => (data?.participants?.map((p) => p.vkUserId) ?? []),
+    [data?.participants]
+  );
+
+  const allVkIds = useMemo(() => {
+    const set = new Set<number>();
+    if (typeof creatorVkId === 'number') set.add(creatorVkId);
+    for (const id of participantVkIds) if (Number.isFinite(id)) set.add(id);
+    return Array.from(set.values());
+  }, [creatorVkId, participantVkIds]);
+
+  const appId = Number(import.meta.env.VITE_VK_APP_ID);
+  const profilesMap = useVkUsers(allVkIds, appId);
+
+  const creatorProfile = typeof creatorVkId === 'number' ? profilesMap[creatorVkId] : undefined;
 
   // город / район
   const { cityName, districtName } = useMemo(() => {
@@ -93,14 +111,18 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
     return minutesToHhMm(totalMin);
   }, [data?.distanceKm, data?.pace]);
 
+  const alreadyParticipant = useMemo(() => {
+    if (!myVkId) return false;
+    return participantVkIds.includes(myVkId);
+  }, [participantVkIds, myVkId]);
+
   const onJoin = async () => {
     setJoinError(null);
     if (!runId) return;
     try {
-      await joinRun(runId).unwrap();       // POST /api/v1/runs/{id}/join  { runId }
+      await joinRun(runId).unwrap();
       setJoined(true);
-      refetch();                           // при желании обновить детали
-      // дернуть обновление списка (если нужно)
+      refetch();
       window.dispatchEvent(new Event('runs:updated'));
     } catch (e: any) {
       setJoinError(e?.data?.error || 'Не удалось записаться');
@@ -186,16 +208,48 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
               </SimpleCell>
             </Group>
 
+            {/* Участники */}
+            <Spacing size={12} />
+            <Group header={<Header>Участники ({participantVkIds.length})</Header>}>
+              {participantVkIds.length === 0 ? (
+                <SimpleCell>
+                  <Subhead>Пока никого</Subhead>
+                </SimpleCell>
+              ) : (
+                participantVkIds.map((vkId) => {
+                  const prof = profilesMap[vkId];
+                  return (
+                    <SimpleCell
+                      key={vkId}
+                      before={
+                        <Avatar
+                          size={40}
+                          src={prof?.avatarUrl}
+                          fallbackIcon={<Icon24User />}
+                        />
+                      }
+                    >
+                      {prof?.fullName || `id${vkId}`}
+                    </SimpleCell>
+                  );
+                })
+              )}
+            </Group>
+
             <Spacing size={12} />
 
             {/* Кнопка записи */}
             <Button
               size="l"
               appearance="accent"
-              disabled={isJoining || joined}
+              disabled={isJoining || joined || alreadyParticipant}
               onClick={onJoin}
             >
-              {joined ? 'Записан' : isJoining ? 'Записываю…' : 'Побегу'}
+              {alreadyParticipant || joined
+                ? 'Вы записаны'
+                : isJoining
+                ? 'Записываю…'
+                : 'Побегу'}
             </Button>
 
             {joinError && (
