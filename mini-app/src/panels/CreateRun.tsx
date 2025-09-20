@@ -7,11 +7,156 @@ import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import { Icon20LocationMapOutline } from '@vkontakte/icons';
 import { createRunSecure } from '../api/createRunSecure';
 
+// ---- справочники ----
+const CITIES = [
+  'Москва',
+  'Санкт-Петербург',
+  'Казань',
+  'Уфа',
+  'Омск',
+  'Новосибирск',
+  'Екатеринбург',
+  'Самара',
+  'Нижний Новгород',
+  'Краснодар',
+] as const;
+
+const CITY_OPTIONS = CITIES.map((name) => ({ value: name, label: name, country: 'Россия' }));
+
+const DISTRICTS: Record<(typeof CITIES)[number], string[]> = {
+  'Москва': [
+    'Центральный адм. округ',
+    'Северный адм. округ',
+    'Северо-Восточный адм. округ',
+    'Восточный адм. округ',
+    'Юго-Восточный адм. округ',
+    'Южный адм. округ',
+    'Юго-Западный адм. округ',
+    'Западный адм. округ',
+    'Северо-Западный адм. округ',
+    'Зеленоградский адм. округ',
+    'Троицкий адм. округ',
+    'Новомосковский адм. округ',
+  ],
+  'Санкт-Петербург': [
+    'Адмиралтейский район',
+    'Василеостровский район',
+    'Выборгский район',
+    'Калининский район',
+    'Кировский район',
+    'Колпинский район',
+    'Красногвардейский район',
+    'Красносельский район',
+    'Кронштадтский район',
+    'Курортный район',
+    'Московский район',
+    'Невский район',
+    'Петроградский район',
+    'Петродворцовый район',
+    'Приморский район',
+    'Пушкинский район',
+    'Фрунзенский район',
+    'Центральный район',
+  ],
+  'Казань': [
+    'Авиастроительный район',
+    'Вахитовский район',
+    'Кировский район',
+    'Московский район',
+    'Ново-Савиновский район',
+    'Приволжский район',
+    'Советский район',
+  ],
+  'Уфа': [
+    'Демский район',
+    'Калининский район',
+    'Кировский район',
+    'Ленинский район',
+    'Октябрьский район',
+    'Орджоникидзевский район',
+    'Советский район',
+  ],
+  'Омск': [
+    'Центральный адм. округ',
+    'Октябрьский адм. округ',
+    'Кировский адм. округ',
+    'Ленинский адм. округ',
+    'Советский адм. округ',
+  ],
+  'Новосибирск': [
+    'Железнодорожный район',
+    'Заельцовский район',
+    'Дзержинский район',
+    'Калининский район',
+    'Кировский район',
+    'Ленинский район',
+    'Октябрьский район',
+    'Первомайский район',
+    'Советский район',
+    'Центральный район',
+  ],
+  'Екатеринбург': [
+    'Верх-Исетский район',
+    'Железнодорожный район',
+    'Кировский район',
+    'Ленинский район',
+    'Октябрьский район',
+    'Орджоникидзевский район',
+    'Чкаловский район',
+  ],
+  'Самара': [
+    'Железнодорожный район',
+    'Кировский район',
+    'Красноглинский район',
+    'Куйбышевский район',
+    'Ленинский район',
+    'Октябрьский район',
+    'Промышленный район',
+    'Самарский район',
+    'Советский район',
+  ],
+  'Нижний Новгород': [
+    'Автозаводский район',
+    'Канавинский район',
+    'Ленинский район',
+    'Московский район',
+    'Нижегородский район',
+    'Приокский район',
+    'Советский район',
+    'Сормовский район',
+  ],
+  'Краснодар': [
+    // округа
+    'Западный адм. округ',
+    'Карасунский адм. округ',
+    'Прикубанский адм. округ',
+    'Центральный адм. округ',
+    // микрорайоны/топонимы
+    'Центральный микрорайон (ЦМР)',
+    'Фестивальный микрорайон (ФМР)',
+    'Юбилейный микрорайон (ЮМР)',
+    'Гидростроительный микрорайон (ГМР)',
+    'Энка (п. Жукова)',
+    'Славянский микрорайон (СМР)',
+    'Авиагородок',
+    'Московский микрорайон',
+    '40 лет Победы',
+    'Немецкая деревня (Европея)',
+    'Витаминкомбинат (ВМР)',
+    'Кожзавод',
+    'Восточно-Кругликовский микрорайон',
+    'Калинино (микрорайон)',
+  ],
+};
+
+// ===== компонент =====
 export const CreateRun: FC<NavIdProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
 
   const [city, setCity] = useState<string | undefined>(undefined);
-  const [district, setDistrict] = useState('');
+  const [district, setDistrict] = useState<string>('');         // теперь это выбранное значение из списка
+  const [districtQuery, setDistrictQuery] = useState<string>(''); // текст фильтра для районов
+
   const [desc, setDesc] = useState('');
   const [distanceStr, setDistanceStr] = useState('');
   const [pace, setPace] = useState('05:30');
@@ -31,14 +176,6 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
     return `${y}-${m}-${day}`;
   };
   const minDateStr = toYMD(startOfToday);
-
-  const cityOptions = [
-    { value: 'Москва', label: 'Москва', country: 'Россия' },
-    { value: 'Санкт-Петербург', label: 'Санкт-Петербург', country: 'Россия' },
-    { value: 'Новосибирск', label: 'Новосибирск', country: 'Россия' },
-    { value: 'Краснодар', label: 'Краснодар', country: 'Россия' },
-    { value: 'Екатеринбург', label: 'Екатеринбург', country: 'Россия' },
-  ];
 
   const paceOptions = [
     '02:00','02:30','03:00','03:30','04:00','04:30','05:00','05:30',
@@ -82,9 +219,20 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
     return x;
   };
 
+  // Список районов для выбранного города с фильтром по началу названия (без учёта регистра)
+  const districtOptions = useMemo(() => {
+    const list = city ? DISTRICTS[city as keyof typeof DISTRICTS] ?? [] : [];
+    const q = districtQuery.trim().toLowerCase();
+    const filtered = q
+      ? list.filter((name) => name.toLowerCase().startsWith(q))
+      : list;
+    return filtered.map((name) => ({ value: name, label: name }));
+  }, [city, districtQuery]);
+
+  // Валидация формы
   const isFormValid = useMemo(() => {
     const hasCity = !!city;
-    const hasDistrict = district.trim().length > 0;
+    const hasDistrict = district.trim().length > 0; // выбран из списка
     const hasPace = !!pace && paceToSeconds(pace) != null;
     const km = parseFloat(distanceStr.replace(',', '.'));
     const hasDistance = isFinite(km) && km > 0;
@@ -121,12 +269,8 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
 
     try {
       setLoading(true);
-       const id = await createRunSecure(body);
-      // Сообщаем списку, что данные изменились
-      // detail необязателен, но может пригодиться (id новой пробежки)
+      const id = await createRunSecure(body);
       const fire = () => window.dispatchEvent(new CustomEvent('runs:updated', { detail: { id } }));
-      // Навигация может размонтировать/смонтировать панели.
-      // Дадим роутеру переключиться, затем шлём событие.
       routeNavigator.back();
       setTimeout(fire, 0);
     } catch (e: any) {
@@ -134,6 +278,13 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Сброс района и строки поиска при смене города
+  const onCityChange = (value: string) => {
+    setCity(value);
+    setDistrict('');
+    setDistrictQuery('');
   };
 
   return (
@@ -147,9 +298,9 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
 
         <Header size="m">Укажите ваш город</Header>
         <CustomSelect
-          options={cityOptions}
+          options={CITY_OPTIONS}
           value={city}
-          onChange={(e) => setCity((e.target as HTMLSelectElement).value)}
+          onChange={(e) => onCityChange((e.target as HTMLSelectElement).value)}
           before={<Icon20LocationMapOutline />}
           placeholder="Выберите город"
           allowClearButton
@@ -159,12 +310,23 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
         />
 
         <Spacing size="s" />
-        <Header>Напишите район города, в котором хотите побегать</Header>
+        <Header>Выберите район (список зависит от города)</Header>
+
+        {/* Поле для фильтрации списка районов по началу названия */}
         <Input
-          name="district"
-          placeholder="Введите район пробежки"
+          placeholder="Начните вводить название района"
+          value={districtQuery}
+          onChange={(e) => setDistrictQuery(e.target.value)}
+          disabled={!city}
+        />
+        <Spacing size="s" />
+
+        <CustomSelect
+          options={districtOptions}
           value={district}
-          onChange={(e) => setDistrict(e.target.value)}
+          onChange={(e) => setDistrict((e.target as HTMLSelectElement).value)}
+          placeholder={city ? 'Выберите район' : 'Сначала выберите город'}
+          disabled={!city}
         />
 
         <Spacing size="s" />
