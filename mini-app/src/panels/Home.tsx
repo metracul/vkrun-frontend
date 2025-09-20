@@ -57,7 +57,7 @@ function parsePaceToSec(mmss: string) {
   return min * 60 + sec;
 }
 
-// --- VK users.get хук (как было у вас) ---
+// --- VK users.get хук ---
 type VkUser = { id: number; first_name: string; last_name: string; photo_200?: string; photo_100?: string; };
 type VkProfile = { fullName: string; avatarUrl?: string };
 function uniqueFinite(ids: Array<number | undefined | null>) {
@@ -127,18 +127,24 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
   // фильтры
   const [cityName, setCityName] = useState<string>('Москва');
-  const [distanceStr, setDistanceStr] = useState<string>('');
+  const [distanceFromStr, setDistanceFromStr] = useState<string>(''); // "От"
+  const [distanceToStr, setDistanceToStr] = useState<string>('');     // "До"
   const [pace, setPace] = useState<string>('');
   const [runDate, setRunDate] = useState<string>('');
 
-  // собираем фильтры под бэкенд (как было у вас)
+  // собираем фильтры под бэкенд
   const filters = useMemo(() => {
     const f: Record<string, string | number> = {};
     if (cityName.trim()) f.cityName = cityName.trim();
-    const km = Number(distanceStr.replace(',', '.'));
-    if (!Number.isNaN(km) && distanceStr.trim() !== '') { f.kmFrom = km; f.kmTo = km; }
+
+    const kmFrom = distanceFromStr.trim() === '' ? NaN : Number(distanceFromStr.replace(',', '.'));
+    const kmTo   = distanceToStr.trim() === '' ? NaN : Number(distanceToStr.replace(',', '.'));
+    if (!Number.isNaN(kmFrom)) f.kmFrom = kmFrom;
+    if (!Number.isNaN(kmTo))   f.kmTo   = kmTo;
+
     const ps = parsePaceToSec(pace);
     if (ps != null) { f.paceFrom = ps; f.paceTo = ps; }
+
     if (runDate) {
       const d = new Date(runDate);
       const from = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).toISOString();
@@ -146,7 +152,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
       f.dateFrom = from; f.dateTo = to;
     }
     return f;
-  }, [cityName, distanceStr, pace, runDate]);
+  }, [cityName, distanceFromStr, distanceToStr, pace, runDate]);
 
   const { data, isLoading, isError, refetch, isFetching } = useGetRunsQuery({
     endpoint: '/api/v1/runs',
@@ -167,7 +173,13 @@ export const Home: FC<HomeProps> = ({ id }) => {
   const [activeModal, setActiveModal] = useState<ModalId>(null);
   const close = () => setActiveModal(null);
   const applyFilters = () => { close(); refetch(); };
-  const resetFilters = () => { setDistanceStr(''); setPace(''); setRunDate(''); refetch(); };
+  const resetFilters = () => {
+    setDistanceFromStr('');
+    setDistanceToStr('');
+    setPace('');
+    setRunDate('');
+    refetch();
+  };
 
   useEffect(() => {
     const onUpdated = () => refetch();
@@ -192,14 +204,34 @@ export const Home: FC<HomeProps> = ({ id }) => {
             <Input type="date" value={runDate} onChange={(e) => setRunDate((e.target as HTMLInputElement).value)} />
           </FormItem>
 
+          {/* Дистанция: два поля От/До */}
           <FormItem top="Дистанция (км)">
-            <Input type="text" inputMode="decimal" placeholder="Например: 5" value={distanceStr}
-              onChange={(e) => setDistanceStr(e.target.value)} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Input
+                type="text"
+                inputMode="decimal"
+                placeholder="От"
+                value={distanceFromStr}
+                onChange={(e) => setDistanceFromStr(e.target.value)}
+              />
+              <Input
+                type="text"
+                inputMode="decimal"
+                placeholder="До"
+                value={distanceToStr}
+                onChange={(e) => setDistanceToStr(e.target.value)}
+              />
+            </div>
           </FormItem>
 
           <FormItem top="Темп бега">
-            <CustomSelect placeholder="Выберите темп" options={PACE_OPTIONS} value={pace}
-              onChange={(e) => setPace((e.target as HTMLSelectElement).value)} allowClearButton />
+            <CustomSelect
+              placeholder="Выберите темп"
+              options={PACE_OPTIONS}
+              value={pace}
+              onChange={(e) => setPace((e.target as HTMLSelectElement).value)}
+              allowClearButton
+            />
           </FormItem>
 
           <Spacing size={12} />
@@ -280,8 +312,13 @@ export const Home: FC<HomeProps> = ({ id }) => {
             typeof r.creatorVkId === 'number' ? r.creatorVkId : parseCreatorIdFromFallback(r.fullName);
 
           const profile = vkId ? vkProfiles[vkId] : undefined;
-          const fullName = profile?.fullName || r.fullName;
-          const avatar = profile?.avatarUrl || r.avatarUrl;
+
+          // Имя и аватар:
+          // - если профиль есть — показываем реальные данные
+          // - если vkId известен, но профиль ещё не подгружен — «Получаю данные…»
+          // - если vkId неизвестен — пустая строка
+          const fullName = profile?.fullName ?? (vkId ? 'Получаю данные…' : '');
+          const avatar = profile?.avatarUrl;
 
           const openDetails = () => {
             prefetchRunById(String(r.id));
@@ -291,11 +328,10 @@ export const Home: FC<HomeProps> = ({ id }) => {
           const isMine = myVkId && vkId && myVkId === vkId;
 
           const onDeleteClick = async (e: React.MouseEvent) => {
-            e.stopPropagation(); // не открывать детали
+            e.stopPropagation();
             if (!confirm('Удалить эту пробежку? Это действие необратимо.')) return;
             try {
               await deleteRun(r.id).unwrap();
-              // обновим список
               window.dispatchEvent(new Event('runs:updated'));
               refetch();
             } catch (err: any) {
@@ -305,7 +341,6 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
           return (
             <Card key={r.id} mode="shadow" style={{ marginTop: 8, position: 'relative' }} onClick={openDetails}>
-              {/* Кнопка удаления только для своих забегов */}
               {isMine ? (
                 <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }}>
                   <Button
