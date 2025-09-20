@@ -9,7 +9,7 @@ export type RunParticipant = { id: number; vkUserId: number };
 
 export type RunCard = {
   id: string | number;
-  creatorVkId: number;              // vk user id создателя
+  creatorVkId: number;
   fullName: string;
   avatarUrl?: string;
   cityDistrict?: string;
@@ -18,12 +18,12 @@ export type RunCard = {
   pace?: string;
   title?: string;
   notes?: string;
-  participants?: RunParticipant[];  // список бегущих (для деталей)
+  participants?: RunParticipant[];
 };
 
 type RunDto = {
   id: number;
-  creatorId: number;                // vkUserId создателя (из бэка)
+  creatorId: number;
   cityId?: number;
   districtId?: number;
   cityName: string;
@@ -48,7 +48,7 @@ function normalize(dto: RunDto): RunCard {
   return {
     id: dto.id,
     creatorVkId: dto.creatorId,
-    fullName: `id${dto.creatorId}`, // плейсхолдер, далее подтянем имя через users.get
+    fullName: `id${dto.creatorId}`,
     avatarUrl: '',
     cityDistrict: [dto.cityName, dto.districtName || ''].filter(Boolean).join(', '),
     dateISO: dto.startAt,
