@@ -76,7 +76,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
   // мой vk user id из стора
   const myVkId = useAppSelector((s) => s.user.data?.id);
 
-  // ids для загрузки профилей: создатель + участники
+  // ids для профилей: создатель + участники
   const creatorVkId = data?.creatorVkId;
   const participantVkIds = useMemo(
     () => (data?.participants?.map((p) => p.vkUserId) ?? []),
@@ -218,6 +218,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
               ) : (
                 participantVkIds.map((vkId) => {
                   const prof = profilesMap[vkId];
+                  const name = prof?.fullName ?? 'Получаю данные…'; // ← без засвета vkId
                   return (
                     <SimpleCell
                       key={vkId}
@@ -229,7 +230,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
                         />
                       }
                     >
-                      {prof?.fullName || `id${vkId}`}
+                      {name}
                     </SimpleCell>
                   );
                 })
