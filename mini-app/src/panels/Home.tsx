@@ -6,7 +6,7 @@ import {
 } from '@vkontakte/vkui';
 import { Icon20FilterOutline, Icon24User, Icon28AddCircleOutline, Icon20LocationMapOutline } from '@vkontakte/icons';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
-import { useGetRunsQuery, usePrefetch } from '../store/runnersApi'; // ← добавили usePrefetch
+import { useGetRunsQuery, usePrefetch } from '../store/runnersApi';
 import { DEFAULT_VIEW_PANELS } from '../routes';
 import bridge from '@vkontakte/vk-bridge';
 
@@ -27,6 +27,12 @@ const CITY_OPTIONS = [
   { value: 'Краснодар', label: 'Краснодар', country: 'Россия' },
 ];
 
+// варианты темпа
+const PACE_OPTIONS = [
+  '02:00','02:30','03:00','03:30','04:00','04:30',
+  '05:00','05:30','06:00','06:30','07:00','07:30',
+  '08:00','08:30','09:00','09:30',
+].map((label) => ({ value: label, label }));
 
 // ---------- utils ----------
 function dayRangeToIso(dateStr: string) {
@@ -101,7 +107,7 @@ function useVkUsers(userIds: number[]) {
         if (!tokenRef.current) {
           const { access_token } = await bridge.send('VKWebAppGetAuthToken', {
             app_id: appId,
-            scope: ''
+            scope: '' // для users.get достаточно пустого
           });
           tokenRef.current = access_token;
         }
@@ -152,16 +158,27 @@ export const Home: FC<HomeProps> = ({ id }) => {
   const [cityName, setCityName] = useState<string>('Москва');
 
   // Остальные фильтры (в модалке)
-  const [distanceStr, setDistanceStr] = useState<string>('');
-  const [pace, setPace] = useState<string>('');
-  const [runDate, setRunDate] = useState<string>('');
+  const [distanceStr, setDistanceStr] = useState<string>(''); // строгое совпадение distanceKm
+  const [pace, setPace] = useState<string>('');               // выбор из списка
+  const [runDate, setRunDate] = useState<string>('');         // YYYY-MM-DD
 
   // Собираем фильтры под бэкенд
   const filters = useMemo(() => {
     const f: Record<string, string | number> = {};
+
     if (cityName.trim()) f.cityName = cityName.trim();
+
     const km = Number(distanceStr.replace(',', '.'));
-    if (!Number.isNaN(km) && distanceStr.trim() !== '') f.kmFrom = km;
+    if (!Number.isNaN(km) && distanceStr.trim() !== '') {
+      // строгое совпадение дистанции
+      f.distanceKm = km;
+    }
+
+    if (pace) {
+      // передаём выбранный темп как есть (например, "05:30")
+      f.pace = pace;
+    }
+
     if (runDate) {
       const { from, to } = dayRangeToIso(runDate);
       if (from && to) {
@@ -169,8 +186,9 @@ export const Home: FC<HomeProps> = ({ id }) => {
         f.dateTo = to;
       }
     }
+
     return f;
-  }, [cityName, distanceStr, runDate]);
+  }, [cityName, distanceStr, pace, runDate]);
 
   // Грузим список
   const { data, isLoading, isError, refetch, isFetching } = useGetRunsQuery({
@@ -243,10 +261,12 @@ export const Home: FC<HomeProps> = ({ id }) => {
           </FormItem>
 
           <FormItem top="Темп бега">
-            <Input
-              placeholder="Например: 5:30 /км"
+            <CustomSelect
+              placeholder="Выберите темп"
+              options={PACE_OPTIONS}
               value={pace}
-              onChange={(e) => setPace(e.target.value)}
+              onChange={(e) => setPace((e.target as HTMLSelectElement).value)}
+              allowClearButton
             />
           </FormItem>
 
@@ -356,10 +376,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
           const avatar = profile?.avatarUrl || r.avatarUrl;
 
           const openDetails = () => {
-            // 1) сразу отправляем GET /api/v1/runs/{id}
-            prefetchRunById(String(r.id)); // RTK Query prefetch
-
-            // 2) переходим на страницу
+            prefetchRunById(String(r.id));
             routeNavigator.push(`/run/${String(r.id)}`);
           };
 

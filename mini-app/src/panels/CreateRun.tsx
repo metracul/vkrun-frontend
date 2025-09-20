@@ -303,7 +303,7 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
         />
 
         <Spacing size="s" />
-        <Header>Выберите район (зависит от города)</Header>
+        <Header>Выберите район</Header>
         <CustomSelect
           key={city || 'no-city'}
           options={allDistrictOptions}
