@@ -34,15 +34,6 @@ const PACE_OPTIONS = [
   '08:00','08:30','09:00','09:30',
 ].map((label) => ({ value: label, label }));
 
-// ---------- utils ----------
-function dayRangeToIso(dateStr: string) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  if (!y || !m || !d) return { from: '', to: '' };
-  const start = new Date(y, m - 1, d, 0, 0, 0, 0);
-  const end = new Date(y, m - 1, d, 23, 59, 59, 999);
-  return { from: start.toISOString(), to: end.toISOString() };
-}
-
 function formatDate(dateISO?: string) {
   if (!dateISO) return '';
   const d = new Date(dateISO);
