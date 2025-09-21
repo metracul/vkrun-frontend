@@ -1,7 +1,7 @@
 // src/panels/Home.tsx
 import { FC, useMemo, useState, useEffect, useRef } from 'react';
 import {
-  Panel, PanelHeader, Header, Button, Group, Avatar, NavIdProps, ModalRoot, ModalPage, Placeholder, ButtonGroup, ModalCard,
+  Panel, PanelHeader, Header, Button, Group, Avatar, NavIdProps, ModalRoot, ModalPage, Placeholder, ButtonGroup,
   Card, RichCell, Spacing, SimpleCell, Caption, Footnote, FixedLayout, usePlatform, FormItem, Input, CustomSelect, CustomSelectOption
 } from '@vkontakte/vkui';
 import { Icon20FilterOutline, Icon24User, Icon28AddCircleOutline, Icon20LocationMapOutline } from '@vkontakte/icons';
@@ -263,21 +263,22 @@ export const Home: FC<HomeProps> = ({ id }) => {
         </Group>
       </ModalPage>
 
-      <ModalCard id="modal2" onClose={close}>
-        <Placeholder action={
-          <ButtonGroup mode="vertical" align="center">
-            <Button onClick={() => setActiveModal('filters')}>Вернуться к фильтрам</Button>
-            <Button onClick={close}>Закрыть</Button>
-          </ButtonGroup>
-        } />
-      </ModalCard>
+      <ModalPage id="modal2" onClose={close} header={<Header>Инфо</Header>}>
+        <Group>
+          <Placeholder action={
+            <ButtonGroup mode="vertical" align="center">
+              <Button onClick={() => setActiveModal('filters')}>Вернуться к фильтрам</Button>
+              <Button onClick={close}>Закрыть</Button>
+            </ButtonGroup>
+          } />
+        </Group>
+      </ModalPage>
 
-      {/* Подтверждение удаления — вместо window.confirm */}
-      <ModalCard
-        id="confirm-delete"
-        onClose={close}
-        header={<Header>Удалить пробежку?</Header>}
-        actions={
+      {/* Подтверждение удаления — безопасно для iOS */}
+      <ModalPage id="confirm-delete" onClose={close} header={<Header>Удалить пробежку?</Header>}>
+        <Group>
+          <Caption level="1">Действие необратимо.</Caption>
+          <Spacing size="m" />
           <ButtonGroup mode="vertical" align="center" gap="s">
             <Button size="l" appearance="negative" loading={isDeleting} onClick={doDeleteNow}>
               Удалить
@@ -286,10 +287,8 @@ export const Home: FC<HomeProps> = ({ id }) => {
               Отмена
             </Button>
           </ButtonGroup>
-        }
-      >
-        <Caption level="1">Действие необратимо.</Caption>
-      </ModalCard>
+        </Group>
+      </ModalPage>
     </ModalRoot>
   );
 
@@ -353,9 +352,6 @@ export const Home: FC<HomeProps> = ({ id }) => {
           const profile = vkId ? vkProfiles[vkId] : undefined;
 
           // Имя и аватар:
-          // - если профиль есть — показываем реальные данные
-          // - если vkId известен, но профиль ещё не подгружен — «Получаю данные…»
-          // - если vkId неизвестен — пустая строка
           const fullName = profile?.fullName ?? (vkId ? 'Получаю данные…' : '');
           const avatar = profile?.avatarUrl;
 
