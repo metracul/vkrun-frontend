@@ -13,7 +13,7 @@ import bridge from '@vkontakte/vk-bridge';
 
 export interface HomeProps extends NavIdProps {}
 
-type ModalId = 'filters' | 'modal2' | null;
+type ModalId = 'filters' | 'modal2' | 'confirm-delete' | null;
 
 const CITY_OPTIONS = [
   { value: 'Москва', label: 'Москва', country: 'Россия' },
@@ -173,6 +173,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
   const [activeModal, setActiveModal] = useState<ModalId>(null);
   const close = () => setActiveModal(null);
   const applyFilters = () => { close(); refetch(); };
+
   const resetFilters = () => {
     setDistanceFromStr('');
     setDistanceToStr('');
@@ -195,6 +196,25 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
   // мутация удаления
   const [deleteRun, { isLoading: isDeleting }] = useDeleteRunMutation();
+
+  // состояние подтверждения удаления
+  const [runIdToDelete, setRunIdToDelete] = useState<number | null>(null);
+  const confirmDelete = (id: number) => {
+    setRunIdToDelete(id);
+    setActiveModal('confirm-delete');
+  };
+  const doDeleteNow = async () => {
+    if (runIdToDelete == null) return;
+    try {
+      await deleteRun(runIdToDelete).unwrap();
+      setRunIdToDelete(null);
+      setActiveModal(null);
+      window.dispatchEvent(new Event('runs:updated'));
+      refetch();
+    } catch (err: any) {
+      alert(err?.data?.error || 'Не удалось удалить пробежку');
+    }
+  };
 
   const modalRoot = (
     <ModalRoot activeModal={activeModal} onClose={close}>
@@ -250,6 +270,25 @@ export const Home: FC<HomeProps> = ({ id }) => {
             <Button onClick={close}>Закрыть</Button>
           </ButtonGroup>
         } />
+      </ModalCard>
+
+      {/* Подтверждение удаления — вместо window.confirm */}
+      <ModalCard
+        id="confirm-delete"
+        onClose={close}
+        header={<Header>Удалить пробежку?</Header>}
+        actions={
+          <ButtonGroup mode="vertical" align="center" gap="s">
+            <Button size="l" appearance="negative" loading={isDeleting} onClick={doDeleteNow}>
+              Удалить
+            </Button>
+            <Button size="l" mode="secondary" disabled={isDeleting} onClick={close}>
+              Отмена
+            </Button>
+          </ButtonGroup>
+        }
+      >
+        <Caption level="1">Действие необратимо.</Caption>
       </ModalCard>
     </ModalRoot>
   );
@@ -327,16 +366,9 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
           const isMine = myVkId && vkId && myVkId === vkId;
 
-          const onDeleteClick = async (e: React.MouseEvent) => {
+          const onDeleteClick = (e: React.MouseEvent) => {
             e.stopPropagation();
-            if (!confirm('Удалить эту пробежку? Это действие необратимо.')) return;
-            try {
-              await deleteRun(r.id).unwrap();
-              window.dispatchEvent(new Event('runs:updated'));
-              refetch();
-            } catch (err: any) {
-              alert(err?.data?.error || 'Не удалось удалить пробежку');
-            }
+            confirmDelete(Number(r.id));
           };
 
           return (
