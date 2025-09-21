@@ -368,35 +368,54 @@ export const Home: FC<HomeProps> = ({ id }) => {
           };
 
           return (
-            <Card key={r.id} mode="shadow" style={{ marginTop: 8, position: 'relative' }} onClick={openDetails}>
-              {isMine ? (
-                <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }}>
-                  <Button
-                    size="s"
-                    mode="secondary"
-                    appearance="negative"
-                    disabled={isDeleting}
-                    onClick={onDeleteClick}
+                  <Card
+                    key={r.id}
+                    mode="shadow"
+                    style={{ marginTop: 8, position: 'relative' }}
+                    onClick={openDetails}
                   >
-                    Удалить
-                  </Button>
-                </div>
-              ) : null}
+                    {/* Кнопка — в правом нижнем углу */}
+                    {isMine ? (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          right: 12,
+                          bottom: 12,
+                          zIndex: 2,
+                        }}
+                      >
+                        <Button
+                          size="s"
+                          mode="secondary"
+                          appearance="negative"
+                          disabled={isDeleting}
+                          onClick={onDeleteClick} // внутри onDeleteClick уже есть e.stopPropagation()
+                        >
+                          Удалить
+                        </Button>
+                      </div>
+                    ) : null}
 
-              <RichCell
-                before={<Avatar size={48} src={avatar} fallbackIcon={<Icon24User />} />}
-                subtitle={[r.cityDistrict, formatDate(r.dateISO)].filter(Boolean).join(' • ')}
-                extraSubtitle={[
-                  r.distanceKm ? `${r.distanceKm} км` : null,
-                  r.pace ? `${r.pace}` : null,
-                ].filter(Boolean).join(' • ')}
-                multiline
-              >
-                {r.title} — {fullName}
-                {r.notes ? <Footnote style={{ marginTop: 4 }}>{r.notes}</Footnote> : null}
-              </RichCell>
-            </Card>
-          );
+                    <RichCell
+                      before={<Avatar size={48} src={avatar} fallbackIcon={<Icon24User />} />}
+                      subtitle={[r.cityDistrict, formatDate(r.dateISO)].filter(Boolean).join(' • ')}
+                      extraSubtitle={[
+                        r.distanceKm ? `${r.distanceKm} км` : null,
+                        r.pace ? `${r.pace}` : null,
+                      ].filter(Boolean).join(' • ')}
+                      multiline
+                      // резерв места под кнопку, чтобы текст не наезжал
+                      style={{
+                        paddingRight: 96,   // ~ ширина кнопки + отступ
+                        paddingBottom: 44,  // ~ высота кнопки + отступ
+                      }}
+                    >
+                      {r.title} — {fullName}
+                      {r.notes ? <Footnote style={{ marginTop: 4 }}>{r.notes}</Footnote> : null}
+                    </RichCell>
+                  </Card>
+                );
+
         })}
 
         {!isDesktop && <Spacing size={72} />}
