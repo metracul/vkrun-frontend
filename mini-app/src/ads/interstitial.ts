@@ -1,3 +1,7 @@
+// Это межэкранная реклама и её мы пока не используем
+
+
+
 // src/ads/interstitial.ts
 import vkBridge, { EAdsFormats } from '@vkontakte/vk-bridge';
 

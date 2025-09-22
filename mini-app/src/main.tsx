@@ -2,7 +2,6 @@ import { createRoot } from 'react-dom/client';
 import vkBridge from '@vkontakte/vk-bridge';
 import { AppConfig } from './AppConfig';
 import { ensureLaunchQueryString } from './shared/vkParams';
-import { prewarmInterstitial } from './ads/interstitial';
 
 async function bootstrap() {
   // 1) Инициализация VK Bridge
@@ -10,9 +9,6 @@ async function bootstrap() {
 
   // 2) Гарантируем наличие launch QS (с vk_user_id, vk_app_id и т.п.)
   await ensureLaunchQueryString(vkBridge);
-
-  // Прогрев рекламы (фоново, без await)
-  prewarmInterstitial().catch(() => {});
 
   // 3) Рендер приложения
   const rootEl = document.getElementById('root');

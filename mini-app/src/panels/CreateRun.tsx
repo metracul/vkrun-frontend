@@ -7,7 +7,6 @@ import {
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import { Icon20LocationMapOutline } from '@vkontakte/icons';
 import { createRunSecure } from '../api/createRunSecure';
-import { showInterstitial } from '../ads/interstitial';
 
 // ---- справочники ----
 const CITIES = [
@@ -263,9 +262,6 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
       setLoading(true);
       const id = await createRunSecure(body);
 
-      // === Показ interstitial перед возвратом на Home ===
-      // Если предзагрузки нет — ждём не дольше 2 секунд и всё равно уходим назад.
-      await showInterstitial({ timeoutMs: 2_000 }).catch(() => {});
 
       const fire = () => window.dispatchEvent(new CustomEvent('runs:updated', { detail: { id } }));
       routeNavigator.back();
