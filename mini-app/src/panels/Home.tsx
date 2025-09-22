@@ -5,11 +5,12 @@ import {
   Card, RichCell, Spacing, SimpleCell, Caption, Footnote, FixedLayout, usePlatform, FormItem, Input, CustomSelect, CustomSelectOption
 } from '@vkontakte/vkui';
 import { Icon20FilterOutline, Icon24User, Icon28AddCircleOutline, Icon20LocationMapOutline } from '@vkontakte/icons';
-import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
+import { useRouteNavigator, useActiveVkuiLocation } from '@vkontakte/vk-mini-apps-router';
 import { useGetRunsQuery, usePrefetch, useDeleteRunMutation } from '../store/runnersApi';
 import { useAppSelector } from '../store/hooks';
 import { DEFAULT_VIEW_PANELS } from '../routes';
 import bridge from '@vkontakte/vk-bridge';
+import { showInterstitial } from '../ads/interstitial';
 
 export interface HomeProps extends NavIdProps {}
 
@@ -119,8 +120,16 @@ function useVkUsers(userIds: number[]) {
 // ---------- component ----------
 export const Home: FC<HomeProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
+  const { panel: activePanel } = useActiveVkuiLocation();
   const platform = usePlatform();
   const isDesktop = platform === 'vkcom';
+
+  // Показ рекламы при переходе/возврате на Home
+  useEffect(() => {
+    if (activePanel === id) {
+      showInterstitial({ minIntervalMs: 90_000, timeoutMs: 2_000 }).catch(() => {});
+    }
+  }, [activePanel, id]);
 
   // мой VK id для проверки прав удаления
   const myVkId = useAppSelector((s) => s.user.data?.id);
@@ -214,6 +223,12 @@ export const Home: FC<HomeProps> = ({ id }) => {
     } catch (err: any) {
       alert(err?.data?.error || 'Не удалось удалить пробежку');
     }
+  };
+
+  // — обработчик перехода на создание с показом рекламы
+  const goToCreateWithAd = async () => {
+    await showInterstitial({ minIntervalMs: 90_000, timeoutMs: 2_000 }).catch(() => {});
+    routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE);
   };
 
   const modalRoot = (
@@ -327,8 +342,11 @@ export const Home: FC<HomeProps> = ({ id }) => {
               Обновить
             </Button>
             {isDesktop && (
-              <Button mode="primary" before={<Icon28AddCircleOutline />}
-                onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}>
+              <Button
+                mode="primary"
+                before={<Icon28AddCircleOutline />}
+                onClick={goToCreateWithAd}
+              >
                 Создать пробежку
               </Button>
             )}
@@ -368,53 +386,53 @@ export const Home: FC<HomeProps> = ({ id }) => {
           };
 
           return (
-                  <Card
-                    key={r.id}
-                    mode="shadow"
-                    style={{ marginTop: 8, position: 'relative' }}
-                    onClick={openDetails}
+            <Card
+              key={r.id}
+              mode="shadow"
+              style={{ marginTop: 8, position: 'relative' }}
+              onClick={openDetails}
+            >
+              {/* Кнопка — в правом нижнем углу */}
+              {isMine ? (
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: 12,
+                    bottom: 12,
+                    zIndex: 2,
+                  }}
+                >
+                  <Button
+                    size="s"
+                    mode="secondary"
+                    appearance="negative"
+                    disabled={isDeleting}
+                    onClick={onDeleteClick} // внутри onDeleteClick уже есть e.stopPropagation()
                   >
-                    {/* Кнопка — в правом нижнем углу */}
-                    {isMine ? (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          right: 12,
-                          bottom: 12,
-                          zIndex: 2,
-                        }}
-                      >
-                        <Button
-                          size="s"
-                          mode="secondary"
-                          appearance="negative"
-                          disabled={isDeleting}
-                          onClick={onDeleteClick} // внутри onDeleteClick уже есть e.stopPropagation()
-                        >
-                          Удалить
-                        </Button>
-                      </div>
-                    ) : null}
+                    Удалить
+                  </Button>
+                </div>
+              ) : null}
 
-                    <RichCell
-                      before={<Avatar size={48} src={avatar} fallbackIcon={<Icon24User />} />}
-                      subtitle={[r.cityDistrict, formatDate(r.dateISO)].filter(Boolean).join(' • ')}
-                      extraSubtitle={[
-                        r.distanceKm ? `${r.distanceKm} км` : null,
-                        r.pace ? `${r.pace}` : null,
-                      ].filter(Boolean).join(' • ')}
-                      multiline
-                      // резерв места под кнопку, чтобы текст не наезжал
-                      style={{
-                        paddingRight: 96,   // ~ ширина кнопки + отступ
-                        paddingBottom: 44,  // ~ высота кнопки + отступ
-                      }}
-                    >
-                      {r.title} — {fullName}
-                      {r.notes ? <Footnote style={{ marginTop: 4 }}>{r.notes}</Footnote> : null}
-                    </RichCell>
-                  </Card>
-                );
+              <RichCell
+                before={<Avatar size={48} src={avatar} fallbackIcon={<Icon24User />} />}
+                subtitle={[r.cityDistrict, formatDate(r.dateISO)].filter(Boolean).join(' • ')}
+                extraSubtitle={[
+                  r.distanceKm ? `${r.distanceKm} км` : null,
+                  r.pace ? `${r.pace}` : null,
+                ].filter(Boolean).join(' • ')}
+                multiline
+                // резерв места под кнопку, чтобы текст не наезжал
+                style={{
+                  paddingRight: 96,   // ~ ширина кнопки + отступ
+                  paddingBottom: 44,  // ~ высота кнопки + отступ
+                }}
+              >
+                {r.title} — {fullName}
+                {r.notes ? <Footnote style={{ marginTop: 4 }}>{r.notes}</Footnote> : null}
+              </RichCell>
+            </Card>
+          );
 
         })}
 
@@ -428,7 +446,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
               mode="primary"
               size="l"
               before={<Icon28AddCircleOutline />}
-              onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}
+              onClick={goToCreateWithAd}
             >
               Создать пробежку
             </Button>
