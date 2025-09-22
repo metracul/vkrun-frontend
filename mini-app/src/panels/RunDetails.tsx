@@ -22,6 +22,7 @@ import { useRouteNavigator, useParams } from '@vkontakte/vk-mini-apps-router';
 import { useGetRunByIdQuery, useJoinRunMutation, useLeaveRunMutation } from '../store/runnersApi';
 import { useVkUsers } from '../hooks/useVkUsers';
 import { useAppSelector } from '../store/hooks';
+import vkBridge from '@vkontakte/vk-bridge';
 
 // --- utils ---
 function formatDate(dateISO?: string) {
@@ -114,6 +115,15 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
   const [localParticipant, setLocalParticipant] = useState<boolean>(serverParticipant);
   useEffect(() => setLocalParticipant(serverParticipant), [serverParticipant]);
 
+  // открыть профиль VK по числовому id
+  const openVkProfile = (vkId: number) => {
+    const link = `https://vk.com/id${vkId}`;
+    // В вашей версии типов метод отсутствует — вызываем через any.
+    (vkBridge as any)
+      .send('VKWebAppOpenLink', { link })
+      .catch(() => window.open(link, '_blank', 'noopener,noreferrer'));
+  };
+
   const onJoin = async () => {
     if (!runId) return;
     try {
@@ -121,7 +131,9 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
       setLocalParticipant(true);
       refetch();
       window.dispatchEvent(new Event('runs:updated'));
-    } catch {/* можно вывести уведомление об ошибке */}
+    } catch {
+      /* можно вывести уведомление об ошибке */
+    }
   };
 
   const onLeave = async () => {
@@ -131,7 +143,9 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
       setLocalParticipant(false);
       refetch();
       window.dispatchEvent(new Event('runs:updated'));
-    } catch {/* можно вывести уведомление об ошибке */}
+    } catch {
+      /* можно вывести уведомление об ошибке */
+    }
   };
 
   return (
@@ -141,7 +155,11 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
       </PanelHeader>
 
       <Group>
-        {isLoading && <Card mode="shadow"><RichCell multiline>Загрузка…</RichCell></Card>}
+        {isLoading && (
+          <Card mode="shadow">
+            <RichCell multiline>Загрузка…</RichCell>
+          </Card>
+        )}
 
         {isError && (
           <Placeholder action={<Button mode="secondary" onClick={() => refetch()}>Повторить</Button>}>
@@ -153,7 +171,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
         {!isLoading && !isError && data && (
           <>
-            {/* Создатель — только аватар и ФИО */}
+            {/* Создатель — аватар и ФИО; клик открывает профиль */}
             <Card mode="shadow">
               <RichCell
                 before={
@@ -164,6 +182,9 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
                   />
                 }
                 multiline
+                onClick={() => typeof creatorVkId === 'number' && openVkProfile(creatorVkId)}
+                role="link"
+                aria-label={`Открыть профиль VK: ${creatorProfile?.fullName || 'Создатель'}`}
               >
                 {creatorProfile?.fullName || 'Получаю данные…'}
               </RichCell>
@@ -204,6 +225,9 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
                     <SimpleCell
                       key={vkId}
                       before={<Avatar size={40} src={prof?.avatarUrl} fallbackIcon={<Icon24User />} />}
+                      onClick={() => openVkProfile(vkId)}
+                      role="link"
+                      aria-label={`Открыть профиль VK: ${name}`}
                     >
                       {name}
                     </SimpleCell>
