@@ -22,7 +22,6 @@ import { useRouteNavigator, useParams } from '@vkontakte/vk-mini-apps-router';
 import { useGetRunByIdQuery, useJoinRunMutation, useLeaveRunMutation } from '../store/runnersApi';
 import { useVkUsers } from '../hooks/useVkUsers';
 import { useAppSelector } from '../store/hooks';
-import vkBridge from '@vkontakte/vk-bridge';
 
 // --- utils ---
 function formatDate(dateISO?: string) {
@@ -115,39 +114,6 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
   const [localParticipant, setLocalParticipant] = useState<boolean>(serverParticipant);
   useEffect(() => setLocalParticipant(serverParticipant), [serverParticipant]);
 
-  // открыть профиль VK по числовому id
-  const openVkProfile = (vkId: number) => {
-    const link = `https://vk.com/id${vkId}`;
-    // В вашей версии типов метод отсутствует — вызываем через any.
-    (vkBridge as any)
-      .send('VKWebAppOpenLink', { link })
-      .catch(() => window.open(link, '_blank', 'noopener,noreferrer'));
-  };
-
-  const onJoin = async () => {
-    if (!runId) return;
-    try {
-      await joinRun(runId).unwrap();
-      setLocalParticipant(true);
-      refetch();
-      window.dispatchEvent(new Event('runs:updated'));
-    } catch {
-      /* можно вывести уведомление об ошибке */
-    }
-  };
-
-  const onLeave = async () => {
-    if (!runId) return;
-    try {
-      await leaveRun(runId).unwrap();
-      setLocalParticipant(false);
-      refetch();
-      window.dispatchEvent(new Event('runs:updated'));
-    } catch {
-      /* можно вывести уведомление об ошибке */
-    }
-  };
-
   return (
     <Panel id={id}>
       <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.back()} />}>
@@ -171,9 +137,13 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
         {!isLoading && !isError && data && (
           <>
-            {/* Создатель — аватар и ФИО; клик открывает профиль */}
+            {/* Создатель — клик по карточке открывает профиль */}
             <Card mode="shadow">
               <RichCell
+                Component="a"
+                href={typeof creatorVkId === 'number' ? `https://vk.com/id${creatorVkId}` : undefined}
+                target="_blank"
+                rel="noopener noreferrer"
                 before={
                   <Avatar
                     size={56}
@@ -182,7 +152,6 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
                   />
                 }
                 multiline
-                onClick={() => typeof creatorVkId === 'number' && openVkProfile(creatorVkId)}
                 role="link"
                 aria-label={`Открыть профиль VK: ${creatorProfile?.fullName || 'Создатель'}`}
               >
@@ -212,7 +181,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
               <SimpleCell><Caption level="1">Длительность</Caption>{durationText}</SimpleCell>
             </Group>
 
-            {/* Участники */}
+            {/* Участники — каждая ячейка как ссылка */}
             <Spacing size={12} />
             <Group header={<Header>Участники ({participantVkIds.length})</Header>}>
               {participantVkIds.length === 0 ? (
@@ -224,8 +193,11 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
                   return (
                     <SimpleCell
                       key={vkId}
+                      Component="a"
+                      href={`https://vk.com/id${vkId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       before={<Avatar size={40} src={prof?.avatarUrl} fallbackIcon={<Icon24User />} />}
-                      onClick={() => openVkProfile(vkId)}
                       role="link"
                       aria-label={`Открыть профиль VK: ${name}`}
                     >
@@ -245,7 +217,12 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
                 mode="secondary"
                 appearance="negative"
                 disabled={isLeaving}
-                onClick={onLeave}
+                onClick={async () => {
+                  await leaveRun(runId!);
+                  setLocalParticipant(false);
+                  refetch();
+                  window.dispatchEvent(new Event('runs:updated'));
+                }}
               >
                 {isLeaving ? 'Отписываю…' : 'Отписаться'}
               </Button>
@@ -254,7 +231,12 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
                 size="l"
                 appearance="accent"
                 disabled={isJoining}
-                onClick={onJoin}
+                onClick={async () => {
+                  await joinRun(runId!);
+                  setLocalParticipant(true);
+                  refetch();
+                  window.dispatchEvent(new Event('runs:updated'));
+                }}
               >
                 {isJoining ? 'Записываю…' : 'Побегу'}
               </Button>
