@@ -12,6 +12,8 @@ import { DEFAULT_VIEW_PANELS } from '../routes';
 import bridge from '@vkontakte/vk-bridge';
 import { useAppDispatch } from '../store/hooks';
 import { showBannerAd, hideBannerAd } from '../store/bannerAdSlice';
+import vkBridge, { parseURLSearchParamsForGetLaunchParams } from '@vkontakte/vk-bridge';
+import { useActiveVkuiLocation } from '@vkontakte/vk-mini-apps-router';
 
 export interface HomeProps extends NavIdProps {}
 
@@ -124,6 +126,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
   const platform = usePlatform();
   const isDesktop = platform === 'vkcom';
   const dispatch = useAppDispatch();
+  const { panel: activePanel } = useActiveVkuiLocation();
 
   // мой VK id для проверки прав удаления
   const myVkId = useAppSelector((s) => s.user.data?.id);
@@ -295,18 +298,30 @@ export const Home: FC<HomeProps> = ({ id }) => {
     </ModalRoot>
   );
 
-   useEffect(() => {
-    dispatch(showBannerAd({
-      minIntervalMs: 180_000,
-      // ВАЖНО: проверьте нужные параметры вашей версии SDK.
-      // Пример (проверьте в доках вашей версии):
-      // params: { banner_location: 'bottom', layout_type: 'overlay' }
-      params: {}
-    }));
-    return () => {
-      dispatch(hideBannerAd());
-    };
-  }, [dispatch]);
+    useEffect(() => {
+      if (activePanel !== id) return;
+
+      const { vk_platform } = parseURLSearchParamsForGetLaunchParams(window.location.search);
+      const inWebView = vkBridge.isWebView();
+
+      if (!inWebView || vk_platform === 'desktop_web') return;
+
+      // Частотный колпак на 3 минуты; для отладки можно поставить 0
+      dispatch(showBannerAd({
+        minIntervalMs: 180_000,
+        // проверьте параметры под вашу версию SDK:
+        params: {
+          banner_location: 'bottom', // или 'top'
+          layout_type: 'resize',     // 'resize' — сжимает экран; 'overlay' — поверх UI
+          // orientation: 'portrait' | 'landscape' — если требуется в вашей версии
+        },
+      }));
+
+      // Опционально: при уходе с Home скрывать баннер
+      return () => {
+        dispatch(hideBannerAd());
+      };
+    }, [dispatch, activePanel, id]);
 
   return (
     <Panel id={id}>
