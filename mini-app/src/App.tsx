@@ -6,11 +6,13 @@ import { DEFAULT_VIEW_PANELS } from './routes';
 import { useAppDispatch, useAppSelector } from './store/hooks';
 import { fetchUser } from './store/userSlice';
 import { initMe } from './api/me';
+import { useBannerAdEvents } from './hooks/useBannerAdEvents';
 
 export const App = () => {
   const { panel: activePanel = DEFAULT_VIEW_PANELS.HOME } = useActiveVkuiLocation();
   const dispatch = useAppDispatch();
   const userStatus = useAppSelector((s) => s.user.status);
+  useBannerAdEvents(); // <-- подписка на события баннеров
 
   useEffect(() => {
     if (userStatus === 'idle') {

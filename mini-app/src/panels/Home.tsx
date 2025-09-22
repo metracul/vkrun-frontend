@@ -10,6 +10,8 @@ import { useGetRunsQuery, usePrefetch, useDeleteRunMutation } from '../store/run
 import { useAppSelector } from '../store/hooks';
 import { DEFAULT_VIEW_PANELS } from '../routes';
 import bridge from '@vkontakte/vk-bridge';
+import { useAppDispatch } from '../store/hooks';
+import { showBannerAd, hideBannerAd } from '../store/bannerAdSlice';
 
 export interface HomeProps extends NavIdProps {}
 
@@ -121,6 +123,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
   const platform = usePlatform();
   const isDesktop = platform === 'vkcom';
+  const dispatch = useAppDispatch();
 
   // мой VK id для проверки прав удаления
   const myVkId = useAppSelector((s) => s.user.data?.id);
@@ -291,6 +294,19 @@ export const Home: FC<HomeProps> = ({ id }) => {
       </ModalPage>
     </ModalRoot>
   );
+
+   useEffect(() => {
+    dispatch(showBannerAd({
+      minIntervalMs: 180_000,
+      // ВАЖНО: проверьте нужные параметры вашей версии SDK.
+      // Пример (проверьте в доках вашей версии):
+      // params: { banner_location: 'bottom', layout_type: 'overlay' }
+      params: {}
+    }));
+    return () => {
+      dispatch(hideBannerAd());
+    };
+  }, [dispatch]);
 
   return (
     <Panel id={id}>
