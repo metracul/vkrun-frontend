@@ -1,6 +1,6 @@
 import vkBridge from '@vkontakte/vk-bridge';
-import slide1 from '../assets/onboarding/slide1.png';
-import slide2 from '../assets/onboarding/slide2.png';
+import slide1 from '../assets/onboarding/slide1.webp';
+import slide2 from '../assets/onboarding/slide2.webp';
 
 export const ONBOARDING_LS_KEY = 'onboarding_v5_shown';
 
