@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from './store/hooks';
 import { fetchUser } from './store/userSlice';
 import { initMe } from './api/me';
 import { useBannerAdEvents } from './hooks/useBannerAdEvents';
-import { showOnboardingIfNeeded } from './features/onboarding';
+
 
 export const App = () => {
   const { panel: activePanel = DEFAULT_VIEW_PANELS.HOME } = useActiveVkuiLocation();
@@ -21,13 +21,6 @@ export const App = () => {
       initMe().catch((e) => console.warn('initMe failed', e));
     }
   }, [dispatch, userStatus]);
-
-  useEffect(() => {
-    if (userStatus === 'succeeded') {
-      // не await — не блокируем UI
-      showOnboardingIfNeeded();
-    }
-  }, [userStatus]);
 
   const popoutNode = userStatus === 'loading' ? <ScreenSpinner /> : null;
 
