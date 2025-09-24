@@ -27,8 +27,8 @@ export async function showOnboardingIfNeeded(): Promise<void> {
     const mod = await import('./onboardingImages');
     SLIDE1_DATA_URL = mod.SLIDE1_DATA_URL;
     SLIDE2_DATA_URL = mod.SLIDE2_DATA_URL;
-  } catch {
-    console.log("Fail with loading onboarding images")
+  } catch (e) {
+    console.warn('[onboarding] failed to load images', e);
     return;
   }
 
@@ -36,8 +36,7 @@ export async function showOnboardingIfNeeded(): Promise<void> {
     {
       media: { type: 'image', url: SLIDE1_DATA_URL },
       title: 'Совместные пробежки',
-      subtitle:
-        'Выбирай дистанцию, темп и время. Присоединяйся к пробежкам рядом.',
+      subtitle: 'Выбирай дистанцию, темп и время. Присоединяйся к пробежкам рядом.',
     },
     {
       media: { type: 'image', url: SLIDE2_DATA_URL },
@@ -60,23 +59,29 @@ export async function showOnboardingIfNeeded(): Promise<void> {
 
   let shown = false;
 
-  if (vkBridge.supports && vkBridge.supports('VKWebAppShowSlidesSheet')) {
-    vkBridge.subscribe(handler);
-    try {
-      shown = await showSlidesSheet(slides);
-      if (shown) localStorage.setItem(ONBOARDING_LS_KEY, '1');
-    } catch {
-      /* ignore */
-    } finally {
-      vkBridge.unsubscribe(handler);
+  try {
+    if (await vkBridge.supportsAsync('VKWebAppShowSlidesSheet')) {
+      vkBridge.subscribe(handler);
+      try {
+        shown = await showSlidesSheet(slides);
+        if (shown) localStorage.setItem(ONBOARDING_LS_KEY, '1');
+      } catch (e) {
+        console.warn('[onboarding] ShowSlidesSheet error', e);
+      } finally {
+        vkBridge.unsubscribe(handler);
+      }
     }
+  } catch (e) {
+    console.warn('[onboarding] supportsAsync error', e);
   }
 
   if (!shown) {
     try {
       await showImagesFallback(urls);
       localStorage.setItem(ONBOARDING_LS_KEY, '1');
-    } catch {
+    } catch (e) {
+      console.warn('[onboarding] ShowImages fallback error', e);
+      // флаг не ставим — попробуем позже
     }
   }
 }
