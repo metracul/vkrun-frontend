@@ -1,65 +1,24 @@
-name: Deploy Frontend
+name: Deploy to Server
 
 on:
   push:
-    branches: [ "main" ]     # поменяй, если деплоишь с другой ветки
-  workflow_dispatch:         # возможность запустить вручную
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: mini-app   # <- твой фронт лежит здесь
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Use Node LTS
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
-          cache: 'npm'
-          cache-dependency-path: mini-app/package-lock.json
-
-      - name: Install deps
-        run: npm ci
-
-      - name: Build
-        run: npm run build   # у тебя outDir = build/
-
-      # Зальём по rsync (инкрементально, с удалением старых файлов)
-      - name: Deploy via rsync over SSH
-        uses: burnett01/rsync-deployments@6.0.0
-        with:
-          switches: -azr --delete --no-perms --no-times --omit-dir-times --chmod=Du=rwx,Dg=rwx,Fu=rw,Fg=rw
-          path: mini-app/build/
-          remote_path: /var/www/vkapp-frontend/
-          remote_host: ${{ secrets.DEPLOY_HOST }}
-          remote_user: ${{ secrets.DEPLOY_USER }}
-          remote_key:  ${{ secrets.DEPLOY_KEY }}
-          remote_port: ${{ secrets.DEPLOY_PORT || 22 }}
-      - name: Pre-clean target dir (as deploy)
+      - name: Run /home/artem/deploy.sh over SSH
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
+          host_fingerprint: ${{ secrets.HOST_FINGERPRINT }}
+          script_stop: true
+          # login shell + абсолютный путь к скрипту
           script: |
-            set -e
-            rm -rf /var/www/vkapp-frontend/* /var/www/vkapp-frontend/.[!.]* 2>/dev/null || true
-
-
-
-      - name: Reload nginx
-        uses: appleboy/ssh-action@v1.1.0
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_KEY }}
-          port: ${{ secrets.DEPLOY_PORT || 22 }}
-          script: |
-            cp -a /var/www/vkapp-frontend /var/www/vkapp-frontend_$(date +%F_%H-%M-%S)
-            sudo systemctl reload nginx
+            set -euo pipefail
+            bash -lc '/home/artem/deploy.sh'
