@@ -1,6 +1,6 @@
 import vkBridge from '@vkontakte/vk-bridge';
 
-export const ONBOARDING_LS_KEY = 'onboarding_v6_shown';
+export const ONBOARDING_LS_KEY = 'onboarding_v7_shown';
 
 type Slide = {
   media: { type: 'image'; url: string };
