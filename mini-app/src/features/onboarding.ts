@@ -63,13 +63,15 @@ export async function showOnboardingIfNeeded(): Promise<void> {
     if (await vkBridge.supportsAsync('VKWebAppShowSlidesSheet')) {
       vkBridge.subscribe(handler);
       try {
-        shown = await showSlidesSheet(slides);
-        if (shown) localStorage.setItem(ONBOARDING_LS_KEY, '1');
-      } catch (e) {
-        console.warn('[onboarding] ShowSlidesSheet error', e);
-      } finally {
-        vkBridge.unsubscribe(handler);
-      }
+            shown = await showSlidesSheet(slides);
+          } catch (e: any) {
+            console.warn('[onboarding] ShowSlidesSheet error', {
+              type: e?.error_type,
+              code: e?.error_data?.error_code,
+              msg: e?.error_data?.error_reason || e?.error_data?.message,
+              raw: e,
+            });
+          }
     }
   } catch (e) {
     console.warn('[onboarding] supportsAsync error', e);
@@ -77,11 +79,14 @@ export async function showOnboardingIfNeeded(): Promise<void> {
 
   if (!shown) {
     try {
-      await showImagesFallback(urls);
-      localStorage.setItem(ONBOARDING_LS_KEY, '1');
-    } catch (e) {
-      console.warn('[onboarding] ShowImages fallback error', e);
-      // флаг не ставим — попробуем позже
-    }
+          await showImagesFallback(urls);
+        } catch (e: any) {
+          console.warn('[onboarding] ShowImages fallback error', {
+            type: e?.error_type,
+            code: e?.error_data?.error_code,
+            msg: e?.error_data?.error_reason || e?.error_data?.message,
+            raw: e,
+          });
+        }
   }
 }
