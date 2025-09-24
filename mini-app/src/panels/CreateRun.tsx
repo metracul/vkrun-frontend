@@ -2,7 +2,7 @@
 import { FC, useMemo, useState } from 'react';
 import {
   NavIdProps, Panel, PanelHeader, PanelHeaderBack, Header, Select, InfoRow, Button, DateInput,
-  Group, CustomSelectOption, Textarea, Spacing, CustomSelect, Input
+  Group, CustomSelectOption, Textarea, Spacing, CustomSelect, Input, Footnote
 } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import { Icon20LocationMapOutline } from '@vkontakte/icons';
@@ -161,6 +161,12 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
   const [timeStr, setTimeStr] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // --- состояния ошибок для полей ---
+  const [distanceError, setDistanceError] = useState<string | null>(null);
+  const [dateError, setDateError] = useState<string | null>(null);
+  const [distanceTouched, setDistanceTouched] = useState(false);
+  const [dateTouched, setDateTouched] = useState(false);
+
   const startOfToday = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -221,19 +227,41 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
     return list.map((name) => ({ value: name, label: name }));
   }, [city]);
 
+  // --- валидация дистанции ---
+  const validateDistance = (raw: string): string | null => {
+    if (!raw.trim()) return 'Введите дистанцию.';
+    const km = parseFloat(raw.replace(',', '.'));
+    if (!isFinite(km)) return 'Пожалуйста, введите число';
+    if (km <= 0) return 'Дистанция должна быть больше 0 км.';
+    return null;
+  };
+
+  // --- валидация даты (не в прошлом) ---
+  const validateDateNotPast = (d: Date | null): string | null => {
+    if (!d) return 'Выберите дату.';
+    const picked = new Date(d);
+    picked.setHours(0, 0, 0, 0);
+    if (picked < startOfToday) return 'Нельзя выбрать прошедшую дату.';
+    return null;
+  };
+
   const isFormValid = useMemo(() => {
     const hasCity = !!city;
     const hasDistrict = district.trim().length > 0;
     const hasPace = !!pace && paceToSeconds(pace) != null;
-    const km = parseFloat(distanceStr.replace(',', '.'));
-    const hasDistance = isFinite(km) && km > 0;
-    const hasDate = date instanceof Date && !isNaN(date.getTime()) && date >= startOfToday;
+
+    const distErr = validateDistance(distanceStr);
+    const hasDistance = distErr === null;
+
+    const dateErr = validateDateNotPast(date);
+    const hasDate = dateErr === null;
+
     const hasTime = parseTime(timeStr) !== null;
 
     if (!(hasCity && hasDistrict && hasPace && hasDistance && hasDate && hasTime)) return false;
 
     const now = new Date();
-    const dt = combineDateTime(date!, timeStr);
+    const dt = date && combineDateTime(date, timeStr);
     if (!dt) return false;
     if (date!.toDateString() === now.toDateString() && dt < now) return false;
 
@@ -262,7 +290,6 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
       setLoading(true);
       const id = await createRunSecure(body);
 
-
       const fire = () => window.dispatchEvent(new CustomEvent('runs:updated', { detail: { id } }));
       routeNavigator.back();
       setTimeout(fire, 0);
@@ -281,6 +308,24 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
   const filterFn = (q: string, option: { value: string; label: string }) => {
     if (!q) return true;
     return option.label.toLowerCase().startsWith(q.toLowerCase());
+  };
+
+  const handleDistanceChange = (value: string) => {
+    setDistanceStr(value);
+    if (!distanceTouched) setDistanceTouched(true);
+    setDistanceError(validateDistance(value));
+  };
+
+  const handleDateChange = (value?: Date) => {
+    setDateTouched(true);
+    const next = value ?? null;
+    const err = validateDateNotPast(next);
+    if (err) {
+      setDateError(err);
+      return;
+    }
+    setDateError(null);
+    setDate(next);
   };
 
   return (
@@ -323,13 +368,16 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
         <Header size="m">Выберите дату забега</Header>
         <DateInput
           value={date ?? undefined}
-          onChange={(value) => {
-            const next = value ?? null;
-            if (next && next < startOfToday) return;
-            setDate(next);
-          }}
+          onChange={handleDateChange}
           min={minDateStr}
+          status={dateError ? 'error' : 'default'}
+          onBlur={() => setDateTouched(true)}
         />
+        {dateTouched && dateError && (
+          <Footnote style={{ color: 'var(--vkui--color_text_negative)' }}>
+            {dateError} Пожалуйста, измените ввод.
+          </Footnote>
+        )}
 
         <Spacing size="s" />
         <Header size="m">Выберите время начала</Header>
@@ -355,8 +403,15 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
           inputMode="decimal"
           type="text"
           value={distanceStr}
-          onChange={(e) => setDistanceStr(e.target.value)}
+          onChange={(e) => handleDistanceChange(e.target.value)}
+          onBlur={() => setDistanceTouched(true)}
+          status={distanceError && distanceTouched ? 'error' : 'default'}
         />
+        {distanceTouched && distanceError && (
+          <Footnote style={{ color: 'var(--vkui--color_text_negative)' }}>
+            {distanceError} Пожалуйста, измените ввод.
+          </Footnote>
+        )}
 
         <Spacing size="m" />
         <InfoRow header="Примерное время бега">
