@@ -1,1 +1,0 @@
-export const ONBOARDING_LS_KEY = 'onboarding_v7_shown';
