@@ -7,13 +7,14 @@ import { useAppDispatch, useAppSelector } from './store/hooks';
 import { fetchUser } from './store/userSlice';
 import { initMe } from './api/me';
 import { useBannerAdEvents } from './hooks/useBannerAdEvents';
+import { showOnboardingIfNeeded } from './features/onboarding'
 
 
 export const App = () => {
   const { panel: activePanel = DEFAULT_VIEW_PANELS.HOME } = useActiveVkuiLocation();
   const dispatch = useAppDispatch();
   const userStatus = useAppSelector((s) => s.user.status);
-  useBannerAdEvents(); // <-- подписка на события баннеров
+  useBannerAdEvents();
 
   useEffect(() => {
     if (userStatus === 'idle') {
@@ -21,6 +22,12 @@ export const App = () => {
       initMe().catch((e) => console.warn('initMe failed', e));
     }
   }, [dispatch, userStatus]);
+
+  useEffect(() => {
+    if (userStatus === 'succeeded') {
+      showOnboardingIfNeeded().catch((e) => console.warn('onboarding failed', e));
+    }
+  }, [userStatus]);
 
   const popoutNode = userStatus === 'loading' ? <ScreenSpinner /> : null;
 
