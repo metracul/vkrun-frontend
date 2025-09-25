@@ -1,3 +1,4 @@
+// src/hooks/useVkUsers.ts
 import { useEffect, useMemo, useRef, useState } from 'react';
 import bridge from '@vkontakte/vk-bridge';
 
@@ -20,7 +21,7 @@ export type VkProfile = { fullName: string; avatarUrl?: string };
 
 const LP = '[useVkUsers]';
 
-/** clientId → реальный numeric id пользователя (на будущее, сейчас не используется) */
+/** clientId → реальный numeric id пользователя (на будущее; сейчас не используется) */
 const VK_ID_NUMERIC_MAP: Record<number, number> = {
   // пример: 1234567: 42,
 };
@@ -43,7 +44,7 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
-/** resolve screen name → { type, object_id } */
+/** resolve screen name → { type, object_id } | null */
 async function resolveScreenName(alias: string, access_token: string) {
   try {
     const resp = await bridge.send('VKWebAppCallAPIMethod', {
@@ -56,7 +57,7 @@ async function resolveScreenName(alias: string, access_token: string) {
     });
     const obj = resp?.response;
     if (!obj) return null;
-    return { type: obj.type as string, object_id: Number(obj.object_id) };
+    return { type: String(obj.type), object_id: Number(obj.object_id) };
   } catch (e) {
     console.warn(LP, 'utils.resolveScreenName failed', { alias, error: e });
     return null;
@@ -67,7 +68,7 @@ async function resolveScreenName(alias: string, access_token: string) {
  * Загружает профили VK и возвращает { [clientId]: { fullName, avatarUrl } }.
  * - Обычные id → users.get
  * - clientId из VK_ID_NUMERIC_MAP → users.get(realId), результат кладём под clientId
- * - clientId из VK_ID_GROUP_ALIAS → utils.resolveScreenName → groups.getById(group_id=numeric), кладём под clientId
+ * - clientId из VK_ID_GROUP_ALIAS → utils.resolveScreenName → groups.getById(...), результат кладём под clientId
  */
 export function useVkUsers(userIds: number[], appId: number | undefined) {
   const [map, setMap] = useState<Record<number, VkProfile>>({});
@@ -85,12 +86,14 @@ export function useVkUsers(userIds: number[], appId: number | undefined) {
       return;
     }
 
+    // какие clientId ещё не загружены
     const missingClientIds = ids.filter((id) => !map[id]);
     if (!missingClientIds.length) {
       console.debug(LP, 'skip: no missing ids; all cached');
       return;
     }
 
+    // классификация
     const missingGroupAlias: number[] = [];
     const missingUserNumericMap: number[] = [];
     const missingPlainUser: number[] = [];
@@ -101,6 +104,7 @@ export function useVkUsers(userIds: number[], appId: number | undefined) {
       else missingPlainUser.push(cid);
     }
 
+    // realId для users.get
     const realToClient = new Map<number, number[]>();
     const realIds: number[] = [];
     const addMap = (cid: number, rid: number) => {
@@ -126,6 +130,7 @@ export function useVkUsers(userIds: number[], appId: number | undefined) {
 
     (async () => {
       try {
+        // токен
         if (!tokenRef.current) {
           console.debug(LP, 'auth: requesting token');
           const { access_token } = await bridge.send('VKWebAppGetAuthToken', { app_id: appId, scope: '' });
@@ -149,13 +154,14 @@ export function useVkUsers(userIds: number[], appId: number | undefined) {
               const resp = await bridge.send('VKWebAppCallAPIMethod', {
                 method: 'users.get',
                 params: {
-                  user_ids: batch.join(','),
+                  user_ids: batch.join(','), // numeric
                   fields: 'photo_200,photo_100',
                   v: '5.199',
                   access_token,
                 },
               });
-              const users: VkUser[] = Array.isArray(resp?.response) ? resp.response : [];
+              const raw = resp?.response;
+              const users: VkUser[] = Array.isArray(raw) ? raw : (raw ? [raw] : []);
               const profByReal = new Map<number, VkProfile>();
               for (const u of users) {
                 profByReal.set(u.id, {
@@ -180,13 +186,13 @@ export function useVkUsers(userIds: number[], appId: number | undefined) {
           }
         }
 
-        // === groups.getById для alias: resolve → getById(group_id=numeric)
+        // === groups.getById для alias: resolve → пробуем разные варианты вызова
         for (const cid of missingGroupAlias) {
           const alias = VK_ID_GROUP_ALIAS[cid];
           const tLabel = `${LP} group ${cid} (${alias})`;
           console.time(tLabel);
           try {
-            // 1) resolve alias
+            // 1) resolve alias → numeric id
             const resolved = await resolveScreenName(alias, access_token);
             if (!resolved) {
               console.warn(LP, 'resolve: empty', { clientId: cid, alias });
@@ -196,32 +202,66 @@ export function useVkUsers(userIds: number[], appId: number | undefined) {
               console.warn(LP, 'resolve: not a group/page', resolved);
               continue;
             }
-            const groupId = resolved.object_id;
+            const groupId = Number(resolved.object_id);
             if (!Number.isFinite(groupId)) {
               console.warn(LP, 'resolve: invalid object_id', resolved);
               continue;
             }
-            // 2) get group by numeric id
-            const resp = await bridge.send('VKWebAppCallAPIMethod', {
-              method: 'groups.getById',
-              params: {
-                group_id: String(-groupId),   
-                fields: 'photo_200,photo_100',
-                v: '5.199',
-                access_token,
-              },
-            });
-            const arr: VkGroup[] = Array.isArray(resp?.response) ? resp.response : [];
-            if (!arr.length) {
-              console.warn(LP, 'groups.getById: empty response AFTER resolve', { clientId: cid, alias, groupId });
-            } else {
-              const g = arr[0];
-              next[cid] = {
-                fullName: g.name,
-                avatarUrl: g.photo_200 || g.photo_100,
-              };
-              console.debug(LP, 'group mapped', { clientId: cid, alias, groupId, name: g.name, hasAvatar: !!(g.photo_200 || g.photo_100) });
+
+            // helper: единая обёртка
+            const tryGet = async (params: Record<string, string>) => {
+              const resp = await bridge.send('VKWebAppCallAPIMethod', {
+                method: 'groups.getById',
+                params: {
+                  ...params,
+                  fields: 'photo_200,photo_100',
+                  v: '5.199',
+                  access_token,
+                },
+              });
+              const raw = resp?.response;
+              const arr: VkGroup[] = Array.isArray(raw) ? raw : (raw ? [raw] as VkGroup[] : []);
+              return arr;
+            };
+
+            // Порядок попыток
+            const attempts: Array<[string, Record<string, string>]> = [
+              ['group_ids:numeric', { group_ids: String(groupId) }],
+              ['group_id:numeric',  { group_id: String(groupId) }],
+              ['group_ids:alias',   { group_ids: alias }],
+              ['group_ids:-numeric',{ group_ids: String(-groupId) }],
+            ];
+
+            let grp: VkGroup | null = null;
+            for (const [label, p] of attempts) {
+              try {
+                const res = await tryGet(p);
+                if (res.length) {
+                  grp = res[0];
+                  console.debug(LP, `groups.getById ok via ${label}`, { clientId: cid, alias, groupId });
+                  break;
+                } else {
+                  console.warn(LP, `groups.getById empty via ${label}`, { clientId: cid, alias, groupId });
+                }
+              } catch (err) {
+                console.warn(LP, `groups.getById error via ${label}`, { clientId: cid, alias, groupId, error: err });
+              }
             }
+
+            if (!grp) {
+              console.warn(LP, 'groups.getById: all attempts failed', { clientId: cid, alias, groupId });
+              continue;
+            }
+
+            next[cid] = {
+              fullName: grp.name,
+              avatarUrl: grp.photo_200 || grp.photo_100,
+            };
+            console.debug(LP, 'group mapped', {
+              clientId: cid, alias, groupId,
+              name: next[cid].fullName,
+              hasAvatar: !!next[cid].avatarUrl,
+            });
           } catch (e) {
             console.warn(LP, 'groups.getById flow failed', { clientId: cid, alias, error: e });
           } finally {
@@ -231,7 +271,11 @@ export function useVkUsers(userIds: number[], appId: number | undefined) {
 
         if (Object.keys(next).length) {
           setMap((prev) => ({ ...prev, ...next }));
-          console.info(LP, 'state: updated', { added: Object.keys(next).length, total: Object.keys({ ...map, ...next }).length, tookMs: Date.now() - startedAt });
+          console.info(LP, 'state: updated', {
+            added: Object.keys(next).length,
+            total: Object.keys({ ...map, ...next }).length,
+            tookMs: Date.now() - startedAt,
+          });
         } else {
           console.debug(LP, 'state: nothing to update', { tookMs: Date.now() - startedAt });
         }
