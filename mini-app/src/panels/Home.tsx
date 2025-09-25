@@ -1,5 +1,4 @@
-// src/panels/Home.tsx
-import { FC, useMemo, useState, useEffect, useRef } from 'react';
+import { FC, useMemo, useState, useEffect } from 'react';
 import {
   Panel, PanelHeader, Header, Button, Group, Avatar, NavIdProps, ModalRoot, ModalPage, Placeholder, ButtonGroup,
   Card, RichCell, Spacing, SimpleCell, Caption, Footnote, FixedLayout, usePlatform, FormItem, Input, CustomSelect, CustomSelectOption
@@ -9,11 +8,11 @@ import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import { useGetRunsQuery, usePrefetch, useDeleteRunMutation } from '../store/runnersApi';
 import { useAppSelector } from '../store/hooks';
 import { DEFAULT_VIEW_PANELS } from '../routes';
-import bridge from '@vkontakte/vk-bridge';
 import { useAppDispatch } from '../store/hooks';
 import { showBannerAd, hideBannerAd } from '../store/bannerAdSlice';
 import vkBridge, { parseURLSearchParamsForGetLaunchParams } from '@vkontakte/vk-bridge';
 import { useActiveVkuiLocation } from '@vkontakte/vk-mini-apps-router';
+import { useVkUsers } from '../hooks/useVkUsers';
 
 export interface HomeProps extends NavIdProps {}
 
@@ -59,65 +58,6 @@ function parsePaceToSec(mmss: string) {
   const min = Number(m[1]);
   const sec = Number(m[2]);
   return min * 60 + sec;
-}
-
-// --- VK users.get хук ---
-type VkUser = { id: number; first_name: string; last_name: string; photo_200?: string; photo_100?: string; };
-type VkProfile = { fullName: string; avatarUrl?: string };
-function uniqueFinite(ids: Array<number | undefined | null>) {
-  const set = new Set<number>();
-  for (const id of ids) if (Number.isFinite(id as number)) set.add(Number(id));
-  return Array.from(set.values());
-}
-function chunk<T>(arr: T[], size: number): T[][] {
-  if (size <= 0) return [arr];
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-}
-function useVkUsers(userIds: number[]) {
-  const [map, setMap] = useState<Record<number, VkProfile>>({});
-  const tokenRef = useRef<string | null>(null);
-  const ids = useMemo(() => uniqueFinite(userIds), [userIds]);
-  const appId = Number(import.meta.env.VITE_VK_APP_ID);
-
-  useEffect(() => {
-    if (!ids.length) return;
-    if (!appId || Number.isNaN(appId)) {
-      console.warn('VITE_VK_APP_ID не задан — пропускаю users.get');
-      return;
-    }
-    const missing = ids.filter((id) => !map[id]);
-    if (!missing.length) return;
-
-    let cancelled = false;
-    (async () => {
-      try {
-        if (!tokenRef.current) {
-          const { access_token } = await bridge.send('VKWebAppGetAuthToken', { app_id: appId, scope: '' });
-          tokenRef.current = access_token;
-        }
-        const access_token = tokenRef.current!;
-        const batches = chunk(missing, 100);
-
-        const next: Record<number, VkProfile> = {};
-        for (const batch of batches) {
-          const resp = await bridge.send('VKWebAppCallAPIMethod', {
-            method: 'users.get',
-            params: { user_ids: batch.join(','), fields: 'photo_200,photo_100', v: '5.199', access_token }
-          });
-          const users: VkUser[] = resp?.response || [];
-          for (const u of users) {
-            next[u.id] = { fullName: `${u.first_name} ${u.last_name}`.trim(), avatarUrl: u.photo_200 || u.photo_100 };
-          }
-        }
-        if (!cancelled && Object.keys(next).length) setMap((prev) => ({ ...prev, ...next }));
-      } catch (e) { console.warn('users.get via vk-bridge failed', e); }
-    })();
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ids, appId]);
-  return map;
 }
 
 // ---------- component ----------
@@ -173,7 +113,10 @@ export const Home: FC<HomeProps> = ({ id }) => {
       .filter((x): x is number => Number.isFinite(x));
   }, [runs]);
 
-  const vkProfiles = useVkUsers(creatorIds);
+  // NEW: используем общий хук с поддержкой alias; передаём appId
+  const appId = Number(import.meta.env.VITE_VK_APP_ID);
+  const vkProfiles = useVkUsers(creatorIds, appId);
+
   const prefetchRunById = usePrefetch('getRunById', { ifOlderThan: 60 });
 
   const [activeModal, setActiveModal] = useState<ModalId>(null);
@@ -298,30 +241,30 @@ export const Home: FC<HomeProps> = ({ id }) => {
     </ModalRoot>
   );
 
-    useEffect(() => {
-      if (activePanel !== id) return;
+  useEffect(() => {
+    if (activePanel !== id) return;
 
-      const { vk_platform } = parseURLSearchParamsForGetLaunchParams(window.location.search);
-      const inWebView = vkBridge.isWebView();
+    const { vk_platform } = parseURLSearchParamsForGetLaunchParams(window.location.search);
+    const inWebView = vkBridge.isWebView();
 
-      if (!inWebView || vk_platform === 'desktop_web') return;
+    if (!inWebView || vk_platform === 'desktop_web') return;
 
-      // Частотный колпак на 3 минуты; для отладки можно поставить 0
-      dispatch(showBannerAd({
-        minIntervalMs: 180_000,
-        // проверьте параметры под вашу версию SDK:
-        params: {
-          banner_location: 'bottom', // или 'top'
-          layout_type: 'resize',     // 'resize' — сжимает экран; 'overlay' — поверх UI
-          // orientation: 'portrait' | 'landscape' — если требуется в вашей версии
-        },
-      }));
+    // Частотный колпак на 3 минуты; для отладки можно поставить 0
+    dispatch(showBannerAd({
+      minIntervalMs: 180_000,
+      // проверьте параметры под вашу версию SDK:
+      params: {
+        banner_location: 'bottom', // или 'top'
+        layout_type: 'resize',     // 'resize' — сжимает экран; 'overlay' — поверх UI
+        // orientation: 'portrait' | 'landscape' — если требуется в вашей версии
+      },
+    }));
 
-      // Опционально: при уходе с Home скрывать баннер
-      return () => {
-        dispatch(hideBannerAd());
-      };
-    }, [dispatch, activePanel, id]);
+    // Опционально: при уходе с Home скрывать баннер
+    return () => {
+      dispatch(hideBannerAd());
+    };
+  }, [dispatch, activePanel, id]);
 
   return (
     <Panel id={id}>
@@ -448,7 +391,6 @@ export const Home: FC<HomeProps> = ({ id }) => {
               </RichCell>
             </Card>
           );
-
         })}
 
         {!isDesktop && <Spacing size={72} />}

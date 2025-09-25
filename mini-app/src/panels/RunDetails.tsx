@@ -1,4 +1,3 @@
-// src/panels/RunDetails.tsx
 import { FC, useEffect, useMemo, useState } from 'react';
 import {
   Panel,
@@ -141,7 +140,13 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
             <Card mode="shadow">
               <RichCell
                 Component="a"
-                href={typeof creatorVkId === 'number' ? `https://vk.com/id${creatorVkId}` : undefined}
+                href={
+                  typeof creatorVkId === 'number'
+                    ? (creatorVkId === 9999999
+                        ? 'https://vk.com/vetercc'
+                        : `https://vk.com/id${creatorVkId}`)
+                    : undefined
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 before={
