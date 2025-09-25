@@ -1,189 +1,102 @@
-// src/hooks/useVkUsers.ts
 import { useEffect, useMemo, useRef, useState } from 'react';
-import vkBridge from '@vkontakte/vk-bridge';
+import bridge from '@vkontakte/vk-bridge';
 
-type Profile = { fullName: string; avatarUrl: string | undefined };
-type ProfilesMap = Record<number, Profile>;
-
-type CacheLike = {
-  read(ids: number[]): Promise<ProfilesMap>;
-  write(map: ProfilesMap): Promise<void>;
+type VkUser = {
+  id: number;
+  first_name: string;
+  last_name: string;
+  photo_200?: string;
+  photo_100?: string;
 };
 
-const memoryCache = (() => {
-  const store: ProfilesMap = {};
-  return {
-    async read(ids: number[]) {
-      const out: ProfilesMap = {};
-      for (const id of ids) if (store[id]) out[id] = store[id];
-      return out;
-    },
-    async write(map: ProfilesMap) {
-      try {
-        Object.assign(store, map);
-      } catch {}
-    },
-  } as CacheLike;
-})();
+export type VkProfile = { fullName: string; avatarUrl?: string };
 
-const GROUP_ALIASES: Record<number, string> = { 9999999: 'vetercc' };
-
-function normalizeUser(u: any): Profile {
-  const first = u?.first_name ?? '';
-  const last = u?.last_name ?? '';
-  const fullName = `${first} ${last}`.trim();
-  const avatarUrl = u?.photo_200 || u?.photo_100 || u?.photo_50 || undefined;
-  return { fullName, avatarUrl };
+function uniqueFinite(ids: number[]) {
+  const set = new Set<number>();
+  for (const id of ids) if (Number.isFinite(id)) set.add(id);
+  return Array.from(set.values());
 }
 
-function normalizeGroup(g: any): Profile {
-  const fullName = g?.name ?? '';
-  const avatarUrl =
-    g?.photo_200 || g?.photo_100 || g?.photo_50 || g?.photo || undefined;
-  return { fullName, avatarUrl };
+function chunk<T>(arr: T[], size: number): T[][] {
+  if (size <= 0) return [arr];
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
 }
 
-type UseVkUsersOptions = {
-  accessToken?: string; // <-- добавлено
-  apiVersion?: string;  // по умолчанию 5.199
-};
+/**
+ * Загружает профили VK по массиву userIds и возвращает мапу { [id]: { fullName, avatarUrl } }.
+ * Требует appId. Токен запрашивается один раз и кешируется внутри хука.
+ */
+export function useVkUsers(userIds: number[], appId: number | undefined) {
+  const [map, setMap] = useState<Record<number, VkProfile>>({});
+  const tokenRef = useRef<string | null>(null);
 
-export function useVkUsers(
-  vkIds: number[],
-  _appId: number,
-  options?: UseVkUsersOptions
-): ProfilesMap {
-  const accessToken = options?.accessToken;
-  const apiVersion = options?.apiVersion ?? '5.199';
-
-  const [map, setMap] = useState<ProfilesMap>({});
-  const prevIdsRef = useRef<string>('');
-
-  const ids = useMemo(
-    () => Array.from(new Set(vkIds.filter(Number.isFinite))) as number[],
-    [vkIds]
-  );
+  const ids = useMemo(() => uniqueFinite(userIds), [userIds]);
 
   useEffect(() => {
-    const sig = JSON.stringify(ids);
-    if (sig === prevIdsRef.current) return;
-    prevIdsRef.current = sig;
+    if (!ids.length) return;
+    if (!appId || Number.isNaN(appId)) {
+      console.warn('VITE_VK_APP_ID не задан — пропускаю загрузку профилей');
+      return;
+    }
+
+    // какие id ещё не загружены
+    const missing = ids.filter((id) => !map[id]);
+    if (!missing.length) return;
 
     let cancelled = false;
 
     (async () => {
-      if (ids.length === 0) {
-        setMap({});
-        return;
-      }
-
-      // без токена вызовы API делать нельзя — просто логируем и отдаём кэш
-      if (!accessToken) {
-        console.warn('[useVkUsers] accessToken is missing — API calls skipped');
-        const cached = await memoryCache.read(ids);
-        if (!cancelled) setMap(cached);
-        return;
-      }
-
-      console.log('[useVkUsers] start', { totalIds: ids.length });
-
-      const cached = await memoryCache.read(ids);
-      const missing = ids.filter((id) => !cached[id]);
-
-      const userIds: number[] = [];
-      const groupAliasEntries: Array<{ id: number; alias: string }> = [];
-      for (const id of missing) {
-        const alias = GROUP_ALIASES[id];
-        if (alias) groupAliasEntries.push({ id, alias });
-        else userIds.push(id);
-      }
-
-      const result: ProfilesMap = { ...cached };
-
-      // users.get — пачками
-      if (userIds.length) {
-        const chunks: number[][] = [];
-        const batchSize = 500;
-        for (let i = 0; i < userIds.length; i += batchSize) {
-          chunks.push(userIds.slice(i, i + batchSize));
+      try {
+        // 1) токен (кешируем, чтобы не спрашивать каждый раз)
+        if (!tokenRef.current) {
+          const { access_token } = await bridge.send('VKWebAppGetAuthToken', {
+            app_id: appId,
+            scope: '' // для users.get обычно пусто
+          });
+          tokenRef.current = access_token;
         }
-        for (const chunk of chunks) {
-          const started = performance.now();
-          const resp: any = await vkBridge.send('VKWebAppCallAPIMethod', {
+
+        const access_token = tokenRef.current!;
+        // 2) users.get батчами (консервативно по 100 id на запрос)
+        const CHUNK_SIZE = 100; // если id много, можно увеличить, но лимиты уточняй в док-ментации
+        const batches = chunk(missing, CHUNK_SIZE);
+
+        const next: Record<number, VkProfile> = {};
+
+        for (const batch of batches) {
+          const resp = await bridge.send('VKWebAppCallAPIMethod', {
             method: 'users.get',
             params: {
-              user_ids: chunk.join(','),
-              fields: 'photo_200,photo_100,photo_50',
-              access_token: accessToken,  // <-- добавлено
-              v: apiVersion,              // <-- добавлено
-            },
-            request_id: `users_${Date.now()}_${Math.random()}`, // чтобы удовлетворить типы
+              user_ids: batch.join(','),
+              fields: 'photo_200,photo_100',
+              v: '5.199',
+              access_token
+            }
           });
-          const took = performance.now() - started;
-          console.log('[useVkUsers] users batch', { size: chunk.length, tookMs: took });
 
-          const users = resp?.response ?? [];
+          const users: VkUser[] = resp?.response || [];
           for (const u of users) {
-            const pid = Number(u?.id);
-            if (!Number.isFinite(pid)) continue;
-            result[pid] = normalizeUser(u);
+            next[u.id] = {
+              fullName: `${u.first_name} ${u.last_name}`.trim(),
+              avatarUrl: u.photo_200 || u.photo_100
+            };
           }
         }
-      }
 
-      // groups.getById — по алиасам
-      if (groupAliasEntries.length) {
-        const started = performance.now();
-        const groupIds = groupAliasEntries.map((x) => x.alias).join(',');
-        const resp: any = await vkBridge.send('VKWebAppCallAPIMethod', {
-          method: 'groups.getById',
-          params: {
-            group_ids: groupIds,
-            fields: 'photo_200,photo_100,photo_50',
-            access_token: accessToken,  // <-- добавлено
-            v: apiVersion,              // <-- добавлено
-          },
-          request_id: `groups_${Date.now()}_${Math.random()}`,
-        });
-        const took = performance.now() - started;
-        console.log('[useVkUsers] groups getById', { count: groupAliasEntries.length, tookMs: took });
-
-        const groups = resp?.response ?? [];
-        for (const { id: pseudoId, alias } of groupAliasEntries) {
-          const g =
-            groups.find((gg: any) => (gg?.screen_name || gg?.short_name || '').toLowerCase() === alias.toLowerCase()) ??
-            groups.find((gg: any) => String(gg?.id) === String(alias).replace(/^[cg]/i, ''));
-          if (g) {
-            result[pseudoId] = normalizeGroup(g);
-            console.log('[useVkUsers] group mapped', { pseudoId, alias, name: result[pseudoId].fullName });
-          } else {
-            result[pseudoId] = { fullName: '', avatarUrl: undefined };
-            console.warn('[useVkUsers] group NOT FOUND', { pseudoId, alias });
-          }
+        if (!cancelled && Object.keys(next).length) {
+          setMap((prev) => ({ ...prev, ...next }));
         }
+      } catch (e) {
+        // Не роняем UI — останутся плейсхолдеры
+        console.warn('users.get via vk-bridge failed', e);
       }
-
-      try {
-        await memoryCache.write(result);
-      } catch (e: any) {
-        const msg = String(e?.message || e);
-        if (msg.includes('NO_SPACE')) {
-          console.warn('[useVkUsers] cache write skipped (NO_SPACE)');
-        } else {
-          console.warn('[useVkUsers] cache write error:', e);
-        }
-      }
-
-      if (!cancelled) {
-        setMap(result);
-        console.log('[useVkUsers] state: updated', { added: Object.keys(result).length });
-      }
-    })().catch((e) => {
-      console.error('[useVkUsers] unexpected error', e);
-    });
+    })();
 
     return () => { cancelled = true; };
-  }, [ids, accessToken, apiVersion]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ids, appId]); // map нарочно не добавляем, чтобы не зациклить
 
   return map;
 }

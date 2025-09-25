@@ -1,7 +1,21 @@
+// src/panels/RunDetails.tsx
 import { FC, useEffect, useMemo, useState } from 'react';
 import {
-  Panel, PanelHeader, Group, Card, RichCell, Spacing, Avatar, Placeholder, Button,
-  SimpleCell, Header, PanelHeaderBack, Caption, NavIdProps, Subhead,
+  Panel,
+  PanelHeader,
+  Group,
+  Card,
+  RichCell,
+  Spacing,
+  Avatar,
+  Placeholder,
+  Button,
+  SimpleCell,
+  Header,
+  PanelHeaderBack,
+  Caption,
+  NavIdProps,
+  Subhead,
 } from '@vkontakte/vkui';
 import { Icon24User } from '@vkontakte/icons';
 import { useRouteNavigator, useParams } from '@vkontakte/vk-mini-apps-router';
@@ -9,6 +23,7 @@ import { useGetRunByIdQuery, useJoinRunMutation, useLeaveRunMutation } from '../
 import { useVkUsers } from '../hooks/useVkUsers';
 import { useAppSelector } from '../store/hooks';
 
+// --- utils ---
 function formatDate(dateISO?: string) {
   if (!dateISO) return '';
   const d = new Date(dateISO);
@@ -18,6 +33,7 @@ function formatDate(dateISO?: string) {
   const yyyy = d.getFullYear();
   return `${dd}.${mm}.${yyyy}`;
 }
+
 function formatTime(dateISO?: string) {
   if (!dateISO) return '';
   const d = new Date(dateISO);
@@ -26,6 +42,8 @@ function formatTime(dateISO?: string) {
   const mm = String(d.getMinutes()).padStart(2, '0');
   return `${hh}:${mm}`;
 }
+
+// "M:SS /км" -> секунд/км
 function parsePaceToSec(pace?: string): number | undefined {
   if (!pace) return undefined;
   const m = /^\s*(\d+):(\d{2})(?:\s*\/?\s*км)?\s*$/i.exec(pace.trim());
@@ -35,6 +53,7 @@ function parsePaceToSec(pace?: string): number | undefined {
   if (Number.isNaN(min) || Number.isNaN(sec)) return undefined;
   return min * 60 + sec;
 }
+
 function minutesToHhMm(totalMin?: number) {
   if (totalMin == null || totalMin <= 0) return '—';
   const h = Math.floor(totalMin / 60);
@@ -52,15 +71,17 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
   const [joinRun, { isLoading: isJoining }] = useJoinRunMutation();
   const [leaveRun, { isLoading: isLeaving }] = useLeaveRunMutation();
 
+  // мой vk user id из стора
   const myVkId = useAppSelector((s) => s.user.data?.id);
 
+  // ids для профилей: создатель + участники
   const creatorVkId = data?.creatorVkId;
   const participantVkIds = useMemo(() => (data?.participants?.map((p) => p.vkUserId) ?? []), [data?.participants]);
 
   const allVkIds = useMemo(() => {
     const set = new Set<number>();
     if (typeof creatorVkId === 'number') set.add(creatorVkId);
-    for (const pid of participantVkIds) if (Number.isFinite(pid)) set.add(pid);
+    for (const id of participantVkIds) if (Number.isFinite(id)) set.add(id);
     return Array.from(set.values());
   }, [creatorVkId, participantVkIds]);
 
@@ -68,28 +89,14 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
   const profilesMap = useVkUsers(allVkIds, appId);
   const creatorProfile = typeof creatorVkId === 'number' ? profilesMap[creatorVkId] : undefined;
 
-  // [RunDetails] profilesMap[9999999]:
-  useEffect(() => {
-    if ((profilesMap as any)) {
-      console.log('[RunDetails] profilesMap[9999999]:', (profilesMap as any)[9999999]);
-    }
-  }, [profilesMap]);
-
-  // [RunDetails] creatorProfile:
-  useEffect(() => {
-    if (creatorProfile) {
-      console.log('[RunDetails] creatorProfile:', creatorProfile, { creatorVkId });
-    } else {
-      console.log('[RunDetails] creatorProfile:', null, { creatorVkId });
-    }
-  }, [creatorProfile, creatorVkId]);
-
+  // город / район
   const { cityName, districtName } = useMemo(() => {
     const cd = data?.cityDistrict || '';
     const [city, district] = cd.split(',').map((s) => s.trim());
     return { cityName: city || '', districtName: district || '' };
   }, [data?.cityDistrict]);
 
+  // длительность = distance * pace
   const durationText = useMemo(() => {
     if (!data?.distanceKm || !data?.pace) return '—';
     const paceSec = parsePaceToSec(data.pace);
@@ -98,6 +105,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
     return minutesToHhMm(totalMin);
   }, [data?.distanceKm, data?.pace]);
 
+  // локальный флаг участия (для мгновенного UI), синхронизируем с сервером
   const serverParticipant = useMemo(() => {
     if (!myVkId) return false;
     return participantVkIds.includes(myVkId);
@@ -113,7 +121,11 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
       </PanelHeader>
 
       <Group>
-        {isLoading && (<Card mode="shadow"><RichCell multiline>Загрузка…</RichCell></Card>)}
+        {isLoading && (
+          <Card mode="shadow">
+            <RichCell multiline>Загрузка…</RichCell>
+          </Card>
+        )}
 
         {isError && (
           <Placeholder action={<Button mode="secondary" onClick={() => refetch()}>Повторить</Button>}>
@@ -125,19 +137,20 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
         {!isLoading && !isError && data && (
           <>
+            {/* Создатель — клик по карточке открывает профиль */}
             <Card mode="shadow">
               <RichCell
                 Component="a"
-                href={
-                  typeof creatorVkId === 'number'
-                    ? (creatorVkId === 9999999
-                        ? 'https://vk.com/vetercc'
-                        : `https://vk.com/id${creatorVkId}`)
-                    : undefined
-                }
+                href={typeof creatorVkId === 'number' ? `https://vk.com/id${creatorVkId}` : undefined}
                 target="_blank"
                 rel="noopener noreferrer"
-                before={<Avatar size={56} src={creatorProfile?.avatarUrl || data.avatarUrl} fallbackIcon={<Icon24User />} />}
+                before={
+                  <Avatar
+                    size={56}
+                    src={creatorProfile?.avatarUrl || data.avatarUrl}
+                    fallbackIcon={<Icon24User />}
+                  />
+                }
                 multiline
                 role="link"
                 aria-label={`Открыть профиль VK: ${creatorProfile?.fullName || 'Создатель'}`}
@@ -155,7 +168,9 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
               {data.notes ? (
                 <SimpleCell>
                   <Caption level="1">Описание</Caption>
-                  <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{data.notes}</div>
+                  <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {data.notes}
+                  </div>
                 </SimpleCell>
               ) : null}
 
@@ -166,6 +181,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
               <SimpleCell><Caption level="1">Длительность</Caption>{durationText}</SimpleCell>
             </Group>
 
+            {/* Участники — каждая ячейка как ссылка */}
             <Spacing size={12} />
             <Group header={<Header>Участники ({participantVkIds.length})</Header>}>
               {participantVkIds.length === 0 ? (
@@ -194,6 +210,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
             <Spacing size={12} />
 
+            {/* Переключение кнопки */}
             {localParticipant ? (
               <Button
                 size="l"
@@ -229,7 +246,9 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
           </>
         )}
 
-        <Button mode="secondary" onClick={() => routeNavigator.back()}>Назад</Button>
+        <Button mode="secondary" onClick={() => routeNavigator.back()}>
+          Назад
+        </Button>
       </Group>
     </Panel>
   );
