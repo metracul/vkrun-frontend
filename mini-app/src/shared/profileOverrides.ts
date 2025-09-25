@@ -23,7 +23,7 @@ export const PROFILE_OVERRIDES: Record<number, ProfileOverride> = {
   99999991: {
     fullName: 'Skuratov Coffee',      
     avatarUrl: skuratovAvatar,      
-    linkUrl: 'https://vk.com/skuratovcoffee',
+    linkUrl: 'https://t.me/skuratovrunclubspb',
   },
 };
 
