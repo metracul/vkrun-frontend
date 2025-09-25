@@ -10,7 +10,7 @@ export type ProfileOverride = {
 
 // импорт локального изображения (Vite вернёт URL-строку)
 import veterccAvatar from '../assets/logos/vetercc.jpg';
-import skuratovAvatar from '../assets/logos/skuratov.jpg';
+import skuratovRunAvatar from '../assets/logos/skuratovRun.jpg';
 
 // Ключ — vk user id
 export const PROFILE_OVERRIDES: Record<number, ProfileOverride> = {
@@ -21,8 +21,8 @@ export const PROFILE_OVERRIDES: Record<number, ProfileOverride> = {
     nameSuffix: 'Форма для велоспорта, бега и триатлона',
   },
   99999991: {
-    fullName: 'Skuratov Coffee',      
-    avatarUrl: skuratovAvatar,      
+    fullName: 'Skuratov running club',      
+    avatarUrl: skuratovRunAvatar,      
     linkUrl: 'https://t.me/skuratovrunclubspb',
   },
 };
