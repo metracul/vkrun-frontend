@@ -1,4 +1,3 @@
-// src/panels/RunDetails.tsx
 import { FC, useEffect, useMemo, useState } from 'react';
 import {
   Panel,
@@ -105,7 +104,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
     return minutesToHhMm(totalMin);
   }, [data?.distanceKm, data?.pace]);
 
-  // локальный флаг участия (для мгновенного UI), синхронизируем с сервером
+  // локальный флаг участия
   const serverParticipant = useMemo(() => {
     if (!myVkId) return false;
     return participantVkIds.includes(myVkId);
@@ -113,6 +112,18 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
   const [localParticipant, setLocalParticipant] = useState<boolean>(serverParticipant);
   useEffect(() => setLocalParticipant(serverParticipant), [serverParticipant]);
+
+  // Вспомогательные вычисления для создателя
+  const creatorNameBase = creatorProfile?.fullName || 'Получаю данные…';
+  const creatorName = creatorProfile?.nameSuffix
+    ? `${creatorNameBase} · ${creatorProfile.nameSuffix}`
+    : creatorNameBase;
+
+  const creatorHref = (() => {
+    if (creatorProfile?.linkUrl) return creatorProfile.linkUrl;
+    if (typeof creatorVkId === 'number') return `https://vk.com/id${creatorVkId}`;
+    return undefined;
+  })();
 
   return (
     <Panel id={id}>
@@ -137,13 +148,13 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
         {!isLoading && !isError && data && (
           <>
-            {/* Создатель — клик по карточке открывает профиль */}
+            {/* Создатель — клик по карточке открывает профиль или override-ссылку */}
             <Card mode="shadow">
               <RichCell
-                Component="a"
-                href={typeof creatorVkId === 'number' ? `https://vk.com/id${creatorVkId}` : undefined}
-                target="_blank"
-                rel="noopener noreferrer"
+                Component={creatorHref ? 'a' as const : 'div' as const}
+                href={creatorHref}
+                target={creatorHref ? '_blank' : undefined}
+                rel={creatorHref ? 'noopener noreferrer' : undefined}
                 before={
                   <Avatar
                     size={56}
@@ -152,10 +163,10 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
                   />
                 }
                 multiline
-                role="link"
-                aria-label={`Открыть профиль VK: ${creatorProfile?.fullName || 'Создатель'}`}
+                role={creatorHref ? 'link' : undefined}
+                aria-label={creatorHref ? `Открыть профиль: ${creatorName}` : undefined}
               >
-                {creatorProfile?.fullName || 'Получаю данные…'}
+                {creatorName}
               </RichCell>
             </Card>
 
@@ -181,7 +192,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
               <SimpleCell><Caption level="1">Длительность</Caption>{durationText}</SimpleCell>
             </Group>
 
-            {/* Участники — каждая ячейка как ссылка */}
+            {/* Участники */}
             <Spacing size={12} />
             <Group header={<Header>Участники ({participantVkIds.length})</Header>}>
               {participantVkIds.length === 0 ? (
@@ -189,17 +200,21 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
               ) : (
                 participantVkIds.map((vkId) => {
                   const prof = profilesMap[vkId];
-                  const name = prof?.fullName ?? 'Получаю данные…';
+                  const base = prof?.fullName ?? 'Получаю данные…';
+                  const name = prof?.nameSuffix ? `${base} · ${prof.nameSuffix}` : base;
+
+                  const href = prof?.linkUrl ?? `https://vk.com/id${vkId}`;
+
                   return (
                     <SimpleCell
                       key={vkId}
                       Component="a"
-                      href={`https://vk.com/id${vkId}`}
+                      href={href}
                       target="_blank"
                       rel="noopener noreferrer"
                       before={<Avatar size={40} src={prof?.avatarUrl} fallbackIcon={<Icon24User />} />}
                       role="link"
-                      aria-label={`Открыть профиль VK: ${name}`}
+                      aria-label={`Открыть профиль: ${name}`}
                     >
                       {name}
                     </SimpleCell>

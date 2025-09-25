@@ -249,18 +249,14 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
     if (!inWebView || vk_platform === 'desktop_web') return;
 
-    // Частотный колпак на 3 минуты; для отладки можно поставить 0
     dispatch(showBannerAd({
       minIntervalMs: 180_000,
-      // проверьте параметры под вашу версию SDK:
       params: {
-        banner_location: 'bottom', // или 'top'
-        layout_type: 'resize',     // 'resize' — сжимает экран; 'overlay' — поверх UI
-        // orientation: 'portrait' | 'landscape' — если требуется в вашей версии
+        banner_location: 'bottom',
+        layout_type: 'resize',
       },
     }));
 
-    // Опционально: при уходе с Home скрывать баннер
     return () => {
       dispatch(hideBannerAd());
     };
@@ -328,8 +324,10 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
           const profile = vkId ? vkProfiles[vkId] : undefined;
 
-          // Имя и аватар:
-          const fullName = profile?.fullName ?? (vkId ? 'Получаю данные…' : '');
+          // Имя + подпись (если есть)
+          const baseName = profile?.fullName ?? (vkId ? 'Получаю данные…' : '');
+          const displayName = profile?.nameSuffix ? `${baseName} · ${profile.nameSuffix}` : baseName;
+
           const avatar = profile?.avatarUrl;
 
           const openDetails = () => {
@@ -351,7 +349,6 @@ export const Home: FC<HomeProps> = ({ id }) => {
               style={{ marginTop: 8, position: 'relative' }}
               onClick={openDetails}
             >
-              {/* Кнопка — в правом нижнем углу */}
               {isMine ? (
                 <div
                   style={{
@@ -386,7 +383,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
                   paddingBottom: 44,
                 }}
               >
-                {r.title} — {fullName}
+                {r.title} — {displayName}
                 {r.notes ? <Footnote style={{ marginTop: 4 }}>{r.notes}</Footnote> : null}
               </RichCell>
             </Card>
