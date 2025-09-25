@@ -205,7 +205,7 @@ export function useVkUsers(userIds: number[], appId: number | undefined) {
             const resp = await bridge.send('VKWebAppCallAPIMethod', {
               method: 'groups.getById',
               params: {
-                group_id: String(groupId),       // ВАЖНО: numeric id
+                group_id: String(-groupId),   
                 fields: 'photo_200,photo_100',
                 v: '5.199',
                 access_token,
