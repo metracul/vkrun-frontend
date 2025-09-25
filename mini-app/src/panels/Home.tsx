@@ -6,9 +6,8 @@ import {
 import { Icon20FilterOutline, Icon24User, Icon28AddCircleOutline, Icon20LocationMapOutline } from '@vkontakte/icons';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import { useGetRunsQuery, usePrefetch, useDeleteRunMutation } from '../store/runnersApi';
-import { useAppSelector } from '../store/hooks';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { DEFAULT_VIEW_PANELS } from '../routes';
-import { useAppDispatch } from '../store/hooks';
 import { showBannerAd, hideBannerAd } from '../store/bannerAdSlice';
 import vkBridge, { parseURLSearchParamsForGetLaunchParams } from '@vkontakte/vk-bridge';
 import { useActiveVkuiLocation } from '@vkontakte/vk-mini-apps-router';
@@ -60,7 +59,6 @@ function parsePaceToSec(mmss: string) {
   return min * 60 + sec;
 }
 
-// ---------- component ----------
 export const Home: FC<HomeProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
   const platform = usePlatform();
@@ -68,17 +66,14 @@ export const Home: FC<HomeProps> = ({ id }) => {
   const dispatch = useAppDispatch();
   const { panel: activePanel } = useActiveVkuiLocation();
 
-  // мой VK id для проверки прав удаления
   const myVkId = useAppSelector((s) => s.user.data?.id);
 
-  // фильтры
   const [cityName, setCityName] = useState<string>('Москва');
-  const [distanceFromStr, setDistanceFromStr] = useState<string>(''); // "От"
-  const [distanceToStr, setDistanceToStr] = useState<string>('');     // "До"
+  const [distanceFromStr, setDistanceFromStr] = useState<string>('');
+  const [distanceToStr, setDistanceToStr] = useState<string>('');
   const [pace, setPace] = useState<string>('');
   const [runDate, setRunDate] = useState<string>('');
 
-  // собираем фильтры под бэкенд
   const filters = useMemo(() => {
     const f: Record<string, string | number> = {};
     if (cityName.trim()) f.cityName = cityName.trim();
@@ -113,7 +108,6 @@ export const Home: FC<HomeProps> = ({ id }) => {
       .filter((x): x is number => Number.isFinite(x));
   }, [runs]);
 
-  // NEW: используем общий хук с поддержкой alias; передаём appId
   const appId = Number(import.meta.env.VITE_VK_APP_ID);
   const vkProfiles = useVkUsers(creatorIds, appId);
 
@@ -143,13 +137,11 @@ export const Home: FC<HomeProps> = ({ id }) => {
     return () => document.removeEventListener('visibilitychange', onVis);
   }, [refetch]);
 
-  // мутация удаления
   const [deleteRun, { isLoading: isDeleting }] = useDeleteRunMutation();
 
-  // состояние подтверждения удаления
   const [runIdToDelete, setRunIdToDelete] = useState<number | null>(null);
-  const confirmDelete = (id: number) => {
-    setRunIdToDelete(id);
+  const confirmDelete = (rid: number) => {
+    setRunIdToDelete(rid);
     setActiveModal('confirm-delete');
   };
   const doDeleteNow = async () => {
@@ -172,27 +164,12 @@ export const Home: FC<HomeProps> = ({ id }) => {
           <FormItem top="Дата пробежки">
             <Input type="date" value={runDate} onChange={(e) => setRunDate((e.target as HTMLInputElement).value)} />
           </FormItem>
-
-          {/* Дистанция: два поля От/До */}
           <FormItem top="Дистанция (км)">
             <div style={{ display: 'flex', gap: 8 }}>
-              <Input
-                type="text"
-                inputMode="decimal"
-                placeholder="От"
-                value={distanceFromStr}
-                onChange={(e) => setDistanceFromStr(e.target.value)}
-              />
-              <Input
-                type="text"
-                inputMode="decimal"
-                placeholder="До"
-                value={distanceToStr}
-                onChange={(e) => setDistanceToStr(e.target.value)}
-              />
+              <Input type="text" inputMode="decimal" placeholder="От" value={distanceFromStr} onChange={(e) => setDistanceFromStr(e.target.value)} />
+              <Input type="text" inputMode="decimal" placeholder="До" value={distanceToStr} onChange={(e) => setDistanceToStr(e.target.value)} />
             </div>
           </FormItem>
-
           <FormItem top="Темп бега">
             <CustomSelect
               placeholder="Выберите темп"
@@ -223,18 +200,13 @@ export const Home: FC<HomeProps> = ({ id }) => {
         </Group>
       </ModalPage>
 
-      {/* Подтверждение удаления — безопасно для iOS */}
       <ModalPage id="confirm-delete" onClose={close} header={<Header>Удалить пробежку?</Header>}>
         <Group>
           <Caption level="1">Действие необратимо.</Caption>
           <Spacing size="m" />
           <ButtonGroup mode="vertical" align="center" gap="s">
-            <Button size="l" appearance="negative" loading={isDeleting} onClick={doDeleteNow}>
-              Удалить
-            </Button>
-            <Button size="l" mode="secondary" disabled={isDeleting} onClick={close}>
-              Отмена
-            </Button>
+            <Button size="l" appearance="negative" loading={isDeleting} onClick={doDeleteNow}>Удалить</Button>
+            <Button size="l" mode="secondary" disabled={isDeleting} onClick={close}>Отмена</Button>
           </ButtonGroup>
         </Group>
       </ModalPage>
@@ -243,27 +215,18 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
   useEffect(() => {
     if (activePanel !== id) return;
-
     const { vk_platform } = parseURLSearchParamsForGetLaunchParams(window.location.search);
     const inWebView = vkBridge.isWebView();
-
     if (!inWebView || vk_platform === 'desktop_web') return;
 
-    // Частотный колпак на 3 минуты; для отладки можно поставить 0
     dispatch(showBannerAd({
       minIntervalMs: 180_000,
-      // проверьте параметры под вашу версию SDK:
       params: {
-        banner_location: 'bottom', // или 'top'
-        layout_type: 'resize',     // 'resize' — сжимает экран; 'overlay' — поверх UI
-        // orientation: 'portrait' | 'landscape' — если требуется в вашей версии
+        banner_location: 'bottom',
+        layout_type: 'resize',
       },
     }));
-
-    // Опционально: при уходе с Home скрывать баннер
-    return () => {
-      dispatch(hideBannerAd());
-    };
+    return () => { dispatch(hideBannerAd()); };
   }, [dispatch, activePanel, id]);
 
   return (
@@ -297,15 +260,9 @@ export const Home: FC<HomeProps> = ({ id }) => {
             <Button appearance="accent" mode="outline" after={<Icon20FilterOutline />} onClick={() => setActiveModal('filters')}>
               Фильтры
             </Button>
-            <Button mode="secondary" onClick={() => refetch()} disabled={isFetching}>
-              Обновить
-            </Button>
+            <Button mode="secondary" onClick={() => refetch()} disabled={isFetching}>Обновить</Button>
             {isDesktop && (
-              <Button
-                mode="primary"
-                before={<Icon28AddCircleOutline />}
-                onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}
-              >
+              <Button mode="primary" before={<Icon28AddCircleOutline />} onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}>
                 Создать пробежку
               </Button>
             )}
@@ -327,8 +284,6 @@ export const Home: FC<HomeProps> = ({ id }) => {
             typeof r.creatorVkId === 'number' ? r.creatorVkId : parseCreatorIdFromFallback(r.fullName);
 
           const profile = vkId ? vkProfiles[vkId] : undefined;
-
-          // Имя и аватар:
           const fullName = profile?.fullName ?? (vkId ? 'Получаю данные…' : '');
           const avatar = profile?.avatarUrl;
 
@@ -345,29 +300,10 @@ export const Home: FC<HomeProps> = ({ id }) => {
           };
 
           return (
-            <Card
-              key={r.id}
-              mode="shadow"
-              style={{ marginTop: 8, position: 'relative' }}
-              onClick={openDetails}
-            >
-              {/* Кнопка — в правом нижнем углу */}
+            <Card key={r.id} mode="shadow" style={{ marginTop: 8, position: 'relative' }} onClick={openDetails}>
               {isMine ? (
-                <div
-                  style={{
-                    position: 'absolute',
-                    right: 12,
-                    bottom: 12,
-                    zIndex: 2,
-                  }}
-                >
-                  <Button
-                    size="s"
-                    mode="secondary"
-                    appearance="negative"
-                    disabled={isDeleting}
-                    onClick={onDeleteClick}
-                  >
+                <div style={{ position: 'absolute', right: 12, bottom: 12, zIndex: 2 }}>
+                  <Button size="s" mode="secondary" appearance="negative" disabled={isDeleting} onClick={onDeleteClick}>
                     Удалить
                   </Button>
                 </div>
@@ -381,10 +317,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
                   r.pace ? `${r.pace}` : null,
                 ].filter(Boolean).join(' • ')}
                 multiline
-                style={{
-                  paddingRight: 96,
-                  paddingBottom: 44,
-                }}
+                style={{ paddingRight: 96, paddingBottom: 44 }}
               >
                 {r.title} — {fullName}
                 {r.notes ? <Footnote style={{ marginTop: 4 }}>{r.notes}</Footnote> : null}
@@ -399,12 +332,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
       {!isDesktop && (
         <FixedLayout vertical="bottom">
           <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 16 }}>
-            <Button
-              mode="primary"
-              size="l"
-              before={<Icon28AddCircleOutline />}
-              onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}
-            >
+            <Button mode="primary" size="l" before={<Icon28AddCircleOutline />} onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}>
               Создать пробежку
             </Button>
           </div>
