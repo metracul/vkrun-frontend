@@ -41,7 +41,6 @@ export function useVkUsers(userIds: number[], appId: number | undefined) {
       return;
     }
 
-    // какие id ещё не загружены
     const missing = ids.filter((id) => !map[id]);
     if (!missing.length) return;
 
