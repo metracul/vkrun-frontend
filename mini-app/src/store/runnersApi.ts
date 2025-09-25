@@ -41,7 +41,7 @@ function secToPace(sec?: number | null): string {
   if (sec == null || sec <= 0) return '';
   const m = Math.floor(sec / 60);
   const s = sec % 60;
-  return `${m}:${String(s).padStart(2, '0')} /км`;
+  return `${m}:${String(s).padStart(2, '0')} мин/км`;
 }
 
 function normalize(dto: RunDto): RunCard {
