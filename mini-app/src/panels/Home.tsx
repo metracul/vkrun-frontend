@@ -1,5 +1,4 @@
-// src/panels/Home.tsx
-import { FC, useMemo, useState, useEffect, useRef } from 'react';
+import { FC, useMemo, useState, useEffect } from 'react';
 import {
   Panel, PanelHeader, Header, Button, Group, Avatar, NavIdProps, ModalRoot, ModalPage, Placeholder, ButtonGroup,
   Card, RichCell, Spacing, SimpleCell, Caption, Footnote, FixedLayout, usePlatform, FormItem, Input, CustomSelect, CustomSelectOption
@@ -7,13 +6,12 @@ import {
 import { Icon20FilterOutline, Icon24User, Icon28AddCircleOutline, Icon20LocationMapOutline } from '@vkontakte/icons';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import { useGetRunsQuery, usePrefetch, useDeleteRunMutation } from '../store/runnersApi';
-import { useAppSelector } from '../store/hooks';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { DEFAULT_VIEW_PANELS } from '../routes';
-import bridge from '@vkontakte/vk-bridge';
-import { useAppDispatch } from '../store/hooks';
 import { showBannerAd, hideBannerAd } from '../store/bannerAdSlice';
 import vkBridge, { parseURLSearchParamsForGetLaunchParams } from '@vkontakte/vk-bridge';
 import { useActiveVkuiLocation } from '@vkontakte/vk-mini-apps-router';
+import { useVkUsers } from '../hooks/useVkUsers';
 
 export interface HomeProps extends NavIdProps {}
 
@@ -61,66 +59,6 @@ function parsePaceToSec(mmss: string) {
   return min * 60 + sec;
 }
 
-// --- VK users.get хук ---
-type VkUser = { id: number; first_name: string; last_name: string; photo_200?: string; photo_100?: string; };
-type VkProfile = { fullName: string; avatarUrl?: string };
-function uniqueFinite(ids: Array<number | undefined | null>) {
-  const set = new Set<number>();
-  for (const id of ids) if (Number.isFinite(id as number)) set.add(Number(id));
-  return Array.from(set.values());
-}
-function chunk<T>(arr: T[], size: number): T[][] {
-  if (size <= 0) return [arr];
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-}
-function useVkUsers(userIds: number[]) {
-  const [map, setMap] = useState<Record<number, VkProfile>>({});
-  const tokenRef = useRef<string | null>(null);
-  const ids = useMemo(() => uniqueFinite(userIds), [userIds]);
-  const appId = Number(import.meta.env.VITE_VK_APP_ID);
-
-  useEffect(() => {
-    if (!ids.length) return;
-    if (!appId || Number.isNaN(appId)) {
-      console.warn('VITE_VK_APP_ID не задан — пропускаю users.get');
-      return;
-    }
-    const missing = ids.filter((id) => !map[id]);
-    if (!missing.length) return;
-
-    let cancelled = false;
-    (async () => {
-      try {
-        if (!tokenRef.current) {
-          const { access_token } = await bridge.send('VKWebAppGetAuthToken', { app_id: appId, scope: '' });
-          tokenRef.current = access_token;
-        }
-        const access_token = tokenRef.current!;
-        const batches = chunk(missing, 100);
-
-        const next: Record<number, VkProfile> = {};
-        for (const batch of batches) {
-          const resp = await bridge.send('VKWebAppCallAPIMethod', {
-            method: 'users.get',
-            params: { user_ids: batch.join(','), fields: 'photo_200,photo_100', v: '5.199', access_token }
-          });
-          const users: VkUser[] = resp?.response || [];
-          for (const u of users) {
-            next[u.id] = { fullName: `${u.first_name} ${u.last_name}`.trim(), avatarUrl: u.photo_200 || u.photo_100 };
-          }
-        }
-        if (!cancelled && Object.keys(next).length) setMap((prev) => ({ ...prev, ...next }));
-      } catch (e) { console.warn('users.get via vk-bridge failed', e); }
-    })();
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ids, appId]);
-  return map;
-}
-
-// ---------- component ----------
 export const Home: FC<HomeProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
   const platform = usePlatform();
@@ -128,17 +66,14 @@ export const Home: FC<HomeProps> = ({ id }) => {
   const dispatch = useAppDispatch();
   const { panel: activePanel } = useActiveVkuiLocation();
 
-  // мой VK id для проверки прав удаления
   const myVkId = useAppSelector((s) => s.user.data?.id);
 
-  // фильтры
   const [cityName, setCityName] = useState<string>('Москва');
-  const [distanceFromStr, setDistanceFromStr] = useState<string>(''); // "От"
-  const [distanceToStr, setDistanceToStr] = useState<string>('');     // "До"
+  const [distanceFromStr, setDistanceFromStr] = useState<string>('');
+  const [distanceToStr, setDistanceToStr] = useState<string>('');
   const [pace, setPace] = useState<string>('');
   const [runDate, setRunDate] = useState<string>('');
 
-  // собираем фильтры под бэкенд
   const filters = useMemo(() => {
     const f: Record<string, string | number> = {};
     if (cityName.trim()) f.cityName = cityName.trim();
@@ -173,7 +108,24 @@ export const Home: FC<HomeProps> = ({ id }) => {
       .filter((x): x is number => Number.isFinite(x));
   }, [runs]);
 
-  const vkProfiles = useVkUsers(creatorIds);
+  // [Home] creatorIds:
+  useEffect(() => {
+    console.log('[Home] creatorIds:', creatorIds);
+  }, [creatorIds]);
+
+  const appId = Number(import.meta.env.VITE_VK_APP_ID);
+  const vkProfiles = useVkUsers(creatorIds, appId);
+
+  // [Home] vkProfiles keys: / [Home] vkProfiles[9999999]:
+  useEffect(() => {
+    const keys = Object.keys(vkProfiles || {}).map((k) => Number(k));
+    console.log('[Home] vkProfiles keys:', keys);
+    if ((vkProfiles as any)?.[9999999]) {
+      const p = (vkProfiles as any)[9999999];
+      console.log('[Home] vkProfiles[9999999]:', { fullName: p?.fullName, avatarUrl: p?.avatarUrl });
+    }
+  }, [vkProfiles]);
+
   const prefetchRunById = usePrefetch('getRunById', { ifOlderThan: 60 });
 
   const [activeModal, setActiveModal] = useState<ModalId>(null);
@@ -200,13 +152,11 @@ export const Home: FC<HomeProps> = ({ id }) => {
     return () => document.removeEventListener('visibilitychange', onVis);
   }, [refetch]);
 
-  // мутация удаления
   const [deleteRun, { isLoading: isDeleting }] = useDeleteRunMutation();
 
-  // состояние подтверждения удаления
   const [runIdToDelete, setRunIdToDelete] = useState<number | null>(null);
-  const confirmDelete = (id: number) => {
-    setRunIdToDelete(id);
+  const confirmDelete = (rid: number) => {
+    setRunIdToDelete(rid);
     setActiveModal('confirm-delete');
   };
   const doDeleteNow = async () => {
@@ -229,27 +179,12 @@ export const Home: FC<HomeProps> = ({ id }) => {
           <FormItem top="Дата пробежки">
             <Input type="date" value={runDate} onChange={(e) => setRunDate((e.target as HTMLInputElement).value)} />
           </FormItem>
-
-          {/* Дистанция: два поля От/До */}
           <FormItem top="Дистанция (км)">
             <div style={{ display: 'flex', gap: 8 }}>
-              <Input
-                type="text"
-                inputMode="decimal"
-                placeholder="От"
-                value={distanceFromStr}
-                onChange={(e) => setDistanceFromStr(e.target.value)}
-              />
-              <Input
-                type="text"
-                inputMode="decimal"
-                placeholder="До"
-                value={distanceToStr}
-                onChange={(e) => setDistanceToStr(e.target.value)}
-              />
+              <Input type="text" inputMode="decimal" placeholder="От" value={distanceFromStr} onChange={(e) => setDistanceFromStr(e.target.value)} />
+              <Input type="text" inputMode="decimal" placeholder="До" value={distanceToStr} onChange={(e) => setDistanceToStr(e.target.value)} />
             </div>
           </FormItem>
-
           <FormItem top="Темп бега">
             <CustomSelect
               placeholder="Выберите темп"
@@ -280,48 +215,34 @@ export const Home: FC<HomeProps> = ({ id }) => {
         </Group>
       </ModalPage>
 
-      {/* Подтверждение удаления — безопасно для iOS */}
       <ModalPage id="confirm-delete" onClose={close} header={<Header>Удалить пробежку?</Header>}>
         <Group>
           <Caption level="1">Действие необратимо.</Caption>
           <Spacing size="m" />
           <ButtonGroup mode="vertical" align="center" gap="s">
-            <Button size="l" appearance="negative" loading={isDeleting} onClick={doDeleteNow}>
-              Удалить
-            </Button>
-            <Button size="l" mode="secondary" disabled={isDeleting} onClick={close}>
-              Отмена
-            </Button>
+            <Button size="l" appearance="negative" loading={isDeleting} onClick={doDeleteNow}>Удалить</Button>
+            <Button size="l" mode="secondary" disabled={isDeleting} onClick={close}>Отмена</Button>
           </ButtonGroup>
         </Group>
       </ModalPage>
     </ModalRoot>
   );
 
-    useEffect(() => {
-      if (activePanel !== id) return;
+  useEffect(() => {
+    if (activePanel !== id) return;
+    const { vk_platform } = parseURLSearchParamsForGetLaunchParams(window.location.search);
+    const inWebView = vkBridge.isWebView();
+    if (!inWebView || vk_platform === 'desktop_web') return;
 
-      const { vk_platform } = parseURLSearchParamsForGetLaunchParams(window.location.search);
-      const inWebView = vkBridge.isWebView();
-
-      if (!inWebView || vk_platform === 'desktop_web') return;
-
-      // Частотный колпак на 3 минуты; для отладки можно поставить 0
-      dispatch(showBannerAd({
-        minIntervalMs: 180_000,
-        // проверьте параметры под вашу версию SDK:
-        params: {
-          banner_location: 'bottom', // или 'top'
-          layout_type: 'resize',     // 'resize' — сжимает экран; 'overlay' — поверх UI
-          // orientation: 'portrait' | 'landscape' — если требуется в вашей версии
-        },
-      }));
-
-      // Опционально: при уходе с Home скрывать баннер
-      return () => {
-        dispatch(hideBannerAd());
-      };
-    }, [dispatch, activePanel, id]);
+    dispatch(showBannerAd({
+      minIntervalMs: 180_000,
+      params: {
+        banner_location: 'bottom',
+        layout_type: 'resize',
+      },
+    }));
+    return () => { dispatch(hideBannerAd()); };
+  }, [dispatch, activePanel, id]);
 
   return (
     <Panel id={id}>
@@ -354,15 +275,9 @@ export const Home: FC<HomeProps> = ({ id }) => {
             <Button appearance="accent" mode="outline" after={<Icon20FilterOutline />} onClick={() => setActiveModal('filters')}>
               Фильтры
             </Button>
-            <Button mode="secondary" onClick={() => refetch()} disabled={isFetching}>
-              Обновить
-            </Button>
+            <Button mode="secondary" onClick={() => refetch()} disabled={isFetching}>Обновить</Button>
             {isDesktop && (
-              <Button
-                mode="primary"
-                before={<Icon28AddCircleOutline />}
-                onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}
-              >
+              <Button mode="primary" before={<Icon28AddCircleOutline />} onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}>
                 Создать пробежку
               </Button>
             )}
@@ -384,10 +299,16 @@ export const Home: FC<HomeProps> = ({ id }) => {
             typeof r.creatorVkId === 'number' ? r.creatorVkId : parseCreatorIdFromFallback(r.fullName);
 
           const profile = vkId ? vkProfiles[vkId] : undefined;
-
-          // Имя и аватар:
           const fullName = profile?.fullName ?? (vkId ? 'Получаю данные…' : '');
           const avatar = profile?.avatarUrl;
+
+          // [Home] card { … hasProfile: true } — для карточки от 9999999.
+          const hasProfile = Boolean(profile);
+          if (vkId === 9999999) {
+            // Формат с явным флагом hasProfile:
+            // eslint-disable-next-line no-console
+            console.log('[Home] card { … hasProfile: %s }', hasProfile, { runId: r.id, creatorVkId: vkId });
+          }
 
           const openDetails = () => {
             prefetchRunById(String(r.id));
@@ -402,29 +323,10 @@ export const Home: FC<HomeProps> = ({ id }) => {
           };
 
           return (
-            <Card
-              key={r.id}
-              mode="shadow"
-              style={{ marginTop: 8, position: 'relative' }}
-              onClick={openDetails}
-            >
-              {/* Кнопка — в правом нижнем углу */}
+            <Card key={r.id} mode="shadow" style={{ marginTop: 8, position: 'relative' }} onClick={openDetails}>
               {isMine ? (
-                <div
-                  style={{
-                    position: 'absolute',
-                    right: 12,
-                    bottom: 12,
-                    zIndex: 2,
-                  }}
-                >
-                  <Button
-                    size="s"
-                    mode="secondary"
-                    appearance="negative"
-                    disabled={isDeleting}
-                    onClick={onDeleteClick}
-                  >
+                <div style={{ position: 'absolute', right: 12, bottom: 12, zIndex: 2 }}>
+                  <Button size="s" mode="secondary" appearance="negative" disabled={isDeleting} onClick={onDeleteClick}>
                     Удалить
                   </Button>
                 </div>
@@ -438,17 +340,13 @@ export const Home: FC<HomeProps> = ({ id }) => {
                   r.pace ? `${r.pace}` : null,
                 ].filter(Boolean).join(' • ')}
                 multiline
-                style={{
-                  paddingRight: 96,
-                  paddingBottom: 44,
-                }}
+                style={{ paddingRight: 96, paddingBottom: 44 }}
               >
                 {r.title} — {fullName}
                 {r.notes ? <Footnote style={{ marginTop: 4 }}>{r.notes}</Footnote> : null}
               </RichCell>
             </Card>
           );
-
         })}
 
         {!isDesktop && <Spacing size={72} />}
@@ -457,12 +355,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
       {!isDesktop && (
         <FixedLayout vertical="bottom">
           <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 16 }}>
-            <Button
-              mode="primary"
-              size="l"
-              before={<Icon28AddCircleOutline />}
-              onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}
-            >
+            <Button mode="primary" size="l" before={<Icon28AddCircleOutline />} onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}>
               Создать пробежку
             </Button>
           </div>
