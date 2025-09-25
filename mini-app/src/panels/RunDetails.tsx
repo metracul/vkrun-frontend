@@ -68,6 +68,22 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
   const profilesMap = useVkUsers(allVkIds, appId);
   const creatorProfile = typeof creatorVkId === 'number' ? profilesMap[creatorVkId] : undefined;
 
+  // [RunDetails] profilesMap[9999999]:
+  useEffect(() => {
+    if ((profilesMap as any)) {
+      console.log('[RunDetails] profilesMap[9999999]:', (profilesMap as any)[9999999]);
+    }
+  }, [profilesMap]);
+
+  // [RunDetails] creatorProfile:
+  useEffect(() => {
+    if (creatorProfile) {
+      console.log('[RunDetails] creatorProfile:', creatorProfile, { creatorVkId });
+    } else {
+      console.log('[RunDetails] creatorProfile:', null, { creatorVkId });
+    }
+  }, [creatorProfile, creatorVkId]);
+
   const { cityName, districtName } = useMemo(() => {
     const cd = data?.cityDistrict || '';
     const [city, district] = cd.split(',').map((s) => s.trim());

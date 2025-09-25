@@ -108,8 +108,23 @@ export const Home: FC<HomeProps> = ({ id }) => {
       .filter((x): x is number => Number.isFinite(x));
   }, [runs]);
 
+  // [Home] creatorIds:
+  useEffect(() => {
+    console.log('[Home] creatorIds:', creatorIds);
+  }, [creatorIds]);
+
   const appId = Number(import.meta.env.VITE_VK_APP_ID);
   const vkProfiles = useVkUsers(creatorIds, appId);
+
+  // [Home] vkProfiles keys: / [Home] vkProfiles[9999999]:
+  useEffect(() => {
+    const keys = Object.keys(vkProfiles || {}).map((k) => Number(k));
+    console.log('[Home] vkProfiles keys:', keys);
+    if ((vkProfiles as any)?.[9999999]) {
+      const p = (vkProfiles as any)[9999999];
+      console.log('[Home] vkProfiles[9999999]:', { fullName: p?.fullName, avatarUrl: p?.avatarUrl });
+    }
+  }, [vkProfiles]);
 
   const prefetchRunById = usePrefetch('getRunById', { ifOlderThan: 60 });
 
@@ -286,6 +301,14 @@ export const Home: FC<HomeProps> = ({ id }) => {
           const profile = vkId ? vkProfiles[vkId] : undefined;
           const fullName = profile?.fullName ?? (vkId ? 'Получаю данные…' : '');
           const avatar = profile?.avatarUrl;
+
+          // [Home] card { … hasProfile: true } — для карточки от 9999999.
+          const hasProfile = Boolean(profile);
+          if (vkId === 9999999) {
+            // Формат с явным флагом hasProfile:
+            // eslint-disable-next-line no-console
+            console.log('[Home] card { … hasProfile: %s }', hasProfile, { runId: r.id, creatorVkId: vkId });
+          }
 
           const openDetails = () => {
             prefetchRunById(String(r.id));
