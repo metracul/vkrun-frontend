@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import bridge from '@vkontakte/vk-bridge';
+import { getProfileOverride } from '../shared/profileOverrides';
+
+export type VkProfile = { fullName: string; avatarUrl?: string };
 
 type VkUser = {
   id: number;
@@ -8,8 +11,6 @@ type VkUser = {
   photo_200?: string;
   photo_100?: string;
 };
-
-export type VkProfile = { fullName: string; avatarUrl?: string };
 
 function uniqueFinite(ids: number[]) {
   const set = new Set<number>();
@@ -26,9 +27,10 @@ function chunk<T>(arr: T[], size: number): T[][] {
 
 /**
  * Загружает профили VK по массиву userIds и возвращает мапу { [id]: { fullName, avatarUrl } }.
- * Требует appId. Токен запрашивается один раз и кешируется внутри хука.
+ * Токен запрашивается один раз и кешируется.
+ * Профили из PROFILE_OVERRIDES не запрашиваются у VK и всегда переопределяют данные.
  */
-export function useVkUsers(userIds: number[], appId: number | undefined) {
+export function useVkUsers(userIds: number[], appId?: number) {
   const [map, setMap] = useState<Record<number, VkProfile>>({});
   const tokenRef = useRef<string | null>(null);
 
@@ -36,32 +38,48 @@ export function useVkUsers(userIds: number[], appId: number | undefined) {
 
   useEffect(() => {
     if (!ids.length) return;
+
+    // 1) Сначала применяем подмены и положим их в map (они имеют приоритет всегда)
+    const overridesEntries = ids
+      .map((id) => [id, getProfileOverride(id)] as const)
+      .filter(([, ov]) => !!ov) as Array<[number, VkProfile]>;
+
+    if (overridesEntries.length) {
+      setMap((prev) => {
+        // если уже лежат какие-то данные — поверх кладем overrides
+        const next = { ...prev };
+        for (const [id, prof] of overridesEntries) next[id] = prof;
+        return next;
+      });
+    }
+
+    // 2) Если appId не задан — дальше идти некуда (но overrides уже применены)
     if (!appId || Number.isNaN(appId)) {
-      console.warn('VITE_VK_APP_ID не задан — пропускаю загрузку профилей');
+      console.warn('VITE_VK_APP_ID не задан — пропускаю загрузку профилей из VK');
       return;
     }
 
-    // какие id ещё не загружены
-    const missing = ids.filter((id) => !map[id]);
+    // 3) Определим, какие id нужно реально дёргать у VK:
+    //    - исключаем те, что есть в overrides
+    //    - исключаем те, что уже есть в map
+    const overrideIds = new Set(overridesEntries.map(([id]) => id));
+    const missing = ids.filter((id) => !overrideIds.has(id) && !map[id]);
     if (!missing.length) return;
 
     let cancelled = false;
 
     (async () => {
       try {
-        // 1) токен (кешируем, чтобы не спрашивать каждый раз)
         if (!tokenRef.current) {
           const { access_token } = await bridge.send('VKWebAppGetAuthToken', {
             app_id: appId,
-            scope: '' // для users.get обычно пусто
+            scope: '', // для users.get обычно пусто
           });
           tokenRef.current = access_token;
         }
 
         const access_token = tokenRef.current!;
-        // 2) users.get батчами (консервативно по 100 id на запрос)
-        const CHUNK_SIZE = 100; // если id много, можно увеличить, но лимиты уточняй в док-ментации
-        const batches = chunk(missing, CHUNK_SIZE);
+        const batches = chunk(missing, 100);
 
         const next: Record<number, VkProfile> = {};
 
@@ -72,31 +90,37 @@ export function useVkUsers(userIds: number[], appId: number | undefined) {
               user_ids: batch.join(','),
               fields: 'photo_200,photo_100',
               v: '5.199',
-              access_token
-            }
+              access_token,
+            },
           });
 
           const users: VkUser[] = resp?.response || [];
           for (const u of users) {
             next[u.id] = {
               fullName: `${u.first_name} ${u.last_name}`.trim(),
-              avatarUrl: u.photo_200 || u.photo_100
+              avatarUrl: u.photo_200 || u.photo_100,
             };
           }
         }
 
         if (!cancelled && Object.keys(next).length) {
-          setMap((prev) => ({ ...prev, ...next }));
+          setMap((prev) => {
+            // На всякий случай: если для какого-то id есть override — он должен остаться сверху.
+            const merged = { ...prev, ...next };
+            for (const [id, prof] of overridesEntries) merged[id] = prof;
+            return merged;
+          });
         }
       } catch (e) {
-        // Не роняем UI — останутся плейсхолдеры
         console.warn('users.get via vk-bridge failed', e);
       }
     })();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ids, appId]); // map нарочно не добавляем, чтобы не зациклить
+  }, [ids, appId]);
 
   return map;
 }
