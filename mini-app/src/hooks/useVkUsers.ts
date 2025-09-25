@@ -11,12 +11,15 @@ type VkUser = {
 
 export type VkProfile = { fullName: string; avatarUrl?: string };
 
-// numeric id → screen name
-const VK_ID_ALIASES: Record<number, string> = {
-  9999999: 'vetercc',
-};
-
 const LP = '[useVkUsers]';
+
+/**
+ * Мапа «подменённых» id → реальный numeric id VK.
+ * 9999999 должен отображаться как профиль vetercc (реальный id = 149873351).
+ */
+const VK_ID_NUMERIC_MAP: Record<number, number> = {
+  9999999: 149873351,
+};
 
 function uniqueFinite(ids: number[]) {
   const set = new Set<number>();
@@ -33,8 +36,8 @@ function chunk<T>(arr: T[], size: number): T[][] {
 
 /**
  * Загружает профили VK и возвращает { [id]: { fullName, avatarUrl } }.
- * Для id из VK_ID_ALIASES дергает users.get по screen name и
- * кладёт результат под исходным numeric id (напр. 9999999).
+ * Для id из VK_ID_NUMERIC_MAP запрос делает по реальному numeric id,
+ * а результат кладёт под «подменённым» id.
  */
 export function useVkUsers(userIds: number[], appId: number | undefined) {
   const [map, setMap] = useState<Record<number, VkProfile>>({});
@@ -53,27 +56,40 @@ export function useVkUsers(userIds: number[], appId: number | undefined) {
     }
 
     // какие id ещё не загружены
-    const missing = ids.filter((id) => !map[id]);
-    if (!missing.length) {
+    const missingClientIds = ids.filter((id) => !map[id]);
+    if (!missingClientIds.length) {
       console.debug(LP, 'skip: no missing ids; all cached');
       return;
     }
 
-    const missingWithAlias = missing.filter((id) => VK_ID_ALIASES[id] != null);
-    const missingPlain = missing.filter((id) => VK_ID_ALIASES[id] == null);
+    // Разворачиваем: clientId -> realId (если есть подмена), иначе realId = clientId
+    const resolveRealId = (clientId: number) => VK_ID_NUMERIC_MAP[clientId] ?? clientId;
+
+    // Группируем по realId, чтобы не дублировать запросы
+    const realIdSet = new Set<number>();
+    for (const cid of missingClientIds) realIdSet.add(resolveRealId(cid));
+    const missingRealIds = Array.from(realIdSet.values());
+
+    // Нужна обратная мапа realId -> какие clientIds её используют
+    const realToClient = new Map<number, number[]>();
+    for (const cid of missingClientIds) {
+      const rid = resolveRealId(cid);
+      const arr = realToClient.get(rid) ?? [];
+      arr.push(cid);
+      realToClient.set(rid, arr);
+    }
 
     let cancelled = false;
     const startedAt = Date.now();
     console.info(LP, 'start', {
       totalIds: ids.length,
-      missing: missing.length,
-      missingPlain: missingPlain.length,
-      missingWithAlias: missingWithAlias.length,
+      missingClientIds: missingClientIds.length,
+      uniqueRealIds: missingRealIds.length,
     });
 
     (async () => {
       try {
-        // 1) токен (кешируем)
+        // токен
         if (!tokenRef.current) {
           console.debug(LP, 'auth: requesting token');
           const { access_token } = await bridge.send('VKWebAppGetAuthToken', {
@@ -86,95 +102,61 @@ export function useVkUsers(userIds: number[], appId: number | undefined) {
           console.debug(LP, 'auth: token from cache');
         }
         const access_token = tokenRef.current!;
-        const next: Record<number, VkProfile> = {};
+        const nextByRealId = new Map<number, VkProfile>();
 
-        // 2) Обычные числовые id — батчами
-        if (missingPlain.length) {
-          const CHUNK_SIZE = 100;
-          const batches = chunk(missingPlain, CHUNK_SIZE);
-          console.debug(LP, `plain: ${missingPlain.length} ids in ${batches.length} batch(es)`);
-          for (let i = 0; i < batches.length; i++) {
-            const batch = batches[i];
-            const tLabel = `${LP} plain batch ${i + 1}/${batches.length} (size=${batch.length})`;
-            console.time(tLabel);
-            try {
-              const resp = await bridge.send('VKWebAppCallAPIMethod', {
-                method: 'users.get',
-                params: {
-                  user_ids: batch.join(','),
-                  fields: 'photo_200,photo_100',
-                  v: '5.199',
-                  access_token,
-                },
-              });
-              const users: VkUser[] = resp?.response || [];
-              if (!Array.isArray(users)) {
-                console.warn(LP, 'plain: unexpected response shape', resp);
-              }
-              for (const u of users || []) {
-                next[u.id] = {
-                  fullName: `${u.first_name} ${u.last_name}`.trim(),
-                  avatarUrl: u.photo_200 || u.photo_100,
-                };
-              }
-              if ((users?.length ?? 0) !== batch.length) {
-                console.debug(LP, 'plain: count mismatch', {
-                  requested: batch.length,
-                  received: users?.length ?? 0,
-                });
-              }
-            } catch (e: any) {
-              console.warn(LP, 'plain: VKWebAppCallAPIMethod failed', { batchIndex: i, error: e });
-            } finally {
-              console.timeEnd(tLabel);
-            }
-          }
-        } else {
-          console.debug(LP, 'plain: none');
-        }
+        // users.get по realId — батчами
+        const CHUNK_SIZE = 100;
+        const batches = chunk(missingRealIds, CHUNK_SIZE);
+        console.debug(LP, `fetch: ${missingRealIds.length} real id(s) in ${batches.length} batch(es)`);
 
-        // 3) Alias — по одному, чтобы не зависеть от domain/screen_name в ответе
-        if (missingWithAlias.length) {
-          console.debug(LP, `alias: ${missingWithAlias.length} id(s)`);
-        }
-        for (const numericId of missingWithAlias) {
-          const alias = VK_ID_ALIASES[numericId];
-          if (!alias) {
-            console.warn(LP, 'alias: missing mapping for id', numericId);
-            continue;
-          }
-          const tLabel = `${LP} alias ${numericId} (${alias})`;
+        for (let i = 0; i < batches.length; i++) {
+          const batch = batches[i];
+          const tLabel = `${LP} batch ${i + 1}/${batches.length} (size=${batch.length})`;
           console.time(tLabel);
           try {
             const resp = await bridge.send('VKWebAppCallAPIMethod', {
               method: 'users.get',
               params: {
-                user_ids: alias, // screen name
+                user_ids: batch.join(','), // только numeric id
                 fields: 'photo_200,photo_100',
                 v: '5.199',
                 access_token,
               },
             });
-            const arr: VkUser[] = Array.isArray(resp?.response) ? resp.response : [];
-            if (!arr.length) {
-              console.warn(LP, 'alias: empty response', { id: numericId, alias });
-            } else {
-              const u = arr[0];
-              next[numericId] = {
+            const users: VkUser[] = Array.isArray(resp?.response) ? resp.response : [];
+            if (!users.length) {
+              console.warn(LP, 'batch empty response', { batchSize: batch.length, batch });
+            }
+            for (const u of users) {
+              nextByRealId.set(u.id, {
                 fullName: `${u.first_name} ${u.last_name}`.trim(),
                 avatarUrl: u.photo_200 || u.photo_100,
-              };
-              console.debug(LP, 'alias: mapped', {
-                id: numericId,
-                alias,
-                fullName: next[numericId].fullName,
-                hasAvatar: Boolean(next[numericId].avatarUrl),
               });
             }
-          } catch (e: any) {
-            console.warn(LP, 'alias: VKWebAppCallAPIMethod failed', { id: numericId, alias, error: e });
+            if (users.length !== batch.length) {
+              console.debug(LP, 'count mismatch', { requested: batch.length, received: users.length });
+            }
+          } catch (e) {
+            console.warn(LP, 'VKWebAppCallAPIMethod failed for batch', { batchIndex: i, error: e });
           } finally {
             console.timeEnd(tLabel);
+          }
+        }
+
+        // Перекладываем profili realId → во все соответствующие clientId
+        const next: Record<number, VkProfile> = {};
+        for (const [realId, clientIds] of realToClient.entries()) {
+          const prof = nextByRealId.get(realId);
+          if (!prof) {
+            console.warn(LP, 'no profile for realId', { realId, clientIds });
+            continue;
+          }
+          for (const cid of clientIds) {
+            next[cid] = prof;
+            // Лог отдельно для «подменённых» id
+            if (VK_ID_NUMERIC_MAP[cid]) {
+              console.debug(LP, 'alias mapped', { clientId: cid, realId, fullName: prof.fullName, hasAvatar: !!prof.avatarUrl });
+            }
           }
         }
 
@@ -193,7 +175,7 @@ export function useVkUsers(userIds: number[], appId: number | undefined) {
         } else if (!cancelled) {
           console.debug(LP, 'state: nothing to update', { tookMs: Date.now() - startedAt });
         }
-      } catch (e: any) {
+      } catch (e) {
         console.warn(LP, 'top-level error', e);
       } finally {
         if (cancelled) {
