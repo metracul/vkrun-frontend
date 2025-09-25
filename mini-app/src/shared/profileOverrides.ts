@@ -5,13 +5,14 @@ export type ProfileOverride = {
   avatarUrl?: string;
 };
 
+import veterccAvatar from '../assets/logos/vetercc.jpg';
+
 // Ключ — vk user id
 export const PROFILE_OVERRIDES: Record<number, ProfileOverride> = {
   9999999: {
-    fullName: 'Имя Фамилия', // <-- подставьте нужные значения
-    avatarUrl: 'https://example.com/avatar.jpg',
+    fullName: 'Veter.cc',
+    avatarUrl: veterccAvatar,
   },
-  // 123456: { fullName: '...', avatarUrl: '...' },
 };
 
 export function getProfileOverride(id: number): ProfileOverride | undefined {
