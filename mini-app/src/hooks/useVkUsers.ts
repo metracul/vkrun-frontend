@@ -59,15 +59,9 @@ export function useVkUsers(
   const [map, setMap] = useState<ProfilesMap>({});
   const prevIdsRef = useRef<string>('');
 
-  const ids = useMemo(
-    () => Array.from(new Set(vkIds.filter(Number.isFinite))) as number[],
-    [vkIds]
-  );
 
-  useEffect(() => {
-    const sig = JSON.stringify(ids);
-    if (sig === prevIdsRef.current) return;
-    prevIdsRef.current = sig;
+    const missing = ids.filter((id) => !map[id]);
+    if (!missing.length) return;
 
     let cancelled = false;
 
