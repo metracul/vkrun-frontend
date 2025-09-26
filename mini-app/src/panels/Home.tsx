@@ -59,6 +59,13 @@ function parsePaceToSec(mmss: string) {
   const sec = Number(m[2]);
   return min * 60 + sec;
 }
+function parseNumberOrUndefined(s: string): number | undefined {
+  const t = s.trim();
+  if (t === '') return undefined;
+  const n = Number(t.replace(',', '.'));
+  return Number.isFinite(n) ? n : undefined;
+}
+
 
 // ---------- component ----------
 export const Home: FC<HomeProps> = ({ id }) => {
@@ -73,23 +80,64 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
   // фильтры
   const [cityName, setCityName] = useState<string>('Москва');
-  const [distanceFromStr, setDistanceFromStr] = useState<string>(''); // "От"
-  const [distanceToStr, setDistanceToStr] = useState<string>('');     // "До"
-  const [pace, setPace] = useState<string>('');
+  const [distanceFromStr, setDistanceFromStr] = useState<string>(''); 
+  const [distanceToStr, setDistanceToStr] = useState<string>('');
+  const [paceFrom, setPaceFrom] = useState<string>('');
+  const [paceTo, setPaceTo] = useState<string>(''); 
   const [runDate, setRunDate] = useState<string>('');
+
+  // Валидация дистанции
+  const {
+    distFromNum, distToNum,
+    isDistFromInvalid, isDistToInvalid,
+    distRangeInvalid,
+  } = useMemo(() => {
+    const fromNum = parseNumberOrUndefined(distanceFromStr);
+    const toNum   = parseNumberOrUndefined(distanceToStr);
+
+    const fromInvalid = distanceFromStr.trim() !== '' && (fromNum === undefined || fromNum <= 0);
+    const toInvalid   = distanceToStr.trim()   !== '' && (toNum   === undefined || toNum   <= 0);
+
+    const rangeInvalid =
+      !fromInvalid && !toInvalid &&
+      fromNum !== undefined && toNum !== undefined &&
+      fromNum > toNum;
+
+    return {
+      distFromNum: fromNum,
+      distToNum: toNum,
+      isDistFromInvalid: fromInvalid,
+      isDistToInvalid: toInvalid,
+      distRangeInvalid: rangeInvalid,
+    };
+  }, [distanceFromStr, distanceToStr]);
+
+  // Валидация темпа (диапазон только; сами значения из выпадашки валидны)
+  const { paceFromSec, paceToSec, paceRangeInvalid } = useMemo(() => {
+    const pf = parsePaceToSec(paceFrom);
+    const pt = parsePaceToSec(paceTo);
+    return {
+      paceFromSec: pf,
+      paceToSec: pt,
+      paceRangeInvalid: pf != null && pt != null && pf > pt,
+    };
+  }, [paceFrom, paceTo]);
+
 
   // собираем фильтры под бэкенд
   const filters = useMemo(() => {
     const f: Record<string, string | number> = {};
     if (cityName.trim()) f.cityName = cityName.trim();
 
-    const kmFrom = distanceFromStr.trim() === '' ? NaN : Number(distanceFromStr.replace(',', '.'));
-    const kmTo   = distanceToStr.trim() === '' ? NaN : Number(distanceToStr.replace(',', '.'));
-    if (!Number.isNaN(kmFrom)) f.kmFrom = kmFrom;
-    if (!Number.isNaN(kmTo))   f.kmTo   = kmTo;
+    // Дистанция — только валидные и при корректном диапазоне
+    if (!isDistFromInvalid && distFromNum !== undefined && !distRangeInvalid) f.kmFrom = distFromNum;
+    if (!isDistToInvalid   && distToNum   !== undefined && !distRangeInvalid) f.kmTo   = distToNum;
 
-    const ps = parsePaceToSec(pace);
-    if (ps != null) { f.paceFrom = ps; f.paceTo = ps; }
+    // Темп — только при корректном диапазоне
+    if (!paceRangeInvalid) {
+      if (paceFromSec != null) f.paceFrom = paceFromSec;
+      if (paceToSec   != null) f.paceTo   = paceToSec;
+    }
 
     if (runDate) {
       const d = new Date(runDate);
@@ -98,7 +146,13 @@ export const Home: FC<HomeProps> = ({ id }) => {
       f.dateFrom = from; f.dateTo = to;
     }
     return f;
-  }, [cityName, distanceFromStr, distanceToStr, pace, runDate]);
+  }, [
+    cityName,
+    isDistFromInvalid, isDistToInvalid, distRangeInvalid, distFromNum, distToNum,
+    paceFromSec, paceToSec, paceRangeInvalid,
+    runDate
+  ]);
+
 
   const { data, isLoading, isError, refetch, isFetching } = useGetRunsQuery({
     endpoint: '/api/v1/runs',
@@ -126,7 +180,8 @@ export const Home: FC<HomeProps> = ({ id }) => {
   const resetFilters = () => {
     setDistanceFromStr('');
     setDistanceToStr('');
-    setPace('');
+    setPaceFrom('');
+    setPaceTo('');
     setRunDate('');
     refetch();
   };
@@ -175,33 +230,75 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
           {/* Дистанция: два поля От/До */}
           <FormItem top="Дистанция (км)">
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Input
-                type="text"
-                inputMode="decimal"
-                placeholder="От"
-                value={distanceFromStr}
-                onChange={(e) => setDistanceFromStr(e.target.value)}
-              />
-              <Input
-                type="text"
-                inputMode="decimal"
-                placeholder="До"
-                value={distanceToStr}
-                onChange={(e) => setDistanceToStr(e.target.value)}
-              />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <div style={{ flex: 1 }}>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="От"
+                  value={distanceFromStr}
+                  onChange={(e) => setDistanceFromStr(e.target.value)}
+                  status={(isDistFromInvalid || distRangeInvalid) ? 'error' : 'default'}
+                />
+                {isDistFromInvalid && (
+                  <Caption level="1" style={{ color: 'var(--vkui--color_text_negative)', marginTop: 4 }}>
+                    Введите положительное число &gt; 0 (км)
+                  </Caption>
+                )}
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="До"
+                  value={distanceToStr}
+                  onChange={(e) => setDistanceToStr(e.target.value)}
+                  status={(isDistToInvalid || distRangeInvalid) ? 'error' : 'default'}
+                />
+                {isDistToInvalid && (
+                  <Caption level="1" style={{ color: 'var(--vkui--color_text_negative)', marginTop: 4 }}>
+                    Введите положительное число &gt; 0 (км)
+                  </Caption>
+                )}
+              </div>
             </div>
+
+            {distRangeInvalid && (
+              <Caption level="1" style={{ color: 'var(--vkui--color_text_negative)', marginTop: 6 }}>
+                Диапазон задан некорректно: «От» больше «До». Пожалуйста, исправьте.
+              </Caption>
+            )}
           </FormItem>
 
-          <FormItem top="Темп бега">
-            <CustomSelect
-              placeholder="Выберите темп"
-              options={PACE_OPTIONS}
-              value={pace}
-              onChange={(e) => setPace((e.target as HTMLSelectElement).value)}
-              allowClearButton
-            />
+
+          <FormItem top="Темп (мин/км)">
+            <div style={{ display: 'flex', gap: 8 }}>
+              <CustomSelect
+                placeholder="От"
+                options={PACE_OPTIONS}
+                value={paceFrom}
+                onChange={(e) => setPaceFrom((e.target as HTMLSelectElement).value)}
+                allowClearButton
+                status={paceRangeInvalid ? 'error' : 'default'}
+              />
+              <CustomSelect
+                placeholder="До"
+                options={PACE_OPTIONS}
+                value={paceTo}
+                onChange={(e) => setPaceTo((e.target as HTMLSelectElement).value)}
+                allowClearButton
+                status={paceRangeInvalid ? 'error' : 'default'}
+              />
+            </div>
+
+            {paceRangeInvalid && (
+              <Caption level="1" style={{ color: 'var(--vkui--color_text_negative)', marginTop: 6 }}>
+                Диапазон темпа задан некорректно: «От» больше «До». Пожалуйста, исправьте.
+              </Caption>
+            )}
           </FormItem>
+
 
           <Spacing size={12} />
           <ButtonGroup mode="vertical" align="center" gap="s">

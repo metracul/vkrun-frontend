@@ -116,7 +116,9 @@ export const runnersApi = createApi({
         if (page != null) params.set('page', String(page));
         if (size != null) params.set('size', String(size));
         Object.entries(filters).forEach(([k, v]) => {
-          if (v !== undefined && v !== null && v !== '') params.set(k, String(v));
+          if (v === undefined || v === null || v === '') return;
+          if (typeof v === 'number' && !Number.isFinite(v)) return;
+          params.set(k, String(v));
         });
         const qs = params.toString();
         console.log('[getRuns] →', `${API_BASE}${endpoint}${qs ? `?${qs}` : ''}`);

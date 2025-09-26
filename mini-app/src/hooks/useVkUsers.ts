@@ -5,8 +5,8 @@ import { getProfileOverride } from '../shared/profileOverrides';
 export type VkProfile = {
   fullName: string;
   avatarUrl?: string;
-  linkUrl?: string;     // ← добавлено
-  nameSuffix?: string;  // ← добавлено
+  linkUrl?: string;
+  nameSuffix?: string;
 };
 
 type VkUser = {
