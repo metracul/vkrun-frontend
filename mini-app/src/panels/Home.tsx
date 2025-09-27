@@ -32,6 +32,54 @@ const CITY_OPTIONS = [
   { value: 'Краснодар', label: 'Краснодар', country: 'Россия' },
 ];
 
+const DISTRICTS_BY_CITY: Record<string, string[]> = {
+  'Москва': [
+    'Центральный адм. округ','Северный адм. округ','Северо-Восточный адм. округ','Восточный адм. округ',
+    'Юго-Восточный адм. округ','Южный адм. округ','Юго-Западный адм. округ','Западный адм. округ',
+    'Северо-Западный адм. округ','Зеленоградский адм. округ','Троицкий адм. округ','Новомосковский адм. округ',
+  ],
+  'Санкт-Петербург': [
+    'Адмиралтейский район','Василеостровский район','Выборгский район','Калининский район','Кировский район',
+    'Колпинский район','Красногвардейский район','Красносельский район','Кронштадтский район','Курортный район',
+    'Московский район','Невский район','Петроградский район','Петродворцовый район','Приморский район',
+    'Пушкинский район','Фрунзенский район','Центральный район',
+  ],
+  'Казань': [
+    'Авиастроительный район','Вахитовский район','Кировский район','Московский район',
+    'Ново-Савиновский район','Приволжский район','Советский район',
+  ],
+  'Уфа': [
+    'Демский район','Калининский район','Кировский район','Ленинский район',
+    'Октябрьский район','Орджоникидзевский район','Советский район',
+  ],
+  'Омск': [
+    'Центральный адм. округ','Октябрьский адм. округ','Кировский адм. округ','Ленинский адм. округ','Советский адм. округ',
+  ],
+  'Новосибирск': [
+    'Железнодорожный район','Заельцовский район','Дзержинский район','Калининский район','Кировский район',
+    'Ленинский район','Октябрьский район','Первомайский район','Советский район','Центральный район',
+  ],
+  'Екатеринбург': [
+    'Верх-Исетский район','Железнодорожный район','Кировский район','Ленинский район',
+    'Октябрьский район','Орджоникидзевский район','Чкаловский район',
+  ],
+  'Самара': [
+    'Железнодорожный район','Кировский район','Красноглинский район','Куйбышевский район',
+    'Ленинский район','Октябрьский район','Промышленный район','Самарский район','Советский район',
+  ],
+  'Нижний Новгород': [
+    'Автозаводский район','Канавинский район','Ленинский район','Московский район',
+    'Нижегородский район','Приокский район','Советский район','Сормовский район',
+  ],
+  'Краснодар': [
+    'Западный адм. округ','Карасунский адм. округ','Прикубанский адм. округ','Центральный адм. округ',
+    'Центральный микрорайон (ЦМР)','Фестивальный микрорайон (ФМР)','Юбилейный микрорайон (ЮМР)',
+    'Гидростроительный микрорайон (ГМР)','Энка (п. Жукова)','Славянский микрорайон (СМР)','Авиагородок',
+    'Московский микрорайон','40 лет Победы','Немецкая деревня (Европея)','Витаминкомбинат (ВМР)',
+    'Кожзавод','Восточно-Кругликовский микрорайон','Калинино (микрорайон)',
+  ],
+};
+
 const PACE_OPTIONS = [
   '02:00','02:30','03:00','03:30','04:00','04:30',
   '05:00','05:30','06:00','06:30','07:00','07:30',
@@ -87,6 +135,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
   const [paceFrom, setPaceFrom] = useState<string>('');
   const [paceTo, setPaceTo] = useState<string>(''); 
   const [runDate, setRunDate] = useState<string>('');
+  const [districtName, setDistrictName] = useState<string>('');
 
   // Валидация дистанции
   const {
@@ -125,11 +174,17 @@ export const Home: FC<HomeProps> = ({ id }) => {
     };
   }, [paceFrom, paceTo]);
 
+  const districtOptions = useMemo(
+    () => (DISTRICTS_BY_CITY[cityName] ?? []).map((label) => ({ value: label, label })),
+    [cityName]
+  );
+
 
   // собираем фильтры под бэкенд
   const filters = useMemo(() => {
     const f: Record<string, string | number> = {};
     if (cityName.trim()) f.cityName = cityName.trim();
+    if (districtName.trim()) f.districtName = districtName.trim();
 
     // Дистанция — только валидные и при корректном диапазоне
     if (!isDistFromInvalid && distFromNum !== undefined && !distRangeInvalid) f.kmFrom = distFromNum;
@@ -149,7 +204,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
     }
     return f;
   }, [
-    cityName,
+    cityName, districtName,
     isDistFromInvalid, isDistToInvalid, distRangeInvalid, distFromNum, distToNum,
     paceFromSec, paceToSec, paceRangeInvalid,
     runDate
@@ -185,6 +240,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
     setPaceFrom('');
     setPaceTo('');
     setRunDate('');
+    setDistrictName('');
     refetch();
   };
 
@@ -193,6 +249,12 @@ export const Home: FC<HomeProps> = ({ id }) => {
       setCityName(selectedCity ?? 'Москва');
     }
   }, [selectedCity]);
+
+  useEffect(() => {
+    if (districtName && !(DISTRICTS_BY_CITY[cityName] ?? []).includes(districtName)) {
+      setDistrictName('');
+    }
+  }, [cityName, districtName]);
 
   useEffect(() => {
     const onUpdated = () => refetch();
@@ -234,6 +296,22 @@ export const Home: FC<HomeProps> = ({ id }) => {
         <Group>
           <FormItem top="Дата пробежки">
             <Input type="date" value={runDate} onChange={(e) => setRunDate((e.target as HTMLInputElement).value)} />
+          </FormItem>
+
+          <FormItem top="Район">
+            <CustomSelect
+              placeholder="Выберите район"
+              options={districtOptions}
+              value={districtName}
+              onChange={(e) => setDistrictName((e.target as HTMLSelectElement).value)}
+              allowClearButton
+              disabled={districtOptions.length === 0}
+            />
+            {districtOptions.length === 0 && (
+              <Caption level="1" style={{ marginTop: 6 }}>
+                Для выбранного города список районов не задан.
+              </Caption>
+            )}
           </FormItem>
 
           {/* Дистанция: два поля От/До */}
