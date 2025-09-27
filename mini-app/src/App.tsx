@@ -1,4 +1,3 @@
-// src/App.tsx
 import { useEffect, useState } from 'react';
 import {
   View,
@@ -13,14 +12,14 @@ import { DEFAULT_VIEW_PANELS } from './routes';
 import { useAppDispatch, useAppSelector } from './store/hooks';
 import { fetchUser } from './store/userSlice';
 import { initMe } from './api/me';
-import { useBannerAdEvents } from './hooks/useBannerAdEvents';
+import { useBannerAds } from './panels/Home/hooks/useBannerAds';
 import { showOnboardingIfNeeded } from './features/onboarding';
 import { hydrateCityFromStorage } from './store/cityFilterSlice';
 
 // Модальные страницы (без собственного ModalRoot)
 import {
-  FiltersModalPage,
-  DeleteConfirmModalPage,
+  HomeFiltersModalPage,
+  HomeDeleteConfirmModalPage,
 } from './panels/components';
 
 type ModalId = 'filters' | 'confirm-delete' | null;
@@ -30,7 +29,9 @@ export const App = () => {
     useActiveVkuiLocation();
   const dispatch = useAppDispatch();
   const userStatus = useAppSelector((s) => s.user.status);
-  useBannerAdEvents();
+
+  // Подписка на события баннера (без управления показом/скрытием здесь)
+  useBannerAds(); // <-- Вызов без аргументов (аналог прежнего useBannerAdEvents)
 
   useEffect(() => {
     dispatch(hydrateCityFromStorage());
@@ -88,13 +89,13 @@ export const App = () => {
       popout={popoutNode}
       modal={
         <ModalRoot activeModal={activeModal} onClose={closeModal}>
-          <FiltersModalPage
+          <HomeFiltersModalPage
             id="filters"
             onClose={closeModal}
             onApply={applyFilters}
             onReset={resetFilters}
           />
-          <DeleteConfirmModalPage
+          <HomeDeleteConfirmModalPage
             id="confirm-delete"
             onClose={closeModal}
             onConfirm={onConfirmDelete}

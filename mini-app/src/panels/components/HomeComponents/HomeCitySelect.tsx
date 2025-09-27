@@ -1,14 +1,14 @@
 import { FC } from 'react';
 import { SimpleCell, CustomSelect, CustomSelectOption } from '@vkontakte/vkui';
 import { Icon20LocationMapOutline } from '@vkontakte/icons';
-import { CITY_OPTIONS } from '../../constants/locations';
+import { CITY_OPTIONS } from '../../../constants/locations';
 
 type Props = {
   value: string;
   onChange: (v: string) => void;
 };
 
-export const CitySelect: FC<Props> = ({ value, onChange }) => (
+export const HomeCitySelect: FC<Props> = ({ value, onChange }) => (
   <SimpleCell>
     <CustomSelect
       before={<Icon20LocationMapOutline />}

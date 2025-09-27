@@ -18,9 +18,9 @@ import {
 } from '@vkontakte/vkui';
 import { Icon24User } from '@vkontakte/icons';
 import { useRouteNavigator, useParams } from '@vkontakte/vk-mini-apps-router';
-import { useGetRunByIdQuery, useJoinRunMutation, useLeaveRunMutation } from '../store/runnersApi';
-import { useVkUsers } from '../hooks/useVkUsers';
-import { useAppSelector } from '../store/hooks';
+import { useGetRunByIdQuery, useJoinRunMutation, useLeaveRunMutation } from '../../store/runnersApi';
+import { useVkUsers } from '../../hooks/useVkUsers';
+import { useAppSelector } from '../../store/hooks';
 
 // --- utils ---
 function formatDate(dateISO?: string) {

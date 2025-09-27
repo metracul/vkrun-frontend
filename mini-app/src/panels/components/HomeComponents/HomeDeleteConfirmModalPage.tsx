@@ -16,7 +16,7 @@ type Props = {
   isDeleting: boolean;
 };
 
-export const DeleteConfirmModalPage: FC<Props> = ({
+export const HomeDeleteConfirmModalPage: FC<Props> = ({
   id,
   onClose,
   onConfirm,

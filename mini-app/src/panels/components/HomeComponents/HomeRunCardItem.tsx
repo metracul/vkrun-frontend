@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import { Card, RichCell, Avatar, Footnote, Button } from '@vkontakte/vkui';
 import { Icon24User } from '@vkontakte/icons';
-import { formatDate } from '../../utils';
+import { formatDate } from '../../../utils';
 
 type Profile = { fullName?: string; nameSuffix?: string; avatarUrl?: string };
 
@@ -14,7 +14,7 @@ type Props = {
   onDeleteClick: (e: React.MouseEvent) => void;
 };
 
-export const RunCardItem: FC<Props> = ({
+export const HomeRunCardItem: FC<Props> = ({
   run: r,
   profile,
   isMine,

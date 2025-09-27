@@ -11,8 +11,8 @@ import {
   Button,
   Spacing,
 } from '@vkontakte/vkui';
-import { PACE_OPTIONS } from '../../constants/pace';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { PACE_OPTIONS } from '../../../constants/pace';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   setRunDate,
   setDistrictName,
@@ -21,9 +21,9 @@ import {
   setPaceFrom,
   setPaceTo,
   resetFilters,
-} from '../../store/runsFilterSlice';
-import { DISTRICTS_BY_CITY } from '../../constants/locations';
-import { parseNumberOrUndefined, parsePaceToSec } from '../../utils';
+} from '../../../store/runsFilterSlice';
+import { DISTRICTS_BY_CITY } from '../../../constants/locations';
+import { parseNumberOrUndefined, parsePaceToSec } from '../../../utils';
 
 type Props = {
   id: string;       // обязательный id для ModalPage
@@ -32,7 +32,7 @@ type Props = {
   onReset: () => void; // сигнал перезагрузки списка (значения сбрасываются здесь)
 };
 
-export const FiltersModalPage: FC<Props> = ({ id, onClose, onApply, onReset }) => {
+export const HomeFiltersModalPage: FC<Props> = ({ id, onClose, onApply, onReset }) => {
   const dispatch = useAppDispatch();
 
   // Город берём из cityFilter (используется для списка районов)
