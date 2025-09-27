@@ -1,122 +1,50 @@
-// src/panels/Home.tsx
 import { FC, useMemo, useState, useEffect } from 'react';
 import {
-  Panel, PanelHeader, Header, Button, Group, Avatar, NavIdProps, ModalRoot, ModalPage, Placeholder, ButtonGroup,
-  Card, RichCell, Spacing, SimpleCell, Caption, Footnote, FixedLayout, usePlatform, FormItem, Input, CustomSelect, CustomSelectOption
+  Panel,
+  PanelHeader,
+  Header,
+  Button,
+  Group,
+  Spacing,
+  Caption,
+  FixedLayout,
+  usePlatform,
+  Card,
 } from '@vkontakte/vkui';
-import { Icon20FilterOutline, Icon24User, Icon28AddCircleOutline, Icon20LocationMapOutline } from '@vkontakte/icons';
-import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
-import { useGetRunsQuery, usePrefetch, useDeleteRunMutation } from '../store/runnersApi';
+import { Icon20FilterOutline, Icon28AddCircleOutline } from '@vkontakte/icons';
+import {
+  useRouteNavigator,
+  useActiveVkuiLocation,
+} from '@vkontakte/vk-mini-apps-router';
+import {
+  useGetRunsQuery,
+  usePrefetch,
+  useDeleteRunMutation,
+} from '../store/runnersApi';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { DEFAULT_VIEW_PANELS } from '../routes';
 import { showBannerAd, hideBannerAd } from '../store/bannerAdSlice';
-import vkBridge, { parseURLSearchParamsForGetLaunchParams } from '@vkontakte/vk-bridge';
-import { useActiveVkuiLocation } from '@vkontakte/vk-mini-apps-router';
+import vkBridge, {
+  parseURLSearchParamsForGetLaunchParams,
+} from '@vkontakte/vk-bridge';
 import { useVkUsers } from '../hooks/useVkUsers';
 import { setSelectedCity } from '../store/cityFilterSlice';
 
-export interface HomeProps extends NavIdProps {}
+import { CitySelect, FiltersModal, RunCardItem, DeleteConfirmModal } from './components';
 
-type ModalId = 'filters' | 'modal2' | 'confirm-delete' | null;
+import { DISTRICTS_BY_CITY } from '../constants/locations';
+import {
+  parseCreatorIdFromFallback,
+  parsePaceToSec,
+  parseNumberOrUndefined,
+} from '../utils';
 
-const CITY_OPTIONS = [
-  { value: 'Москва', label: 'Москва', country: 'Россия' },
-  { value: 'Санкт-Петербург', label: 'Санкт-Петербург', country: 'Россия' },
-  { value: 'Казань', label: 'Казань', country: 'Россия' },
-  { value: 'Уфа', label: 'Уфа', country: 'Россия' },
-  { value: 'Омск', label: 'Омск', country: 'Россия' },
-  { value: 'Новосибирск', label: 'Новосибирск', country: 'Россия' },
-  { value: 'Екатеринбург', label: 'Екатеринбург', country: 'Россия' },
-  { value: 'Самара', label: 'Самара', country: 'Россия' },
-  { value: 'Нижний Новгород', label: 'Нижний Новгород', country: 'Россия' },
-  { value: 'Краснодар', label: 'Краснодар', country: 'Россия' },
-];
-
-const DISTRICTS_BY_CITY: Record<string, string[]> = {
-  'Москва': [
-    'Центральный адм. округ','Северный адм. округ','Северо-Восточный адм. округ','Восточный адм. округ',
-    'Юго-Восточный адм. округ','Южный адм. округ','Юго-Западный адм. округ','Западный адм. округ',
-    'Северо-Западный адм. округ','Зеленоградский адм. округ','Троицкий адм. округ','Новомосковский адм. округ',
-  ],
-  'Санкт-Петербург': [
-    'Адмиралтейский район','Василеостровский район','Выборгский район','Калининский район','Кировский район',
-    'Колпинский район','Красногвардейский район','Красносельский район','Кронштадтский район','Курортный район',
-    'Московский район','Невский район','Петроградский район','Петродворцовый район','Приморский район',
-    'Пушкинский район','Фрунзенский район','Центральный район',
-  ],
-  'Казань': [
-    'Авиастроительный район','Вахитовский район','Кировский район','Московский район',
-    'Ново-Савиновский район','Приволжский район','Советский район',
-  ],
-  'Уфа': [
-    'Демский район','Калининский район','Кировский район','Ленинский район',
-    'Октябрьский район','Орджоникидзевский район','Советский район',
-  ],
-  'Омск': [
-    'Центральный адм. округ','Октябрьский адм. округ','Кировский адм. округ','Ленинский адм. округ','Советский адм. округ',
-  ],
-  'Новосибирск': [
-    'Железнодорожный район','Заельцовский район','Дзержинский район','Калининский район','Кировский район',
-    'Ленинский район','Октябрьский район','Первомайский район','Советский район','Центральный район',
-  ],
-  'Екатеринбург': [
-    'Верх-Исетский район','Железнодорожный район','Кировский район','Ленинский район',
-    'Октябрьский район','Орджоникидзевский район','Чкаловский район',
-  ],
-  'Самара': [
-    'Железнодорожный район','Кировский район','Красноглинский район','Куйбышевский район',
-    'Ленинский район','Октябрьский район','Промышленный район','Самарский район','Советский район',
-  ],
-  'Нижний Новгород': [
-    'Автозаводский район','Канавинский район','Ленинский район','Московский район',
-    'Нижегородский район','Приокский район','Советский район','Сормовский район',
-  ],
-  'Краснодар': [
-    'Западный адм. округ','Карасунский адм. округ','Прикубанский адм. округ','Центральный адм. округ',
-    'Центральный микрорайон (ЦМР)','Фестивальный микрорайон (ФМР)','Юбилейный микрорайон (ЮМР)',
-    'Гидростроительный микрорайон (ГМР)','Энка (п. Жукова)','Славянский микрорайон (СМР)','Авиагородок',
-    'Московский микрорайон','40 лет Победы','Немецкая деревня (Европея)','Витаминкомбинат (ВМР)',
-    'Кожзавод','Восточно-Кругликовский микрорайон','Калинино (микрорайон)',
-  ],
-};
-
-const PACE_OPTIONS = [
-  '02:00','02:30','03:00','03:30','04:00','04:30',
-  '05:00','05:30','06:00','06:30','07:00','07:30',
-  '08:00','08:30','09:00','09:30',
-].map((label) => ({ value: label, label }));
-
-function formatDate(dateISO?: string) {
-  if (!dateISO) return '';
-  const d = new Date(dateISO);
-  if (isNaN(d.getTime())) return '';
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}.${mm}.${yyyy}`;
-}
-function parseCreatorIdFromFallback(fullName?: string): number | undefined {
-  if (!fullName) return undefined;
-  const m = /^id(\d+)$/.exec(fullName.trim());
-  return m ? Number(m[1]) : undefined;
-}
-function parsePaceToSec(mmss: string) {
-  if (!mmss) return undefined;
-  const m = /^(\d{1,2}):([0-5]\d)$/.exec(mmss.trim());
-  if (!m) return undefined;
-  const min = Number(m[1]);
-  const sec = Number(m[2]);
-  return min * 60 + sec;
-}
-function parseNumberOrUndefined(s: string): number | undefined {
-  const t = s.trim();
-  if (t === '') return undefined;
-  const n = Number(t.replace(',', '.'));
-  return Number.isFinite(n) ? n : undefined;
+export interface HomeProps {
+  id: string;
 }
 
+type ModalId = 'filters' | 'confirm-delete' | null;
 
-// ---------- component ----------
 export const Home: FC<HomeProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
   const platform = usePlatform();
@@ -124,36 +52,37 @@ export const Home: FC<HomeProps> = ({ id }) => {
   const dispatch = useAppDispatch();
   const { panel: activePanel } = useActiveVkuiLocation();
 
-  // мой VK id для проверки прав удаления
   const myVkId = useAppSelector((s) => s.user.data?.id);
 
-  // фильтры
   const selectedCity = useAppSelector((s) => s.cityFilter.selectedCity);
   const [cityName, setCityName] = useState<string>(selectedCity ?? 'Москва');
-  const [distanceFromStr, setDistanceFromStr] = useState<string>(''); 
+  const [districtName, setDistrictName] = useState<string>('');
+  const [distanceFromStr, setDistanceFromStr] = useState<string>('');
   const [distanceToStr, setDistanceToStr] = useState<string>('');
   const [paceFrom, setPaceFrom] = useState<string>('');
-  const [paceTo, setPaceTo] = useState<string>(''); 
+  const [paceTo, setPaceTo] = useState<string>('');
   const [runDate, setRunDate] = useState<string>('');
-  const [districtName, setDistrictName] = useState<string>('');
 
-  // Валидация дистанции
+  // distance validation
   const {
-    distFromNum, distToNum,
-    isDistFromInvalid, isDistToInvalid,
+    distFromNum,
+    distToNum,
+    isDistFromInvalid,
+    isDistToInvalid,
     distRangeInvalid,
   } = useMemo(() => {
     const fromNum = parseNumberOrUndefined(distanceFromStr);
-    const toNum   = parseNumberOrUndefined(distanceToStr);
-
-    const fromInvalid = distanceFromStr.trim() !== '' && (fromNum === undefined || fromNum <= 0);
-    const toInvalid   = distanceToStr.trim()   !== '' && (toNum   === undefined || toNum   <= 0);
-
+    const toNum = parseNumberOrUndefined(distanceToStr);
+    const fromInvalid =
+      distanceFromStr.trim() !== '' && (fromNum === undefined || fromNum <= 0);
+    const toInvalid =
+      distanceToStr.trim() !== '' && (toNum === undefined || toNum <= 0);
     const rangeInvalid =
-      !fromInvalid && !toInvalid &&
-      fromNum !== undefined && toNum !== undefined &&
+      !fromInvalid &&
+      !toInvalid &&
+      fromNum !== undefined &&
+      toNum !== undefined &&
       fromNum > toNum;
-
     return {
       distFromNum: fromNum,
       distToNum: toNum,
@@ -163,7 +92,7 @@ export const Home: FC<HomeProps> = ({ id }) => {
     };
   }, [distanceFromStr, distanceToStr]);
 
-  // Валидация темпа (диапазон только; сами значения из выпадашки валидны)
+  // pace validation
   const { paceFromSec, paceToSec, paceRangeInvalid } = useMemo(() => {
     const pf = parsePaceToSec(paceFrom);
     const pt = parsePaceToSec(paceTo);
@@ -176,40 +105,56 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
   const districtOptions = useMemo(
     () => (DISTRICTS_BY_CITY[cityName] ?? []).map((label) => ({ value: label, label })),
-    [cityName]
+    [cityName],
   );
 
-
-  // собираем фильтры под бэкенд
   const filters = useMemo(() => {
     const f: Record<string, string | number> = {};
     if (cityName.trim()) f.cityName = cityName.trim();
     if (districtName.trim()) f.districtName = districtName.trim();
-
-    // Дистанция — только валидные и при корректном диапазоне
-    if (!isDistFromInvalid && distFromNum !== undefined && !distRangeInvalid) f.kmFrom = distFromNum;
-    if (!isDistToInvalid   && distToNum   !== undefined && !distRangeInvalid) f.kmTo   = distToNum;
-
-    // Темп — только при корректном диапазоне
+    if (!isDistFromInvalid && distFromNum !== undefined && !distRangeInvalid)
+      f.kmFrom = distFromNum;
+    if (!isDistToInvalid && distToNum !== undefined && !distRangeInvalid)
+      f.kmTo = distToNum;
     if (!paceRangeInvalid) {
       if (paceFromSec != null) f.paceFrom = paceFromSec;
-      if (paceToSec   != null) f.paceTo   = paceToSec;
+      if (paceToSec != null) f.paceTo = paceToSec;
     }
-
     if (runDate) {
       const d = new Date(runDate);
-      const from = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).toISOString();
-      const to   = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).toISOString();
-      f.dateFrom = from; f.dateTo = to;
+      f.dateFrom = new Date(
+        d.getFullYear(),
+        d.getMonth(),
+        d.getDate(),
+        0,
+        0,
+        0,
+        0,
+      ).toISOString();
+      f.dateTo = new Date(
+        d.getFullYear(),
+        d.getMonth(),
+        d.getDate(),
+        23,
+        59,
+        59,
+        999,
+      ).toISOString();
     }
     return f;
   }, [
-    cityName, districtName,
-    isDistFromInvalid, isDistToInvalid, distRangeInvalid, distFromNum, distToNum,
-    paceFromSec, paceToSec, paceRangeInvalid,
-    runDate
+    cityName,
+    districtName,
+    isDistFromInvalid,
+    isDistToInvalid,
+    distRangeInvalid,
+    distFromNum,
+    distToNum,
+    paceFromSec,
+    paceToSec,
+    paceRangeInvalid,
+    runDate,
   ]);
-
 
   const { data, isLoading, isError, refetch, isFetching } = useGetRunsQuery({
     endpoint: '/api/v1/runs',
@@ -218,13 +163,18 @@ export const Home: FC<HomeProps> = ({ id }) => {
   });
   const runs = data?.items ?? [];
 
-  const creatorIds = useMemo(() => {
-    return runs
-      .map((r: any) => (typeof r.creatorVkId === 'number' ? r.creatorVkId : parseCreatorIdFromFallback(r.fullName)))
-      .filter((x): x is number => Number.isFinite(x));
-  }, [runs]);
+  const creatorIds = useMemo(
+    () =>
+      runs
+        .map((r: any) =>
+          typeof r.creatorVkId === 'number'
+            ? r.creatorVkId
+            : parseCreatorIdFromFallback(r.fullName),
+        )
+        .filter((x): x is number => Number.isFinite(x)),
+    [runs],
+  );
 
-  // общий хук с поддержкой overrides
   const appId = Number(import.meta.env.VITE_VK_APP_ID);
   const vkProfiles = useVkUsers(creatorIds, appId);
 
@@ -232,8 +182,10 @@ export const Home: FC<HomeProps> = ({ id }) => {
 
   const [activeModal, setActiveModal] = useState<ModalId>(null);
   const close = () => setActiveModal(null);
-  const applyFilters = () => { close(); refetch(); };
-
+  const applyFilters = () => {
+    close();
+    refetch();
+  };
   const resetFilters = () => {
     setDistanceFromStr('');
     setDistanceToStr('');
@@ -245,15 +197,15 @@ export const Home: FC<HomeProps> = ({ id }) => {
   };
 
   useEffect(() => {
-    if ((selectedCity ?? 'Москва') !== cityName) {
+    if ((selectedCity ?? 'Москва') !== cityName)
       setCityName(selectedCity ?? 'Москва');
-    }
   }, [selectedCity]);
-
   useEffect(() => {
-    if (districtName && !(DISTRICTS_BY_CITY[cityName] ?? []).includes(districtName)) {
+    if (
+      districtName &&
+      !(DISTRICTS_BY_CITY[cityName] ?? []).includes(districtName)
+    )
       setDistrictName('');
-    }
   }, [cityName, districtName]);
 
   useEffect(() => {
@@ -261,17 +213,15 @@ export const Home: FC<HomeProps> = ({ id }) => {
     window.addEventListener('runs:updated', onUpdated);
     return () => window.removeEventListener('runs:updated', onUpdated);
   }, [refetch]);
-
   useEffect(() => {
-    const onVis = () => { if (document.visibilityState === 'visible') refetch(); };
+    const onVis = () => {
+      if (document.visibilityState === 'visible') refetch();
+    };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
   }, [refetch]);
 
-  // мутация удаления
   const [deleteRun, { isLoading: isDeleting }] = useDeleteRunMutation();
-
-  // состояние подтверждения удаления
   const [runIdToDelete, setRunIdToDelete] = useState<number | null>(null);
   const confirmDelete = (id: number) => {
     setRunIdToDelete(id);
@@ -290,156 +240,19 @@ export const Home: FC<HomeProps> = ({ id }) => {
     }
   };
 
-  const modalRoot = (
-    <ModalRoot activeModal={activeModal} onClose={close}>
-      <ModalPage id="filters" onClose={close} header={<Header>Фильтры</Header>}>
-        <Group>
-          <FormItem top="Дата пробежки">
-            <Input type="date" value={runDate} onChange={(e) => setRunDate((e.target as HTMLInputElement).value)} />
-          </FormItem>
-
-          <FormItem top="Район">
-            <CustomSelect
-              placeholder="Выберите район"
-              options={districtOptions}
-              value={districtName}
-              onChange={(e) => setDistrictName((e.target as HTMLSelectElement).value)}
-              allowClearButton
-              disabled={districtOptions.length === 0}
-            />
-            {districtOptions.length === 0 && (
-              <Caption level="1" style={{ marginTop: 6 }}>
-                Для выбранного города список районов не задан.
-              </Caption>
-            )}
-          </FormItem>
-
-          {/* Дистанция: два поля От/До */}
-          <FormItem top="Дистанция (км)">
-            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-              <div style={{ flex: 1 }}>
-                <Input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="От"
-                  value={distanceFromStr}
-                  onChange={(e) => setDistanceFromStr(e.target.value)}
-                  status={(isDistFromInvalid || distRangeInvalid) ? 'error' : 'default'}
-                />
-                {isDistFromInvalid && (
-                  <Caption level="1" style={{ color: 'var(--vkui--color_text_negative)', marginTop: 4 }}>
-                    Введите положительное число &gt; 0 (км)
-                  </Caption>
-                )}
-              </div>
-
-              <div style={{ flex: 1 }}>
-                <Input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="До"
-                  value={distanceToStr}
-                  onChange={(e) => setDistanceToStr(e.target.value)}
-                  status={(isDistToInvalid || distRangeInvalid) ? 'error' : 'default'}
-                />
-                {isDistToInvalid && (
-                  <Caption level="1" style={{ color: 'var(--vkui--color_text_negative)', marginTop: 4 }}>
-                    Введите положительное число &gt; 0 (км)
-                  </Caption>
-                )}
-              </div>
-            </div>
-
-            {distRangeInvalid && (
-              <Caption level="1" style={{ color: 'var(--vkui--color_text_negative)', marginTop: 6 }}>
-                Диапазон задан некорректно: «От» больше «До». Пожалуйста, исправьте.
-              </Caption>
-            )}
-          </FormItem>
-
-
-          <FormItem top="Темп (мин/км)">
-            <div style={{ display: 'flex', gap: 8 }}>
-              <CustomSelect
-                placeholder="От"
-                options={PACE_OPTIONS}
-                value={paceFrom}
-                onChange={(e) => setPaceFrom((e.target as HTMLSelectElement).value)}
-                allowClearButton
-                status={paceRangeInvalid ? 'error' : 'default'}
-              />
-              <CustomSelect
-                placeholder="До"
-                options={PACE_OPTIONS}
-                value={paceTo}
-                onChange={(e) => setPaceTo((e.target as HTMLSelectElement).value)}
-                allowClearButton
-                status={paceRangeInvalid ? 'error' : 'default'}
-              />
-            </div>
-
-            {paceRangeInvalid && (
-              <Caption level="1" style={{ color: 'var(--vkui--color_text_negative)', marginTop: 6 }}>
-                Диапазон темпа задан некорректно: «От» больше «До». Пожалуйста, исправьте.
-              </Caption>
-            )}
-          </FormItem>
-
-
-          <Spacing size={12} />
-          <ButtonGroup mode="vertical" align="center" gap="s">
-            <Button size="l" appearance="accent" onClick={applyFilters}>Применить</Button>
-            <Button size="l" mode="secondary" onClick={resetFilters}>Сбросить</Button>
-            <Button size="l" mode="tertiary" onClick={close}>Закрыть</Button>
-          </ButtonGroup>
-        </Group>
-      </ModalPage>
-
-      <ModalPage id="modal2" onClose={close} header={<Header>Инфо</Header>}>
-        <Group>
-          <Placeholder action={
-            <ButtonGroup mode="vertical" align="center">
-              <Button onClick={() => setActiveModal('filters')}>Вернуться к фильтрам</Button>
-              <Button onClick={close}>Закрыть</Button>
-            </ButtonGroup>
-          } />
-        </Group>
-      </ModalPage>
-
-      {/* Подтверждение удаления — безопасно для iOS */}
-      <ModalPage id="confirm-delete" onClose={close} header={<Header>Удалить пробежку?</Header>}>
-        <Group>
-          <Caption level="1">Действие необратимо.</Caption>
-          <Spacing size="m" />
-          <ButtonGroup mode="vertical" align="center" gap="s">
-            <Button size="l" appearance="negative" loading={isDeleting} onClick={doDeleteNow}>
-              Удалить
-            </Button>
-            <Button size="l" mode="secondary" disabled={isDeleting} onClick={close}>
-              Отмена
-            </Button>
-          </ButtonGroup>
-        </Group>
-      </ModalPage>
-    </ModalRoot>
-  );
-
   useEffect(() => {
     if (activePanel !== id) return;
-
-    const { vk_platform } = parseURLSearchParamsForGetLaunchParams(window.location.search);
+    const { vk_platform } = parseURLSearchParamsForGetLaunchParams(
+      window.location.search,
+    );
     const inWebView = vkBridge.isWebView();
-
     if (!inWebView || vk_platform === 'desktop_web') return;
-
-    dispatch(showBannerAd({
-      minIntervalMs: 180_000,
-      params: {
-        banner_location: 'bottom',
-        layout_type: 'resize',
-      },
-    }));
-
+    dispatch(
+      showBannerAd({
+        minIntervalMs: 180_000,
+        params: { banner_location: 'bottom', layout_type: 'resize' },
+      }),
+    );
     return () => {
       dispatch(hideBannerAd());
     };
@@ -451,131 +264,115 @@ export const Home: FC<HomeProps> = ({ id }) => {
         <Header size="l">Поиск пробежки</Header>
       </PanelHeader>
 
-      {modalRoot}
+      <FiltersModal
+        activeModal={activeModal}
+        onClose={() => setActiveModal(null)}
+        onApply={applyFilters}
+        onReset={resetFilters}
+        runDate={runDate}
+        setRunDate={setRunDate}
+        districtName={districtName}
+        setDistrictName={setDistrictName}
+        districtOptions={districtOptions}
+        distanceFromStr={distanceFromStr}
+        setDistanceFromStr={setDistanceFromStr}
+        distanceToStr={distanceToStr}
+        setDistanceToStr={setDistanceToStr}
+        isDistFromInvalid={isDistFromInvalid}
+        isDistToInvalid={isDistToInvalid}
+        distRangeInvalid={distRangeInvalid}
+        paceFrom={paceFrom}
+        setPaceFrom={setPaceFrom}
+        paceTo={paceTo}
+        setPaceTo={setPaceTo}
+        paceRangeInvalid={paceRangeInvalid}
+      />
+
+      <DeleteConfirmModal
+        activeModal={activeModal}
+        onClose={() => setActiveModal(null)}
+        onConfirm={doDeleteNow}
+        isDeleting={isDeleting}
+      />
 
       <Group>
-        <SimpleCell>
-          <CustomSelect
-            before={<Icon20LocationMapOutline />}
-            options={CITY_OPTIONS}
-            style={{ width: 200 }}
-            value={cityName}
-            onChange={(e) => {
-              const next = (e.target as HTMLSelectElement).value;
-              setCityName(next);
-              dispatch(setSelectedCity(next));
-            }}
-            placeholder="Выберите город"
-            renderOption={({ option, ...restProps }) => (
-              <CustomSelectOption {...restProps} description={(option as any).country} />
-            )}
-          />
-        </SimpleCell>
+        <CitySelect
+          value={cityName}
+          onChange={(next) => {
+            setCityName(next);
+            dispatch(setSelectedCity(next));
+          }}
+        />
 
         <Header size="s">Список пробежек</Header>
         <Spacing size="m" />
 
-        <SimpleCell>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Button appearance="accent" mode="outline" after={<Icon20FilterOutline />} onClick={() => setActiveModal('filters')}>
-              Фильтры
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+            flexWrap: 'wrap',
+            padding: '8px 12px',
+          }}
+        >
+          <Button
+            appearance="accent"
+            mode="outline"
+            after={<Icon20FilterOutline />}
+            onClick={() => setActiveModal('filters')}
+          >
+            Фильтры
+          </Button>
+          <Button mode="secondary" onClick={() => refetch()} disabled={isFetching}>
+            Обновить
+          </Button>
+          {isDesktop && (
+            <Button
+              mode="primary"
+              before={<Icon28AddCircleOutline />}
+              onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}
+            >
+              Создать пробежку
             </Button>
-            <Button mode="secondary" onClick={() => refetch()} disabled={isFetching}>
-              Обновить
-            </Button>
-            {isDesktop && (
-              <Button
-                mode="primary"
-                before={<Icon28AddCircleOutline />}
-                onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}
-              >
-                Создать пробежку
-              </Button>
-            )}
-          </div>
-          <Spacing size="s" />
-          <Caption level="1">Выбери с кем бежать!</Caption>
-        </SimpleCell>
+          )}
+        </div>
+        <Spacing size="s" />
+        <Caption level="1" style={{ paddingLeft: 12 }}>
+          Выбери с кем бежать!
+        </Caption>
 
         <Spacing size="m" />
 
-        {isLoading && (<Card mode="shadow"><RichCell multiline>Загрузка…</RichCell></Card>)}
-        {isError && (<Card mode="shadow"><RichCell multiline>Не удалось получить данные с сервера</RichCell></Card>)}
+        {isLoading && <Card mode="shadow">Загрузка…</Card>}
+        {isError && <Card mode="shadow">Не удалось получить данные с сервера</Card>}
         {!isLoading && !isError && runs.length === 0 && (
-          <Card mode="shadow"><RichCell multiline>Пока пусто. Попробуй изменить фильтры.</RichCell></Card>
+          <Card mode="shadow">Пока пусто. Попробуй изменить фильтры.</Card>
         )}
 
         {runs.map((r: any) => {
-          const vkId: number | undefined =
-            typeof r.creatorVkId === 'number' ? r.creatorVkId : parseCreatorIdFromFallback(r.fullName);
-
+          const vkId =
+            typeof r.creatorVkId === 'number' ? r.creatorVkId : undefined;
           const profile = vkId ? vkProfiles[vkId] : undefined;
-
-          // Имя + подпись (если есть)
-          const baseName = profile?.fullName ?? (vkId ? 'Получаю данные…' : '');
-          const displayName = profile?.nameSuffix ? `${baseName} · ${profile.nameSuffix}` : baseName;
-
-          const avatar = profile?.avatarUrl;
-
           const openDetails = () => {
             prefetchRunById(String(r.id));
             routeNavigator.push(`/run/${String(r.id)}`);
           };
-
           const isMine = myVkId && vkId && myVkId === vkId;
 
-          const onDeleteClick = (e: React.MouseEvent) => {
-            e.stopPropagation();
-            confirmDelete(Number(r.id));
-          };
-
           return (
-            <Card
+            <RunCardItem
               key={r.id}
-              mode="shadow"
-              style={{ marginTop: 8, position: 'relative' }}
-              onClick={openDetails}
-            >
-              {isMine ? (
-                <div
-                  style={{
-                    position: 'absolute',
-                    right: 12,
-                    bottom: 12,
-                    zIndex: 2,
-                  }}
-                >
-                  <Button
-                    size="s"
-                    mode="secondary"
-                    appearance="negative"
-                    disabled={isDeleting}
-                    onClick={onDeleteClick}
-                  >
-                    Удалить
-                  </Button>
-                </div>
-              ) : null}
-
-              <RichCell
-                before={<Avatar size={48} src={avatar} fallbackIcon={<Icon24User />} />}
-                subtitle={[r.cityDistrict, formatDate(r.dateISO)].filter(Boolean).join(' • ')}
-                extraSubtitle={[
-                  r.distanceKm ? `${r.distanceKm} км` : null,
-                  r.pace ? `${r.pace}` : null,
-                ].filter(Boolean).join(' • ')}
-                multiline
-                style={{
-                  paddingRight: 96,
-                  paddingBottom: 44,
-                }}
-              >
-                {r.title} — {displayName}
-                {r.notes ? <Footnote style={{ marginTop: 4 }}>{r.notes}</Footnote> : null}
-              </RichCell>
-            </Card>
+              run={r}
+              profile={profile}
+              isMine={!!isMine}
+              isDeleting={isDeleting}
+              onOpen={openDetails}
+              onDeleteClick={(e) => {
+                e.stopPropagation();
+                confirmDelete(Number(r.id));
+              }}
+            />
           );
-
         })}
 
         {!isDesktop && <Spacing size={72} />}
