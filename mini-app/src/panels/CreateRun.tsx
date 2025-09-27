@@ -292,7 +292,7 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
 
       const fire = () => window.dispatchEvent(new CustomEvent('runs:updated', { detail: { id } }));
       routeNavigator.replace('/');
-      setTimeout(fire, 0);
+      setTimeout(fire, 200);
     } catch (e: any) {
       alert(`Ошибка: ${e.message}`);
     } finally {

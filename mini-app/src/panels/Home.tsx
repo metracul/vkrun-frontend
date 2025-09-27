@@ -44,10 +44,8 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
 
   const myVkId = useAppSelector((s) => s.user.data?.id);
 
-  // Город — из cityFilter
   const selectedCity = useAppSelector((s) => s.cityFilter.selectedCity) ?? 'Москва';
 
-  // Остальные фильтры — из runsFilter (читает/пишет FiltersModalPage)
   const {
     runDate,
     districtName,
@@ -57,7 +55,6 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
     paceTo,
   } = useAppSelector((s: RootState) => s.runsFilter);
 
-  // Если выбранный район не относится к текущему городу — сбрасываем
   useEffect(() => {
     const list = DISTRICTS_BY_CITY[selectedCity] ?? [];
     if (districtName && !list.includes(districtName)) {
@@ -65,7 +62,6 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
     }
   }, [selectedCity, districtName, dispatch]);
 
-  // Валидации/преобразования для запроса
   const {
     distFromNum,
     distToNum,
@@ -126,11 +122,18 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
   ]);
 
   // Запрос пробежек
-  const { data, isLoading, isError, refetch, isFetching } = useGetRunsQuery({
-    endpoint: '/api/v1/runs',
-    size: 20,
-    filters,
-  });
+  const { data, isLoading, isError, refetch } = useGetRunsQuery(
+    {
+      endpoint: '/api/v1/runs',
+      size: 20,
+      filters,
+    },
+    {
+      pollingInterval: 5_000, 
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+    }
+  );
   const runs = data?.items ?? [];
 
   // Профили авторов
@@ -182,14 +185,6 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
     return () => window.removeEventListener('runs:updated', onUpdated);
   }, [refetch]);
 
-  // Обновление при возврате во вкладку
-  useEffect(() => {
-    const onVis = () => {
-      if (document.visibilityState === 'visible') refetch();
-    };
-    document.addEventListener('visibilitychange', onVis);
-    return () => document.removeEventListener('visibilitychange', onVis);
-  }, [refetch]);
 
   // Баннеры — используем уже полученный activePanel
   useEffect(() => {
@@ -231,9 +226,6 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
             onClick={openFilters}
           >
             Фильтры
-          </Button>
-          <Button mode="secondary" onClick={() => refetch()} disabled={isFetching}>
-            Обновить
           </Button>
           {isDesktop && (
             <Button
