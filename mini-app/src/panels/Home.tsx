@@ -13,6 +13,7 @@ import { showBannerAd, hideBannerAd } from '../store/bannerAdSlice';
 import vkBridge, { parseURLSearchParamsForGetLaunchParams } from '@vkontakte/vk-bridge';
 import { useActiveVkuiLocation } from '@vkontakte/vk-mini-apps-router';
 import { useVkUsers } from '../hooks/useVkUsers';
+import { setSelectedCity } from '../store/cityFilterSlice';
 
 export interface HomeProps extends NavIdProps {}
 
@@ -79,7 +80,8 @@ export const Home: FC<HomeProps> = ({ id }) => {
   const myVkId = useAppSelector((s) => s.user.data?.id);
 
   // фильтры
-  const [cityName, setCityName] = useState<string>('Москва');
+  const selectedCity = useAppSelector((s) => s.cityFilter.selectedCity);
+  const [cityName, setCityName] = useState<string>(selectedCity ?? 'Москва');
   const [distanceFromStr, setDistanceFromStr] = useState<string>(''); 
   const [distanceToStr, setDistanceToStr] = useState<string>('');
   const [paceFrom, setPaceFrom] = useState<string>('');
@@ -185,6 +187,12 @@ export const Home: FC<HomeProps> = ({ id }) => {
     setRunDate('');
     refetch();
   };
+
+  useEffect(() => {
+    if ((selectedCity ?? 'Москва') !== cityName) {
+      setCityName(selectedCity ?? 'Москва');
+    }
+  }, [selectedCity]);
 
   useEffect(() => {
     const onUpdated = () => refetch();
@@ -374,7 +382,11 @@ export const Home: FC<HomeProps> = ({ id }) => {
             options={CITY_OPTIONS}
             style={{ width: 200 }}
             value={cityName}
-            onChange={(e) => setCityName((e.target as HTMLSelectElement).value)}
+            onChange={(e) => {
+              const next = (e.target as HTMLSelectElement).value;
+              setCityName(next);
+              dispatch(setSelectedCity(next));
+            }}
             placeholder="Выберите город"
             renderOption={({ option, ...restProps }) => (
               <CustomSelectOption {...restProps} description={(option as any).country} />

@@ -1,18 +1,21 @@
-// src/store/index.ts
 import { configureStore } from '@reduxjs/toolkit';
 import vkParams from './vkParamsSlice';
 import { runnersApi } from './runnersApi';
 import user from './userSlice';
 import bannerAd from './bannerAdSlice';
+import cityFilter from './cityFilterSlice';
+import { persistCityMiddleware } from './persistCityMiddleware';
 
 export const store = configureStore({
   reducer: {
     user,
     vkParams,
     bannerAd,
+    cityFilter,
     [runnersApi.reducerPath]: runnersApi.reducer,
   },
-  middleware: (gDM) => gDM().concat(runnersApi.middleware),
+  middleware: (gDM) =>
+    gDM().concat(runnersApi.middleware, persistCityMiddleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

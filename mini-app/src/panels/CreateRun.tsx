@@ -231,7 +231,7 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
   const validateDistance = (raw: string): string | null => {
     if (!raw.trim()) return 'Введите дистанцию.';
     const km = parseFloat(raw.replace(',', '.'));
-    if (!isFinite(km)) return 'Пожалуйста, введите число';
+    if (!isFinite(km)) return 'Пожалуйста, введите ';
     if (km <= 0) return 'Дистанция должна быть больше 0 км.';
     return null;
   };
@@ -291,13 +291,14 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
       const id = await createRunSecure(body);
 
       const fire = () => window.dispatchEvent(new CustomEvent('runs:updated', { detail: { id } }));
-      routeNavigator.back();
+      routeNavigator.replace('/');
       setTimeout(fire, 0);
     } catch (e: any) {
       alert(`Ошибка: ${e.message}`);
     } finally {
       setLoading(false);
     }
+
   };
 
   const onCityChange = (value: string) => {
@@ -330,7 +331,7 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
 
   return (
     <Panel id={id}>
-      <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.back()} />}>
+      <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.push('/')} />}>
         <Header size="l">Создание пробежки</Header>
       </PanelHeader>
 

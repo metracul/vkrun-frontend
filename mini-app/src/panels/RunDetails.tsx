@@ -45,11 +45,16 @@ function formatTime(dateISO?: string) {
 // "M:SS /км" -> секунд/км
 function parsePaceToSec(pace?: string): number | undefined {
   if (!pace) return undefined;
-  const m = /^\s*(\d+):(\d{2})(?:\s*\/?\s*км)?\s*$/i.exec(pace.trim());
+  const s = pace.trim().toLowerCase();
+
+  // m:ss  | mm:ss | с разделителями : ' ’ ′ и необязательным "мин/км" или "/км"
+  const m = s.match(/^(\d{1,2})[:’'′](\d{1,2})(?:\s*(?:мин)?\s*\/?\s*км)?$/i);
   if (!m) return undefined;
+
   const min = Number(m[1]);
   const sec = Number(m[2]);
-  if (Number.isNaN(min) || Number.isNaN(sec)) return undefined;
+  if (!Number.isFinite(min) || !Number.isFinite(sec) || sec >= 60) return undefined;
+
   return min * 60 + sec;
 }
 
@@ -97,10 +102,21 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
   // длительность = distance * pace
   const durationText = useMemo(() => {
-    if (!data?.distanceKm || !data?.pace) return '—';
+    if (!data) return '—';
+
     const paceSec = parsePaceToSec(data.pace);
     if (!paceSec) return '—';
-    const totalMin = (data.distanceKm * paceSec) / 60;
+
+    // distance может прийти строкой и/или с запятой
+    const raw = data.distanceKm as unknown;
+    const distKm =
+      typeof raw === 'number' ? raw :
+      typeof raw === 'string' ? Number(raw.replace(',', '.')) :
+      NaN;
+
+    if (!Number.isFinite(distKm) || distKm <= 0) return '—';
+
+    const totalMin = (distKm * paceSec) / 60;
     return minutesToHhMm(totalMin);
   }, [data?.distanceKm, data?.pace]);
 
@@ -127,7 +143,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
   return (
     <Panel id={id}>
-      <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.back()} />}>
+      <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.push('/')} />}>
         <Header size="l">Пробежка</Header>
       </PanelHeader>
 
@@ -261,7 +277,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
           </>
         )}
 
-        <Button mode="secondary" onClick={() => routeNavigator.back()}>
+        <Button mode="secondary" onClick={() => routeNavigator.push('/')}>
           Назад
         </Button>
       </Group>

@@ -9,12 +9,17 @@ import { fetchUser } from './store/userSlice';
 import { initMe } from './api/me';
 import { useBannerAdEvents } from './hooks/useBannerAdEvents';
 import { showOnboardingIfNeeded } from './features/onboarding';
+import { hydrateCityFromStorage } from './store/cityFilterSlice';
 
 export const App = () => {
   const { panel: activePanel = DEFAULT_VIEW_PANELS.HOME } = useActiveVkuiLocation();
   const dispatch = useAppDispatch();
   const userStatus = useAppSelector((s) => s.user.status);
   useBannerAdEvents();
+
+  useEffect(() => {
+    dispatch(hydrateCityFromStorage());
+  }, [dispatch]);
 
   useEffect(() => {
     if (userStatus === 'idle') {
