@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from '@vkontakte/vk-mini-apps-router';
-import { useGetRunByIdQuery, useJoinRunMutation, useLeaveRunMutation } from '../../../store/runnersApi';
+import {
+  useGetRunByIdQuery,
+  useJoinRunMutation,
+  useLeaveRunMutation,
+  type JoinRunResponse,
+} from '../../../store/runnersApi';
 import { useVkUsers } from '../../../hooks/useVkUsers';
-import { useAppSelector } from '../../../store/hooks';
+import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { formatDate } from '../../../utils';
 import { parseNumberOrUndefined } from '../../../utils';
 import { tolerantParsePaceToSec, formatTime } from './utils';
+import { runsUpdated } from '../../../store/runsEventsSlice';
 
 type Params = { id: string };
 
@@ -19,6 +25,7 @@ export function useRunDetails() {
   const [leaveRun, { isLoading: isLeaving }] = useLeaveRunMutation();
 
   const myVkId = useAppSelector((s) => s.user.data?.id);
+  const dispatch = useAppDispatch();
 
   const creatorVkId = data?.creatorVkId;
 
@@ -87,14 +94,20 @@ export function useRunDetails() {
     await leaveRun(runId!);
     setLocalParticipant(false);
     refetch();
-    window.dispatchEvent(new Event('runs:updated'));
+    dispatch(runsUpdated());
   };
 
-  const onJoin = async () => {
-    await joinRun(runId!);
+  const onJoin = async (): Promise<JoinRunResponse | void> => {
+    const res = await joinRun(runId!).unwrap(); // { warning?: string | null }
+    if (res?.warning) {
+      // предупреждение есть — участие не меняем, отдадим наверх для Snackbar
+      return res;
+    }
+    // запись прошла — переключаем локальное состояние
     setLocalParticipant(true);
     refetch();
-    window.dispatchEvent(new Event('runs:updated'));
+    dispatch(runsUpdated());
+    return res;
   };
 
   return {
@@ -147,9 +160,11 @@ export function useRunDetails() {
       localParticipant,
       isJoining,
       isLeaving,
-      buttonLabel: localParticipant ? (isLeaving ? 'Отписываю…' : 'Отписаться') : (isJoining ? 'Записываю…' : 'Побегу'),
-      buttonMode: localParticipant ? 'leave' as const : 'join' as const,
-      button: null as any, // собирается в UI-слое
+      buttonLabel: localParticipant
+        ? (isLeaving ? 'Отписываю…' : 'Отписаться')
+        : (isJoining ? 'Записываю…' : 'Побегу'),
+      buttonMode: localParticipant ? ('leave' as const) : ('join' as const),
+      button: null as any,
       onJoin,
       onLeave,
     },

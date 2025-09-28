@@ -6,6 +6,7 @@ import { getFrozenLaunchQueryString } from '../shared/vkParams';
 
 // ---- Типы ----
 export type RunParticipant = { id: number; vkUserId: number };
+export type JoinRunResponse = { warning?: string | null };
 
 export type RunCard = {
   id: string | number;
@@ -137,7 +138,7 @@ export const runnersApi = createApi({
     }),
 
     // Записаться: POST /{id}/join  body { runId }
-    joinRun: b.mutation<void, string | number>({
+    joinRun: b.mutation<JoinRunResponse, string | number>({
       async queryFn(id, _api, _extra, fetchWithBQ) {
         try {
           const body = { runId: Number(id) };
@@ -150,7 +151,11 @@ export const runnersApi = createApi({
             headers: { 'Content-Type': 'application/json', ...signHeaders },
           });
           if (res.error) return { error: res.error as any };
-          return { data: undefined };
+
+          const data = (res.data ?? {}) as any;
+          const warning = typeof data?.message === 'string' ? data.message : null;
+
+          return { data: { warning } };
         } catch (e: any) {
           return { error: { status: 'CUSTOM_ERROR', data: e?.message || 'sign failed' } as any };
         }
@@ -177,6 +182,8 @@ export const runnersApi = createApi({
         }
       },
     }),
+
+    
 
     // Удалить забег (только автор): DELETE /{id}
     deleteRun: b.mutation<void, string | number>({

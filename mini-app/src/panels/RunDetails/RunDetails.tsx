@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import {
   Panel,
   PanelHeader,
@@ -9,6 +9,7 @@ import {
   Button,
   NavIdProps,
   Placeholder,
+  Snackbar,
 } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 
@@ -33,6 +34,28 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
     participants,
     actions,
   } = useRunDetails();
+
+  const [snack, setSnack] = useState<React.ReactNode>(null);
+
+  const handleJoin = async () => {
+    try {
+      const res = await actions.onJoin?.();
+      if (res && res.warning) {
+        setSnack(
+          <Snackbar onClose={() => setSnack(null)}>
+            {res.warning}
+          </Snackbar>
+        );
+      }
+    } catch (e: any) {
+      const msg = e?.data || e?.message || 'Не удалось записаться';
+      setSnack(
+        <Snackbar onClose={() => setSnack(null)}>
+          Ошибка: {String(msg)}
+        </Snackbar>
+      );
+    }
+  };
 
   return (
     <Panel id={id}>
@@ -71,7 +94,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
               mode={actions.buttonMode}
               label={actions.buttonLabel}
               disabled={actions.buttonMode === 'join' ? actions.isJoining : actions.isLeaving}
-              onClick={actions.buttonMode === 'join' ? actions.onJoin : actions.onLeave}
+              onClick={actions.buttonMode === 'join' ? handleJoin : actions.onLeave}
             />
 
             <Spacing size={16} />
@@ -82,6 +105,8 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
           Назад
         </Button>
       </Group>
+
+      {snack}
     </Panel>
   );
 };

@@ -5,7 +5,8 @@ import user from './userSlice';
 import bannerAd from './bannerAdSlice';
 import cityFilter from './cityFilterSlice';
 import { persistCityMiddleware } from './persistCityMiddleware';
-import runsFilter from './runsFilterSlice';  
+import runsFilter from './runsFilterSlice';
+import runsEvents from './runsEventsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -13,7 +14,8 @@ export const store = configureStore({
     vkParams,
     bannerAd,
     cityFilter,
-    runsFilter,  
+    runsFilter,
+    runsEvents,
     [runnersApi.reducerPath]: runnersApi.reducer,
   },
   middleware: (gDM) =>
