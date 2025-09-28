@@ -12,6 +12,7 @@ import {
   Snackbar,
 } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
+import { Icon12ErrorCircleFillYellow } from '@vkontakte/icons';
 
 import {
   CreatorCard,
@@ -42,15 +43,21 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
       const res = await actions.onJoin?.();
       if (res && res.warning) {
         setSnack(
-          <Snackbar onClose={() => setSnack(null)}>
-            {res.warning}
+          <Snackbar
+            before={<Icon12ErrorCircleFillYellow fill="var(--vkui--color_icon_negative)" />}
+            onClose={() => setSnack(null)}
+          >
+            Вы уже записаны на пробежку в это время!
           </Snackbar>
         );
       }
     } catch (e: any) {
       const msg = e?.data || e?.message || 'Не удалось записаться';
       setSnack(
-        <Snackbar onClose={() => setSnack(null)}>
+        <Snackbar
+          before={<Icon12ErrorCircleFillYellow fill="var(--vkui--color_icon_negative)" />}
+          onClose={() => setSnack(null)}
+        >
           Ошибка: {String(msg)}
         </Snackbar>
       );
