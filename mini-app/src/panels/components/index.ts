@@ -13,3 +13,9 @@ export {CreatePaceSelect} from './CreateRunComponents/CreatePaceSelect';
 export {CreateSubmitButton} from './CreateRunComponents/CreateSubmitButton';
 export {CreateSummaryRow} from './CreateRunComponents/CreateSummaryRow';
 export {CreateTimeField} from './CreateRunComponents/CreateTimeField';
+
+
+export {ActionButton} from './RunDetailsComponents/ActionButton';
+export {CreatorCard} from './RunDetailsComponents/CreatorCard';
+export {InfoGroup} from './RunDetailsComponents/InfoGroup';
+export {ParticipantsGroup} from './RunDetailsComponents/ParticipantsGroup';
