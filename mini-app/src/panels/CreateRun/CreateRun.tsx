@@ -59,7 +59,7 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
         <Header size="l">Создание пробежки</Header>
       </PanelHeader>
 
-      <Group header={<Header size="s">Настрой свою пробежку</Header>}>
+      <Group header={<Header size="s">Настройте свою пробежку</Header>}>
         <Spacing size="m" />
 
         <Header size="m">Укажите ваш город</Header>
