@@ -28,11 +28,10 @@ import { parseNumberOrUndefined, parsePaceToSec } from '../../../utils';
 type Props = {
   id: string;       // обязательный id для ModalPage
   onClose: () => void;
-  onApply: () => void; // вызывает обновление списка/закрытие на уровне App
   onReset: () => void; // сигнал перезагрузки списка (значения сбрасываются здесь)
 };
 
-export const HomeFiltersModalPage: FC<Props> = ({ id, onClose, onApply, onReset }) => {
+export const HomeFiltersModalPage: FC<Props> = ({ id, onClose, onReset }) => {
   const dispatch = useAppDispatch();
 
   // Город берём из cityFilter (используется для списка районов)
@@ -181,9 +180,8 @@ export const HomeFiltersModalPage: FC<Props> = ({ id, onClose, onApply, onReset 
 
         <Spacing size={12} />
         <ButtonGroup mode="vertical" align="center" gap="s">
-          <Button size="l" appearance="accent" onClick={onApply}>Применить</Button>
+          <Button size="l" mode="tertiary" onClick={onClose}>Показать результат</Button>
           <Button size="l" mode="secondary" onClick={handleReset}>Сбросить</Button>
-          <Button size="l" mode="tertiary" onClick={onClose}>Закрыть</Button>
         </ButtonGroup>
       </Group>
     </ModalPage>

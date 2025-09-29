@@ -66,10 +66,6 @@ export const App = () => {
   const closeModal = () => setActiveModal(null);
 
   // Применение/сброс фильтров — просто сигналим экрану обновиться
-  const applyFilters = () => {
-    window.dispatchEvent(new Event('runs:updated'));
-    closeModal();
-  };
   const resetFilters = () => {
     window.dispatchEvent(new Event('runs:updated'));
   };
@@ -92,7 +88,6 @@ export const App = () => {
           <HomeFiltersModalPage
             id="filters"
             onClose={closeModal}
-            onApply={applyFilters}
             onReset={resetFilters}
           />
           <HomeDeleteConfirmModalPage
