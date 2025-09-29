@@ -180,7 +180,7 @@ export const HomeFiltersModalPage: FC<Props> = ({ id, onClose, onReset }) => {
 
         <Spacing size={12} />
         <ButtonGroup mode="vertical" align="center" gap="s">
-          <Button size="l" mode="tertiary" onClick={onClose}>Показать результат</Button>
+          <Button size="l" onClick={onClose}>Показать результат</Button>
           <Button size="l" mode="secondary" onClick={handleReset}>Сбросить</Button>
         </ButtonGroup>
       </Group>
