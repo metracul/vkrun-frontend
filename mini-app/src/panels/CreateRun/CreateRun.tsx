@@ -1,8 +1,9 @@
-// CreateRun.tsx
-import { FC, useEffect } from 'react';
-import { NavIdProps, Panel, PanelHeader, PanelHeaderBack, Header, Group, Spacing } from '@vkontakte/vkui';
+import { FC, useEffect, useState } from 'react';
+import {
+  NavIdProps, Panel, PanelHeader, PanelHeaderBack, Header, Group, Spacing, Snackbar,
+} from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
-import { createRunSecure } from '../../api/createRunSecure';
+import { createRunSecure, HttpError } from '../../api/createRunSecure';
 import { useCreateRunForm } from './hooks/useCreateRunForm';
 import {
   CreateCitySelect, CreateDistrictSelect, CreateDateField, CreateTimeField,
@@ -11,6 +12,7 @@ import {
 } from '../components';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setSelectedCity } from '../../store/cityFilterSlice';
+import {Icon12CancelCircleFillRed} from '@vkontakte/icons';
 
 export const CreateRun: FC<NavIdProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
@@ -18,6 +20,8 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
 
   const selectedCity = useAppSelector((s) => s.cityFilter.selectedCity);
   const dispatch = useAppDispatch();
+
+  const [snackbar, setSnackbar] = useState<React.ReactNode | null>(null);
 
   useEffect(() => {
     f.setCity(selectedCity ?? undefined);
@@ -47,7 +51,19 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
       routeNavigator.replace('/');
       setTimeout(fire, 200);
     } catch (e: any) {
-      alert(`Ошибка: ${e.message}`);
+      if (e instanceof HttpError && e.status === 400) {
+        setSnackbar(
+          <Snackbar
+            onClose={() => setSnackbar(null)}
+            duration={4000}
+            before={<Icon12CancelCircleFillRed />}
+          >
+            Невозможно создать пробежку длительностью больше 600 минут
+          </Snackbar>
+        );
+      } else {
+        alert(`Ошибка: ${e.message}`);
+      }
     } finally {
       f.setLoading(false);
     }
@@ -98,10 +114,11 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
         <Header size="m">Описание</Header>
         <CreateDescriptionField value={f.state.desc} onChange={f.setDesc} error={f.descError} touched={f.descTouched}/>
 
-
         <Spacing size="xl" />
         <CreateSubmitButton disabled={!f.isFormValid || f.loading} loading={f.loading} onClick={handleSubmit} />
       </Group>
+
+      {snackbar}
     </Panel>
   );
 };

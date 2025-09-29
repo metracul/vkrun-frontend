@@ -1,4 +1,3 @@
-// src/api/createRunSecure.ts
 import bridge from '@vkontakte/vk-bridge';
 import { getFrozenLaunchQueryString } from '../shared/vkParams';
 
@@ -31,6 +30,16 @@ async function buildVkSignedHeaders(bodyJson: string) {
   } as const;
 }
 
+/** Класс ошибки с HTTP-статусом */
+export class HttpError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'HttpError';
+    this.status = status;
+  }
+}
+
 /** Запрос создания пробежки на ваш бэкенд */
 export async function createRunSecure(body: {
   cityName?: string;
@@ -56,14 +65,14 @@ export async function createRunSecure(body: {
   });
 
   if (!res.ok) {
-  const text = await res.text();
-  try {
-    const json = JSON.parse(text);
-    throw new Error(json?.error || json?.code || `HTTP ${res.status}`);
-  } catch {
-    throw new Error(text || `HTTP ${res.status}`);
+    const text = await res.text();
+    try {
+      const json = JSON.parse(text);
+      throw new HttpError(res.status, json?.error || json?.code || `HTTP ${res.status}`);
+    } catch {
+      throw new HttpError(res.status, text || `HTTP ${res.status}`);
+    }
   }
-}
 
   // Бэкенд возвращает ID (Long)
   const id = await res.json(); // number
