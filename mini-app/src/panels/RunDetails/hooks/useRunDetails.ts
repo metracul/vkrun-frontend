@@ -99,17 +99,13 @@ export function useRunDetails() {
 
   const onJoin = async (): Promise<JoinRunResponse | void> => {
     const res = await joinRun(runId!).unwrap(); // { warning?: string | null }
-    if (res?.warning) {
-      // предупреждение есть — участие не меняем, отдадим наверх для Snackbar
-      return res;
-    }
-    // запись прошла — переключаем локальное состояние
+    // Всегда обновляем UI и рефрешим данные, warning — только для визуального уведомления
     setLocalParticipant(true);
     refetch();
     dispatch(runsUpdated());
-    return res;
-  };
-
+    return res; // Компонент покажет Snackbar, если res.warning есть
+    };
+    
   return {
     isLoading,
     isError,
