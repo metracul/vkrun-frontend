@@ -96,7 +96,8 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
 
         <Spacing size="s" />
         <Header size="m">Описание</Header>
-        <CreateDescriptionField value={f.state.desc} onChange={f.setDesc} />
+        <CreateDescriptionField value={f.state.desc} onChange={f.setDesc} error={f.descError} touched={f.descTouched}/>
+
 
         <Spacing size="xl" />
         <CreateSubmitButton disabled={!f.isFormValid || f.loading} loading={f.loading} onClick={handleSubmit} />

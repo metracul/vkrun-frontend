@@ -34,7 +34,7 @@ export type CreateRunFormState = {
   city?: string;
   district: string;
   desc: string;
-  distanceStr: string; // текст, т.к. ввод с запятой
+  distanceStr: string; // ввод с запятой
   pace: string;        // MM:SS
   date: Date | null;
   timeStr: string;     // HH:MM
@@ -56,8 +56,10 @@ export function useCreateRunForm() {
   // Ошибки и "touched"
   const [distanceError, setDistanceError] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string | null>(null);
+  const [descError, setDescError] = useState<string | null>(null);
   const [distanceTouched, setDistanceTouched] = useState(false);
   const [dateTouched, setDateTouched] = useState(false);
+  const [descTouched, setDescTouched] = useState(false);
 
   const startOfToday = useMemo(() => {
     const d = new Date();
@@ -93,6 +95,12 @@ export function useCreateRunForm() {
     return null;
   }, [startOfToday]);
 
+  // Лимит описания: подсветка/сообщение при ровно 2000 символах (и больше не даст maxLength на поле)
+  const validateDesc = useCallback((text: string): string | null => {
+    if (text.length >= 2000) return 'Достигнут лимит в 2000 символов.';
+    return null;
+  }, []);
+
   const isFormValid = useMemo(() => {
     const hasCity = !!state.city;
     const hasDistrict = state.district.trim().length > 0;
@@ -107,13 +115,19 @@ export function useCreateRunForm() {
     const dt = state.date && combineDateTime(state.date, state.timeStr);
     if (!dt) return false;
     if (state.date!.toDateString() === now.toDateString() && dt < now) return false;
+
+    // Описание опционально, ошибка по длине не блокирует отправку
     return true;
   }, [state, paceSec, validateDistance, validateDateNotPast]);
 
   // Хэндлеры
   const setCity = (city?: string) => setState((s) => ({ ...s, city, district: '' }));
   const setDistrict = (district: string) => setState((s) => ({ ...s, district }));
-  const setDesc = (desc: string) => setState((s) => ({ ...s, desc }));
+  const setDesc = (desc: string) => {
+    setState((s) => ({ ...s, desc }));
+    if (!descTouched) setDescTouched(true);
+    setDescError(validateDesc(desc));
+  };
   const setDistanceStr = (distanceStr: string) => {
     setState((s) => ({ ...s, distanceStr }));
     if (!distanceTouched) setDistanceTouched(true);
@@ -150,8 +164,10 @@ export function useCreateRunForm() {
     // errors/touched
     distanceError,
     dateError,
+    descError,
     distanceTouched,
     dateTouched,
+    descTouched,
 
     // computed
     startOfToday,
