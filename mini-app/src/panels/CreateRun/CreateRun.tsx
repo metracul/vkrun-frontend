@@ -1,14 +1,27 @@
-import { FC } from 'react';
+// CreateRun.tsx
+import { FC, useEffect } from 'react';
 import { NavIdProps, Panel, PanelHeader, PanelHeaderBack, Header, Group, Spacing } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import { createRunSecure } from '../../api/createRunSecure';
 import { useCreateRunForm } from './hooks/useCreateRunForm';
-import { CreateCitySelect, CreateDistrictSelect, CreateDateField, CreateTimeField, CreatePaceSelect, 
-  CreateDistanceField, CreateDescriptionField, CreateSummaryRow, CreateSubmitButton } from '../components';
+import {
+  CreateCitySelect, CreateDistrictSelect, CreateDateField, CreateTimeField,
+  CreatePaceSelect, CreateDistanceField, CreateDescriptionField,
+  CreateSummaryRow, CreateSubmitButton
+} from '../components';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { setSelectedCity } from '../../store/cityFilterSlice';
 
 export const CreateRun: FC<NavIdProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
   const f = useCreateRunForm();
+
+  const selectedCity = useAppSelector((s) => s.cityFilter.selectedCity);
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    f.setCity(selectedCity ?? undefined);
+  }, [selectedCity]);
 
   const handleSubmit = async () => {
     if (!f.isFormValid) return;
@@ -42,7 +55,7 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
 
   return (
     <Panel id={id}>
-      <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.push('/')} />}> 
+      <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.push('/')} />}>
         <Header size="l">Создание пробежки</Header>
       </PanelHeader>
 
@@ -50,7 +63,13 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
         <Spacing size="m" />
 
         <Header size="m">Укажите ваш город</Header>
-        <CreateCitySelect value={f.state.city} onChange={f.setCity} />
+        <CreateCitySelect
+          value={selectedCity ?? undefined}
+          onChange={(v) => {
+            dispatch(setSelectedCity(v ?? null));
+            f.setCity(v);
+          }}
+        />
 
         <Spacing size="s" />
         <Header>Выберите район</Header>
