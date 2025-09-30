@@ -51,25 +51,37 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
       const fire = () => window.dispatchEvent(new CustomEvent('runs:updated', { detail: { id } }));
       routeNavigator.replace('/');
       setTimeout(fire, 200);
-    } catch (e: any) {
-      // сравнение по наличию поля status (без instanceof, чтобы избежать проблем разных реалмов)
-      const status = (e as HttpError)?.status;
-      if (status === 400) {
-        setSnackbar(
-          <Snackbar
-            onClose={() => setSnackbar(null)}
-            duration={4000}
-            before={<Icon12CancelCircleFillRed />}
-          >
-            Невозможно создать пробежку длительностью больше 600 минут
-          </Snackbar>
-        );
-      } else {
-        alert(`Ошибка: ${e?.message ?? 'Неизвестная ошибка'}`);
-      }
-    } finally {
-      f.setLoading(false);
+   } catch (e: any) {
+    // сравнение по наличию поля status (без instanceof, чтобы избежать проблем разных реалмов)
+    const status = (e as HttpError)?.status;
+
+    if (status === 400) {
+      setSnackbar(
+        <Snackbar
+          onClose={() => setSnackbar(null)}
+          duration={4000}
+          before={<Icon12CancelCircleFillRed />}
+        >
+          Невозможно создать пробежку длительностью больше 600 минут
+        </Snackbar>
+      );
+    } else if (status === 409) {
+      setSnackbar(
+        <Snackbar
+          onClose={() => setSnackbar(null)}
+          duration={4000}
+          before={<Icon12CancelCircleFillRed />}
+        >
+          Такая пробежка уже существует
+        </Snackbar>
+      );
+    } else {
+      alert(`Ошибка: ${e?.message ?? 'Неизвестная ошибка'}`);
     }
+  } finally {
+    f.setLoading(false);
+  }
+
   };
 
   return (
