@@ -13,30 +13,33 @@ async function sha256HexUtf8(str: string): Promise<string> {
 /** Собираем заголовки подписи для VKWebAppCreateHash */
 async function buildVkSignedHeaders(bodyJson: string) {
   const bodySha256 = await sha256HexUtf8(bodyJson);
-  // payload для bridge == request_id для сервера
-  const payload = `body_sha256=${bodySha256}`;
+  const payload = `body_sha256=${bodySha256}`; // payload == request_id
 
   const { sign, ts } = await bridge.send<'VKWebAppCreateHash'>('VKWebAppCreateHash', { payload });
 
-  // launch params вы у себя кэшируете; их нужно приложить всегда
   const launchQs = getFrozenLaunchQueryString();
   if (!launchQs) throw new Error('No VK launch params');
 
   return {
-    'X-VK-Params': launchQs,           // уже есть в проекте
-    'X-VK-Request-Id': payload,        // именно строка "body_sha256=<hex>"
-    'X-VK-Sign': sign,                 // подпись от bridge
-    'X-VK-Sign-Ts': String(ts),        // Unix timestamp от bridge
+    'X-VK-Params': launchQs,
+    'X-VK-Request-Id': payload,
+    'X-VK-Sign': sign,
+    'X-VK-Sign-Ts': String(ts),
   } as const;
 }
 
-/** Класс ошибки с HTTP-статусом */
+/** Ошибка с HTTP-статусом */
 export class HttpError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  /** произвольные данные бэкенда, если есть */
+  details?: unknown;
+  raw?: string;
+  constructor(status: number, message: string, opts?: { details?: unknown; raw?: string }) {
     super(message);
     this.name = 'HttpError';
     this.status = status;
+    this.details = opts?.details;
+    this.raw = opts?.raw;
   }
 }
 
@@ -61,20 +64,21 @@ export async function createRunSecure(body: {
       'Accept': 'application/json',
       ...signHeaders,
     },
-    body: bodyJson, // ВАЖНО: тело должно в точности соответствовать тому, что хэшировали
+    body: bodyJson,
   });
 
   if (!res.ok) {
     const text = await res.text();
     try {
-      const json = JSON.parse(text);
-      throw new HttpError(res.status, json?.error || json?.code || `HTTP ${res.status}`);
+      const json = JSON.parse(text) as { error?: string; code?: string; details?: unknown };
+      const msg = json?.error || json?.code || `HTTP ${res.status}`;
+      throw new HttpError(res.status, msg, { details: json?.details, raw: text });
     } catch {
-      throw new HttpError(res.status, text || `HTTP ${res.status}`);
+      // не JSON
+      throw new HttpError(res.status, text || `HTTP ${res.status}`, { raw: text });
     }
   }
 
-  // Бэкенд возвращает ID (Long)
-  const id = await res.json(); // number
+  const id = await res.json(); // number (Long)
   return id as number;
 }

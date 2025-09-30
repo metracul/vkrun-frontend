@@ -3,7 +3,8 @@ import {
   NavIdProps, Panel, PanelHeader, PanelHeaderBack, Header, Group, Spacing, Snackbar,
 } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
-import { createRunSecure, HttpError } from '../../api/createRunSecure';
+import { createRunSecure } from '../../api/createRunSecure';
+import { HttpError } from '../../api/createRunSecure';
 import { useCreateRunForm } from './hooks/useCreateRunForm';
 import {
   CreateCitySelect, CreateDistrictSelect, CreateDateField, CreateTimeField,
@@ -51,7 +52,9 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
       routeNavigator.replace('/');
       setTimeout(fire, 200);
     } catch (e: any) {
-      if (e instanceof HttpError && e.status === 400) {
+      // сравнение по наличию поля status (без instanceof, чтобы избежать проблем разных реалмов)
+      const status = (e as HttpError)?.status;
+      if (status === 400) {
         setSnackbar(
           <Snackbar
             onClose={() => setSnackbar(null)}
@@ -62,7 +65,7 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
           </Snackbar>
         );
       } else {
-        alert(`Ошибка: ${e.message}`);
+        alert(`Ошибка: ${e?.message ?? 'Неизвестная ошибка'}`);
       }
     } finally {
       f.setLoading(false);
