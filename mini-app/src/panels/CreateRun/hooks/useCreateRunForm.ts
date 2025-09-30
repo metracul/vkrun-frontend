@@ -57,9 +57,11 @@ export function useCreateRunForm() {
   const [distanceError, setDistanceError] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string | null>(null);
   const [descError, setDescError] = useState<string | null>(null);
+  const [timeError, setTimeError] = useState<string | null>(null);        // NEW
   const [distanceTouched, setDistanceTouched] = useState(false);
   const [dateTouched, setDateTouched] = useState(false);
   const [descTouched, setDescTouched] = useState(false);
+  const [timeTouched, setTimeTouched] = useState(false);                  // NEW
 
   const startOfToday = useMemo(() => {
     const d = new Date();
@@ -95,7 +97,24 @@ export function useCreateRunForm() {
     return null;
   }, [startOfToday]);
 
-  // Лимит описания: подсветка/сообщение при ровно 2000 символах (и больше не даст maxLength на поле)
+  // NEW: ошибка только для случая "сегодня + время в прошлом"
+  const validateTime = useCallback((timeStr: string, date: Date | null): string | null => {
+    // если время пустое — не показываем ошибку (валидность контролируется отдельно в isFormValid)
+    if (!timeStr) return null;
+    const tm = parseTime(timeStr);
+    if (!tm) return null; // формат отсечётся в isFormValid, здесь — только требование из ТЗ
+    if (!date) return null;
+
+    const now = new Date();
+    const candidate = combineDateTime(date, timeStr);
+    if (!candidate) return null;
+
+    if (date.toDateString() === now.toDateString() && candidate < now) {
+      return 'Нельзя создавать пробежки в прошлом.';
+    }
+    return null;
+  }, []);
+
   const validateDesc = useCallback((text: string): string | null => {
     if (text.length >= 2000) return 'Достигнут лимит в 2000 символов.';
     return null;
@@ -116,7 +135,6 @@ export function useCreateRunForm() {
     if (!dt) return false;
     if (state.date!.toDateString() === now.toDateString() && dt < now) return false;
 
-    // Описание опционально, ошибка по длине не блокирует отправку
     return true;
   }, [state, paceSec, validateDistance, validateDateNotPast]);
 
@@ -140,12 +158,18 @@ export function useCreateRunForm() {
     const err = validateDateNotPast(next);
     if (err) {
       setDateError(err);
-      return;
+    } else {
+      setDateError(null);
     }
-    setDateError(null);
+    // Ре-валидация времени при смене даты
+    setTimeError(validateTime(state.timeStr, next));
     setState((s) => ({ ...s, date: next }));
   };
-  const setTimeStr = (timeStr: string) => setState((s) => ({ ...s, timeStr }));
+  const setTimeStr = (timeStr: string) => {
+    setState((s) => ({ ...s, timeStr }));
+    if (!timeTouched) setTimeTouched(true);
+    setTimeError(validateTime(timeStr, state.date));
+  };
 
   return {
     state,
@@ -165,9 +189,11 @@ export function useCreateRunForm() {
     distanceError,
     dateError,
     descError,
+    timeError,          // NEW
     distanceTouched,
     dateTouched,
     descTouched,
+    timeTouched,        // NEW
 
     // computed
     startOfToday,

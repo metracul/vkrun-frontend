@@ -100,7 +100,7 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
 
         <Spacing size="s" />
         <Header size="m">Выберите время начала</Header>
-        <CreateTimeField value={f.state.timeStr} onChange={f.setTimeStr} />
+        <CreateTimeField value={f.state.timeStr} onChange={f.setTimeStr} error={f.timeError} touched={f.timeTouched} />
 
         <Spacing size="s" />
         <Header size="m">Выберите примерный темп бега, мин/км</Header>
