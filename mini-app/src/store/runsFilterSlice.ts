@@ -7,6 +7,7 @@ export type RunsFilterState = {
   distanceToStr: string;     // ввод пользователя как строка
   paceFrom: string;          // значение из PACE_OPTIONS или ''
   paceTo: string;            // значение из PACE_OPTIONS или ''
+  joinedFilter: 'any' | 'only' | 'exclude';
 };
 
 const initialState: RunsFilterState = {
@@ -16,6 +17,7 @@ const initialState: RunsFilterState = {
   distanceToStr: '',
   paceFrom: '',
   paceTo: '',
+  joinedFilter: 'any',
 };
 
 const runsFilterSlice = createSlice({
@@ -40,6 +42,9 @@ const runsFilterSlice = createSlice({
     setPaceTo: (state, action: PayloadAction<string>) => {
       state.paceTo = action.payload;
     },
+    setJoinedFilter: (state, action: PayloadAction<'any' | 'only' | 'exclude'>) => {
+      state.joinedFilter = action.payload;
+    },
     resetFilters: () => initialState,
   },
 });
@@ -51,6 +56,7 @@ export const {
   setDistanceToStr,
   setPaceFrom,
   setPaceTo,
+  setJoinedFilter,
   resetFilters,
 } = runsFilterSlice.actions;
 

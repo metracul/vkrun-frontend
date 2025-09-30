@@ -10,13 +10,8 @@ export function useHomeFilters() {
   const dispatch = useAppDispatch();
   const selectedCity = useAppSelector((s) => s.cityFilter.selectedCity) ?? 'Москва';
   const {
-    runDate,
-    districtName,
-    distanceFromStr,
-    distanceToStr,
-    paceFrom,
-    paceTo,
-  } = useAppSelector((s: RootState) => s.runsFilter);
+  runDate, districtName, distanceFromStr, distanceToStr, paceFrom, paceTo, joinedFilter
+} = useAppSelector((s: RootState) => s.runsFilter);
 
   // Сброс невалидного района при смене города
   useEffect(() => {
@@ -59,8 +54,9 @@ export function useHomeFilters() {
       f.dateFrom = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).toISOString();
       f.dateTo = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).toISOString();
     }
+    if (joinedFilter !== 'any') f.joined = joinedFilter;
     return f;
-  }, [selectedCity, districtName, isDistFromInvalid, isDistToInvalid, distRangeInvalid, distFromNum, distToNum, paceFromSec, paceToSec, paceRangeInvalid, runDate]);
+  }, [selectedCity, districtName, isDistFromInvalid, isDistToInvalid, distRangeInvalid, distFromNum, distToNum, paceFromSec, paceToSec, paceRangeInvalid, runDate, joinedFilter]);
 
   const setCity = (next: string) => dispatch(setSelectedCity(next));
 

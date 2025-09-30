@@ -24,6 +24,8 @@ import {
 } from '../../../store/runsFilterSlice';
 import { DISTRICTS_BY_CITY } from '../../../constants/locations';
 import { parseNumberOrUndefined, parsePaceToSec } from '../../../utils';
+import { Checkbox } from '@vkontakte/vkui';
+import { setJoinedFilter } from '../../../store/runsFilterSlice';
 
 type Props = {
   id: string;       // обязательный id для ModalPage
@@ -45,6 +47,7 @@ export const HomeFiltersModalPage: FC<Props> = ({ id, onClose, onReset }) => {
     distanceToStr,
     paceFrom,
     paceTo,
+    joinedFilter,
   } = useAppSelector((s: any) => s.runsFilter);
 
   // Опции районов
@@ -176,6 +179,34 @@ export const HomeFiltersModalPage: FC<Props> = ({ id, onClose, onReset }) => {
               Диапазон темпа задан некорректно: «От» больше «До».
             </Caption>
           )}
+        </FormItem>
+
+        <FormItem top="Фильтрация по записи:">
+          <Checkbox
+            checked={joinedFilter === 'only' || joinedFilter === 'any'}
+            onChange={(e) => {
+              if (e.target.checked && joinedFilter !== 'only') {
+                dispatch(setJoinedFilter('only'));
+              } else if (!e.target.checked && joinedFilter === 'only') {
+                dispatch(setJoinedFilter('any'));
+              }
+            }}
+          >
+            Пробежки, на которые я записан
+          </Checkbox>
+
+          <Checkbox
+            checked={joinedFilter === 'exclude' || joinedFilter === 'any'}
+            onChange={(e) => {
+              if (e.target.checked && joinedFilter !== 'exclude') {
+                dispatch(setJoinedFilter('exclude'));
+              } else if (!e.target.checked && joinedFilter === 'exclude') {
+                dispatch(setJoinedFilter('any'));
+              }
+            }}
+          >
+            Пробежки, на которые я ещё не записан
+          </Checkbox>
         </FormItem>
 
         <Spacing size={12} />
