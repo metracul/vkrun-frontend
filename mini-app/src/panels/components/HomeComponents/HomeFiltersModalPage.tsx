@@ -10,6 +10,7 @@ import {
   ButtonGroup,
   Button,
   Spacing,
+  Checkbox,
 } from '@vkontakte/vkui';
 import { PACE_OPTIONS } from '../../../constants/pace';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -21,11 +22,10 @@ import {
   setPaceFrom,
   setPaceTo,
   resetFilters,
+  setJoinedFilter,
 } from '../../../store/runsFilterSlice';
 import { DISTRICTS_BY_CITY } from '../../../constants/locations';
 import { parseNumberOrUndefined, parsePaceToSec } from '../../../utils';
-import { Checkbox } from '@vkontakte/vkui';
-import { setJoinedFilter } from '../../../store/runsFilterSlice';
 
 type Props = {
   id: string;       // обязательный id для ModalPage
@@ -81,6 +81,29 @@ export const HomeFiltersModalPage: FC<Props> = ({ id, onClose, onReset }) => {
     const pt = parsePaceToSec(paceTo);
     return { paceRangeInvalid: pf != null && pt != null && pf > pt };
   }, [paceFrom, paceTo]);
+
+  // ====== joinedFilter <-> два чекбокса
+  const fromJoinedFilter = (jf: 'any' | 'only' | 'exclude') => {
+    switch (jf) {
+      case 'only':
+        return { joined: true, notJoined: false };
+      case 'exclude':
+        return { joined: false, notJoined: true };
+      case 'any':
+      default:
+        // по умолчанию оба выключены
+        return { joined: false, notJoined: false };
+    }
+  };
+
+  const toJoinedFilter = (joined: boolean, notJoined: boolean): 'any' | 'only' | 'exclude' => {
+    if (joined && !notJoined) return 'only';
+    if (!joined && notJoined) return 'exclude';
+    // оба или ни один
+    return 'any';
+  };
+
+  const { joined, notJoined } = fromJoinedFilter(joinedFilter);
 
   // Хэндлеры
   const handleReset = () => {
@@ -183,26 +206,20 @@ export const HomeFiltersModalPage: FC<Props> = ({ id, onClose, onReset }) => {
 
         <FormItem top="Фильтрация по записи:">
           <Checkbox
-            checked={joinedFilter === 'only' || joinedFilter === 'any'}
+            checked={joined}
             onChange={(e) => {
-              if (e.target.checked && joinedFilter !== 'only') {
-                dispatch(setJoinedFilter('only'));
-              } else if (!e.target.checked && joinedFilter === 'only') {
-                dispatch(setJoinedFilter('any'));
-              }
+              const next = toJoinedFilter(e.target.checked, notJoined);
+              dispatch(setJoinedFilter(next));
             }}
           >
             Пробежки, на которые я записан
           </Checkbox>
 
           <Checkbox
-            checked={joinedFilter === 'exclude' || joinedFilter === 'any'}
+            checked={notJoined}
             onChange={(e) => {
-              if (e.target.checked && joinedFilter !== 'exclude') {
-                dispatch(setJoinedFilter('exclude'));
-              } else if (!e.target.checked && joinedFilter === 'exclude') {
-                dispatch(setJoinedFilter('any'));
-              }
+              const next = toJoinedFilter(joined, e.target.checked);
+              dispatch(setJoinedFilter(next));
             }}
           >
             Пробежки, на которые я ещё не записан
