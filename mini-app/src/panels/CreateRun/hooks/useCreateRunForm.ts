@@ -57,11 +57,14 @@ export function useCreateRunForm() {
   const [distanceError, setDistanceError] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string | null>(null);
   const [descError, setDescError] = useState<string | null>(null);
-  const [timeError, setTimeError] = useState<string | null>(null);        // NEW
+  const [timeError, setTimeError] = useState<string | null>(null);
   const [distanceTouched, setDistanceTouched] = useState(false);
   const [dateTouched, setDateTouched] = useState(false);
   const [descTouched, setDescTouched] = useState(false);
-  const [timeTouched, setTimeTouched] = useState(false);                  // NEW
+  const [timeTouched, setTimeTouched] = useState(false);
+
+  // Флаг: достигнут максимум 300 км
+  const [distanceMaxed, setDistanceMaxed] = useState(false);
 
   const startOfToday = useMemo(() => {
     const d = new Date();
@@ -86,6 +89,7 @@ export function useCreateRunForm() {
     const km = parseFloat(raw.replace(',', '.'));
     if (!isFinite(km)) return 'Некорректное число.';
     if (km <= 0) return 'Дистанция должна быть больше 0 км.';
+    if (km > 300) return 'Максимальная дистанция — 300 км.'; // страховка, хотя выше клампим
     return null;
   }, []);
 
@@ -97,18 +101,14 @@ export function useCreateRunForm() {
     return null;
   }, [startOfToday]);
 
-  // NEW: ошибка только для случая "сегодня + время в прошлом"
   const validateTime = useCallback((timeStr: string, date: Date | null): string | null => {
-    // если время пустое — не показываем ошибку (валидность контролируется отдельно в isFormValid)
     if (!timeStr) return null;
     const tm = parseTime(timeStr);
-    if (!tm) return null; // формат отсечётся в isFormValid, здесь — только требование из ТЗ
+    if (!tm) return null;
     if (!date) return null;
-
     const now = new Date();
     const candidate = combineDateTime(date, timeStr);
     if (!candidate) return null;
-
     if (date.toDateString() === now.toDateString() && candidate < now) {
       return 'Нельзя создавать пробежки в прошлом.';
     }
@@ -146,25 +146,40 @@ export function useCreateRunForm() {
     if (!descTouched) setDescTouched(true);
     setDescError(validateDesc(desc));
   };
+
   const setDistanceStr = (distanceStr: string) => {
-    setState((s) => ({ ...s, distanceStr }));
     if (!distanceTouched) setDistanceTouched(true);
+
+    // нормализуем для парсинга, но сохраняем исходную строку при необходимости
+    const norm = distanceStr.replace(',', '.');
+    const km = parseFloat(norm);
+
+    // если число и превышает 300 — жёстко клампим до "300"
+    if (isFinite(km) && km > 300) {
+      setState((s) => ({ ...s, distanceStr: '300' }));
+      setDistanceMaxed(true);
+      setDistanceError(validateDistance('300'));
+      return;
+    }
+
+    // иначе записываем как есть
+    setState((s) => ({ ...s, distanceStr }));
+    setDistanceMaxed(isFinite(km) && km === 300);
     setDistanceError(validateDistance(distanceStr));
   };
+
   const setPace = (pace: string) => setState((s) => ({ ...s, pace }));
+
   const setDate = (value?: Date) => {
     setDateTouched(true);
     const next = value ?? null;
     const err = validateDateNotPast(next);
-    if (err) {
-      setDateError(err);
-    } else {
-      setDateError(null);
-    }
+    setDateError(err);
     // Ре-валидация времени при смене даты
     setTimeError(validateTime(state.timeStr, next));
     setState((s) => ({ ...s, date: next }));
   };
+
   const setTimeStr = (timeStr: string) => {
     setState((s) => ({ ...s, timeStr }));
     if (!timeTouched) setTimeTouched(true);
@@ -189,11 +204,11 @@ export function useCreateRunForm() {
     distanceError,
     dateError,
     descError,
-    timeError,          // NEW
+    timeError,
     distanceTouched,
     dateTouched,
     descTouched,
-    timeTouched,        // NEW
+    timeTouched,
 
     // computed
     startOfToday,
@@ -201,6 +216,9 @@ export function useCreateRunForm() {
     timeDisplay,
     paceSec,
     isFormValid,
+
+    // доп. флаги
+    distanceMaxed,
 
     // utils
     parseTime,

@@ -108,7 +108,8 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
 
         <Spacing size="s" />
         <Header size="m">Укажите дистанцию, км</Header>
-        <CreateDistanceField value={f.state.distanceStr} onChange={f.setDistanceStr} error={f.distanceError} touched={f.distanceTouched} />
+       <CreateDistanceField value={f.state.distanceStr} onChange={f.setDistanceStr} error={f.distanceError} touched={f.distanceTouched} maxNote={f.distanceMaxed} />
+
 
         <Spacing size="m" />
         <CreateSummaryRow timeDisplay={f.timeDisplay} />

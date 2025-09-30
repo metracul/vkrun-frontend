@@ -6,7 +6,8 @@ export const CreateDistanceField: FC<{
   onChange: (v: string) => void;
   error?: string | null;
   touched?: boolean;
-}> = ({ value, onChange, error, touched }) => (
+  maxNote?: boolean;
+}> = ({ value, onChange, error, touched, maxNote }) => (
   <>
     <Input
       name="distance"
@@ -16,10 +17,20 @@ export const CreateDistanceField: FC<{
       value={value}
       onChange={(e) => onChange(e.target.value)}
       status={error && touched ? 'error' : 'default'}
+      style={
+        maxNote
+          ? { filter: 'brightness(0.97)' }
+          : undefined
+      }
     />
     {touched && error && (
       <Footnote style={{ color: 'var(--vkui--color_text_negative)' }}>
         {error} Пожалуйста, измените ввод.
+      </Footnote>
+    )}
+    {maxNote && !error && (
+      <Footnote style={{ color: 'var(--vkui--color_text_secondary)' }}>
+        Введена максимальная дистанция: 300&nbsp;км.
       </Footnote>
     )}
   </>
