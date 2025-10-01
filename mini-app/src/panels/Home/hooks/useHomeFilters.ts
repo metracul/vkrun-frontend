@@ -64,7 +64,6 @@ export function useHomeFilters() {
     selectedCity,
     districtName,
     filters,
-    // диагностические флаги при необходимости выводить ошибки в UI фильтров
     isDistFromInvalid,
     isDistToInvalid,
     distRangeInvalid,
