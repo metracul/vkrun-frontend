@@ -10,7 +10,7 @@ export function useRunsData(filters: Record<string, string | number>) {
   // Запрос
   const { data, isLoading, isError, refetch } = useGetRunsQuery(
     { endpoint: '/api/v1/runs', size: 20, filters },
-    { pollingInterval: 5_000, refetchOnFocus: true, refetchOnReconnect: true }
+    { pollingInterval: 5_000, refetchOnFocus: true, refetchOnReconnect: true, refetchOnMountOrArgChange: true }
   );
   const runs = data?.items ?? [];
 
