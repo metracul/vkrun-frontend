@@ -27,6 +27,11 @@ import type { AppDispatch, RootState } from '../../store';
 import { useAppSelector } from '../../store/hooks';
 import { useDispatch } from 'react-redux';
 
+import styles from '../Home/css/Home.module.css';
+
+/* Путь к иконке хедера — укажите свой реальный файл */
+import headerIcon from '../../assets/icons/Group10.png';
+
 export interface HomeProps {
   id: string;
   openFilters: () => void;
@@ -70,115 +75,110 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
         <Header size="l">Поиск пробежки</Header>
       </PanelHeader>
 
-      <Group>
-        {/* Строка с селектором города и кнопкой покупки голосами */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 8,
-            padding: '8px 12px',
-          }}
-        >
-          <HomeCitySelect value={selectedCity} onChange={setCity} />
-          <Button mode="secondary" onClick={handleSpendVotes} loading={inProgress}>
-            Потратить голоса
-          </Button>
+      <div className={styles.canvas}>
+        <div className={styles.inner}>
+          <Group mode="plain">
+            {/* HEADER (иконка слева, справа — пилюля города и иконка фильтров) */}
+            <div className={styles.header}>
+              <div className={styles.headerLeft}>
+                <img src={headerIcon} alt="" className={styles.headerLogo} />
+              </div>
+
+              <div className={styles.headerRight}>
+                <div className={styles.cityPill}>
+                  <HomeCitySelect value={selectedCity} onChange={setCity} />
+                </div>
+
+                <button
+                  type="button"
+                  aria-label="Фильтры"
+                  className={styles.iconBtn}
+                  onClick={openFilters}
+                >
+                  <Icon20FilterOutline />
+                </button>
+              </div>
+            </div>
+
+            {/* Кнопка «Потратить голоса» под header */}
+            <div className={styles.votesRow}>
+              <Button
+                mode="secondary"
+                onClick={handleSpendVotes}
+                loading={inProgress}
+              >
+                Потратить голоса
+              </Button>
+            </div>
+
+            {lastOrderId && <Caption>Оплачено. Заказ: {lastOrderId}</Caption>}
+            {error && (
+              <Caption style={{ color: 'var(--vkui--color_text_negative)' }}>
+                Ошибка: {error}
+              </Caption>
+            )}
+
+            <Header size="s">Список пробежек</Header>
+            <Spacing size="m" />
+
+            {/* Вверху списка на десктопе — только «Создать пробежку» */}
+            <div className={styles.controls}>
+              {isDesktop && (
+                <Button
+                  mode="primary"
+                  before={<Icon28AddCircleOutline />}
+                  onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}
+                >
+                  Создать пробежку
+                </Button>
+              )}
+            </div>
+
+            <Spacing size="s" />
+            <Caption level="1">Выбери с кем бежать!</Caption>
+            <Spacing size="m" />
+
+            {isLoading && <Card mode="shadow">Загрузка…</Card>}
+            {isError && <Card mode="shadow">Не удалось получить данные с сервера</Card>}
+            {!isLoading && !isError && runs.length === 0 && (
+              <Card mode="shadow">Пока пусто. Попробуй изменить фильтры.</Card>
+            )}
+
+            <div className={styles.cardsLine}>
+              {runs.map((r: any) => {
+                const vkId = typeof r.creatorVkId === 'number' ? r.creatorVkId : undefined;
+                const profile = vkId ? vkProfiles[vkId] : undefined;
+                const openDetails = () => {
+                  prefetchRunById(String(r.id));
+                  routeNavigator.push(`/run/${String(r.id)}`);
+                };
+                const isMine = myVkId && vkId && myVkId === vkId;
+
+                return (
+                  <HomeRunCardItem
+                    key={r.id}
+                    run={r}
+                    profile={profile}
+                    isMine={!!isMine}
+                    isDeleting={isDeleting}
+                    onOpen={openDetails}
+                    onDeleteClick={(e) => {
+                      e.stopPropagation();
+                      openConfirmDelete(Number(r.id));
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            {!isDesktop && <Spacing size={72} />}
+          </Group>
         </div>
-
-        {lastOrderId && (
-          <Caption style={{ paddingLeft: 12 }}>
-            Оплачено. Заказ: {lastOrderId}
-          </Caption>
-        )}
-        {error && (
-          <Caption
-            style={{
-              paddingLeft: 12,
-              color: 'var(--vkui--color_text_negative)',
-            }}
-          >
-            Ошибка: {error}
-          </Caption>
-        )}
-
-        <Header size="s">Список пробежек</Header>
-        <Spacing size="m" />
-
-        <div
-          style={{
-            display: 'flex',
-            gap: 8,
-            flexWrap: 'wrap',
-            padding: '8px 12px',
-          }}
-        >
-          <Button
-            appearance="accent"
-            mode="outline"
-            after={<Icon20FilterOutline />}
-            onClick={openFilters}
-          >
-            Фильтры
-          </Button>
-          {isDesktop && (
-            <Button
-              mode="primary"
-              before={<Icon28AddCircleOutline />}
-              onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}
-            >
-              Создать пробежку
-            </Button>
-          )}
-        </div>
-
-        <Spacing size="s" />
-        <Caption level="1" style={{ paddingLeft: 12 }}>
-          Выбери с кем бежать!
-        </Caption>
-        <Spacing size="m" />
-
-        {isLoading && <Card mode="shadow">Загрузка…</Card>}
-        {isError && (
-          <Card mode="shadow">Не удалось получить данные с сервера</Card>
-        )}
-        {!isLoading && !isError && runs.length === 0 && (
-          <Card mode="shadow">Пока пусто. Попробуй изменить фильтры.</Card>
-        )}
-
-        {runs.map((r: any) => {
-          const vkId =
-            typeof r.creatorVkId === 'number' ? r.creatorVkId : undefined;
-          const profile = vkId ? vkProfiles[vkId] : undefined;
-          const openDetails = () => {
-            prefetchRunById(String(r.id));
-            routeNavigator.push(`/run/${String(r.id)}`);
-          };
-          const isMine = myVkId && vkId && myVkId === vkId;
-
-        return (
-            <HomeRunCardItem
-              key={r.id}
-              run={r}
-              profile={profile}
-              isMine={!!isMine}
-              isDeleting={isDeleting}
-              onOpen={openDetails}
-              onDeleteClick={(e) => {
-                e.stopPropagation();
-                openConfirmDelete(Number(r.id));
-              }}
-            />
-          );
-        })}
-
-        {!isDesktop && <Spacing size={72} />}
-      </Group>
+      </div>
 
       {!isDesktop && (
         <FixedLayout vertical="bottom">
-          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 16 }}>
+          <div className={styles.fixedBottom}>
             <Button
               mode="primary"
               size="l"

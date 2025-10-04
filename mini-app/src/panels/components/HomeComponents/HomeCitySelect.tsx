@@ -1,7 +1,8 @@
 import { FC } from 'react';
-import { SimpleCell, CustomSelect, CustomSelectOption } from '@vkontakte/vkui';
+import { CustomSelect, CustomSelectOption } from '@vkontakte/vkui';
 import { Icon20LocationMapOutline } from '@vkontakte/icons';
 import { CITY_OPTIONS } from '../../../constants/locations';
+import styles from '../../Home/css/Home.module.css';
 
 type Props = {
   value: string;
@@ -9,17 +10,19 @@ type Props = {
 };
 
 export const HomeCitySelect: FC<Props> = ({ value, onChange }) => (
-  <SimpleCell>
+  <div className={styles.citySelect}>
     <CustomSelect
       before={<Icon20LocationMapOutline />}
       options={CITY_OPTIONS}
-      style={{ width: 200 }}
       value={value}
       onChange={(e) => onChange((e.target as HTMLSelectElement).value)}
       placeholder="Выберите город"
       renderOption={({ option, ...restProps }) => (
-        <CustomSelectOption {...restProps} description={(option as any).country} />
+        <CustomSelectOption
+          {...restProps}
+          description={(option as any).country}
+        />
       )}
     />
-  </SimpleCell>
+  </div>
 );
