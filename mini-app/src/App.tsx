@@ -16,11 +16,14 @@ import { useBannerAds } from './panels/Home/hooks/useBannerAds';
 import { showOnboardingIfNeeded } from './features/onboarding';
 import { hydrateCityFromStorage } from './store/cityFilterSlice';
 
-// Модальные страницы (без собственного ModalRoot)
+// Модальные страницы
 import {
   HomeFiltersModalPage,
   HomeDeleteConfirmModalPage,
 } from './panels/components';
+
+import bridge from '@vkontakte/vk-bridge';
+import { purchaseFailed, purchaseSucceeded } from './store/purchaseSlice';
 
 type ModalId = 'filters' | 'confirm-delete' | null;
 
@@ -30,8 +33,8 @@ export const App = () => {
   const dispatch = useAppDispatch();
   const userStatus = useAppSelector((s) => s.user.status);
 
-  // Подписка на события баннера (без управления показом/скрытием здесь)
-  useBannerAds(); // <-- Вызов без аргументов (аналог прежнего useBannerAdEvents)
+  // Подписка на события баннера
+  useBannerAds();
 
   useEffect(() => {
     dispatch(hydrateCityFromStorage());
@@ -52,6 +55,28 @@ export const App = () => {
     }
   }, [userStatus]);
 
+  // === Подписка на платёжные события VK Bridge
+  useEffect(() => {
+    const handler = (e: any) => {
+      const detail = e?.detail;
+      if (!detail) return;
+      const { type, data } = detail;
+      if (type === 'VKWebAppShowOrderBoxResult' && data?.success) {
+        dispatch(purchaseSucceeded({ order_id: data.order_id }));
+      } else if (type === 'VKWebAppShowOrderBoxFailed') {
+        const msg =
+          data?.error_data?.error_reason ||
+          data?.error?.error_msg ||
+          'Purchase failed';
+        dispatch(purchaseFailed(msg));
+      }
+    };
+    bridge.subscribe(handler);
+    return () => {
+      bridge.unsubscribe(handler);
+    };
+  }, [dispatch]);
+
   const popoutNode = userStatus === 'loading' ? <ScreenSpinner /> : null;
 
   // ===== Модалки
@@ -65,12 +90,10 @@ export const App = () => {
   };
   const closeModal = () => setActiveModal(null);
 
-  // Применение/сброс фильтров — просто сигналим экрану обновиться
   const resetFilters = () => {
     window.dispatchEvent(new Event('runs:updated'));
   };
 
-  // Подтверждение удаления — отправляем событие с id
   const onConfirmDelete = () => {
     if (runIdToDelete == null) return;
     const ev = new CustomEvent('runs:confirm-delete', {

@@ -7,6 +7,7 @@ import cityFilter from './cityFilterSlice';
 import { persistCityMiddleware } from './persistCityMiddleware';
 import runsFilter from './runsFilterSlice';
 import runsEvents from './runsEventsSlice';
+import purchase from './purchaseSlice';
 
 export const store = configureStore({
   reducer: {
@@ -16,6 +17,7 @@ export const store = configureStore({
     cityFilter,
     runsFilter,
     runsEvents,
+    purchase,
     [runnersApi.reducerPath]: runnersApi.reducer,
   },
   middleware: (gDM) =>
