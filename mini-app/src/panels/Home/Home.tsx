@@ -1,7 +1,6 @@
 import { FC } from 'react';
 import {
   Panel,
-  PanelHeader,
   Header,
   Button,
   Group,
@@ -71,9 +70,6 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
 
   return (
     <Panel id={id}>
-      <PanelHeader delimiter="auto">
-        <Header size="l">Поиск пробежки</Header>
-      </PanelHeader>
 
       <div className={styles.canvas}>
         <div className={styles.inner}>

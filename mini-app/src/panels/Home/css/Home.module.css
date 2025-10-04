@@ -1,12 +1,12 @@
-/* Канвас секции из Figma */
+/* Канвас секции */
 .canvas {
   background: #ffffff;
   min-height: 100%;
 }
 
-/* Внутренние рамки слоя: ширина макета и отступ сверху */
+/* Внутренние рамки слоя (ширина канваса и отступ сверху) */
 .inner {
-  max-width: 390px;           /* макетная ширина моб. канваса */
+  max-width: 390px;
   margin: 0 auto;
   padding-top: 32px;
   padding-left: 12px;
@@ -19,7 +19,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 361px;           /* из макета */
+  max-width: 361px;
   margin-top: 12px;
   margin-left: 14px;
 }
@@ -30,9 +30,9 @@
 }
 
 .headerLogo {
-  width: 36px;                /* округление ~36.6 */
+  width: 36px;
   height: 36px;
-  opacity: 0.5;               /* 50% */
+  opacity: 0.5; /* 50% */
   object-fit: contain;
   flex: 0 0 auto;
 }
@@ -40,21 +40,20 @@
 .headerRight {
   display: flex;
   align-items: center;
-  gap: 11.5px;                /* расстояние между «пилюлей» и икон-кнопкой */
+  gap: 11.5px;
 }
 
-/* Обёртка «пилюли» (для выравнивания в header). Визуал делает .citySelect */
+/* Обёртка «пилюли» в header */
 .cityPill {
   display: flex;
   align-items: center;
 }
 
 /* ---------- CITY SELECT (пилюля) ---------- */
-/* Контейнер вокруг VKUI CustomSelect: делаем фон, границу-градиент и тень */
 .citySelect {
-  width: 126px;               /* из макета */
-  height: 36.7px;
-  border-radius: 11.5px;
+  width: 126px;                 /* Fixed 126 */
+  height: 36.71px;              /* Hug ≈ 36.71 */
+  border-radius: 11.47px;
   background:
     linear-gradient(#ffffff, #ffffff) padding-box,
     linear-gradient(90deg, #7B46F8, #CEB9FF, #FEAAEE, #7B46F8) border-box;
@@ -62,49 +61,79 @@
   box-shadow: 0 9.18px 27.53px rgba(149, 157, 165, 0.20);
   display: flex;
   align-items: center;
-  overflow: hidden;           /* чтобы внутренности не вылезали за радиус */
+  overflow: hidden;
 }
 
-/* Сбрасываем дефолтные стили VKUI внутри селекта */
 .citySelect :global(.vkuiCustomSelect__control) {
   background: transparent;
   border: none;
   box-shadow: none;
-  padding: 9.2px 18.35px;     /* из макета */
+  padding: 9.18px 18.35px;      /* T/B 9.18, L/R 18.35 */
   height: 100%;
   min-height: auto;
 }
 
-/* Цвета текста/placeholder/иконки */
-.citySelect :global(.vkuiCustomSelect__icon),
-.citySelect :global(.vkuiCustomSelect__placeholder),
-.citySelect :global(.vkuiCustomSelect__selected) {
+.citySelect :global(.vkuiCustomSelect__before) {
+  margin-right: 10.32px;        /* gap между иконкой и текстом */
+}
+
+/* Иконка "place" (однотонная, т.к. библиотечный SVG со stroke: currentColor) */
+.citySelect :global(.vkuiCustomSelect__before svg) {
+  width: 13.76px;
+  height: 16.98px;
   color: #7B46F8;
+}
+
+/* Градиентный текст значения/placeholder */
+.citySelect :global(.vkuiCustomSelect__selected),
+.citySelect :global(.vkuiCustomSelect__placeholder) {
+  font-family: 'Montserrat', system-ui, sans-serif;
+  font-weight: 500;             /* Medium */
+  font-size: 13.76px;
+  line-height: 1;
+  background: linear-gradient(180deg, #B99BFF 0%, #7B46F8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Убрать стрелку, если мешает визуалу */
+.citySelect :global(.vkuiCustomSelect__dropdownIcon) {
+  display: none;
 }
 
 /* ---------- ICON BUTTON (фильтры) ---------- */
 .iconBtn {
-  width: 36.7px;
-  height: 36.7px;
-  border-radius: 11.5px;
+  width: 36.71px;
+  height: 36.71px;
+  border-radius: 11.47px;
   background: #ffffff;
-  border: 1.15px solid rgba(10, 16, 6, 0.30);
+  border: 1.15px solid rgba(10, 16, 6, 0.30); /* #0A1006 @ 30% */
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   box-sizing: border-box;
   cursor: pointer;
+  color: rgba(10, 16, 6, 0.30); /* цвет иконки sliders */
 }
 
-/* Блок под header для кнопки «Потратить голоса» */
+/* Размер иконки sliders внутри кнопки */
+.iconBtn :global(svg) {
+  width: 16.06px;
+  height: 13.19px;
+}
+
+/* ---------- Прочее ---------- */
+
+/* Кнопка «Потратить голоса» под header */
 .votesRow {
   margin-top: 12px;
   display: flex;
   justify-content: flex-end;
 }
 
-/* Верхние контролы списка (оставили кнопку «Создать» на десктопе) */
+/* Верхние контролы списка (кнопка «Создать» и пр.) */
 .controls {
   display: flex;
   gap: 8px;
