@@ -58,13 +58,14 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
 
   const ITEM_ID = 'donation_3';
 
-  const { inProgress, error, lastOrderId } = useAppSelector(
+  const { inProgress, error, lastOrderId, lastItemId } = useAppSelector(
     (s: RootState) => s.purchase,
   );
 
   // Доступ к контенту по VK Storage
   const [hasDonation3, setHasDonation3] = useState(false);
 
+  // 1) Инициализация из VK Storage при маунте
   useEffect(() => {
     bridge
       .send('VKWebAppStorageGet', { keys: [ITEM_ID] })
@@ -74,6 +75,13 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
       })
       .catch(() => {});
   }, []);
+
+  // 2) Мгновенное обновление после успешной покупки в текущей сессии
+  useEffect(() => {
+    if (lastItemId === ITEM_ID && !hasDonation3) {
+      setHasDonation3(true);
+    }
+  }, [lastItemId, hasDonation3]);
 
   const handleSpendVotes = () => {
     dispatch(spendVotes({ itemId: ITEM_ID }));
@@ -91,11 +99,7 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
 
       <Group>
         {/* Селектор города */}
-        <div
-          style={{
-            padding: '8px 12px',
-          }}
-        >
+        <div style={{ padding: '8px 12px' }}>
           <HomeCitySelect value={selectedCity} onChange={setCity} />
         </div>
 
@@ -108,14 +112,15 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
             flexWrap: 'wrap',
           }}
         >
-          {hasDonation3 && (
+          {hasDonation3 ? (
             <Button mode="primary" onClick={openReward}>
               Открыть советы
             </Button>
+          ) : (
+            <Button mode="secondary" onClick={handleSpendVotes} loading={inProgress}>
+              Купить советы
+            </Button>
           )}
-          <Button mode="secondary" onClick={handleSpendVotes} loading={inProgress}>
-            Потратить голоса
-          </Button>
         </div>
 
         {lastOrderId && (

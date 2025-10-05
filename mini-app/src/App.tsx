@@ -36,7 +36,6 @@ export const App = () => {
   const dispatch = useAppDispatch();
   const userStatus = useAppSelector((s) => s.user.status);
 
-
   useBannerAds();
 
   useEffect(() => {
@@ -71,8 +70,8 @@ export const App = () => {
           .send('VKWebAppStorageSet', { key: 'donation_3', value: '1' })
           .catch(() => {});
 
-        // 2) Сохраняем в redux инфо об успешной оплате
-        dispatch(purchaseSucceeded({ order_id: data.order_id }));
+        // 2) Сохраняем в redux успех и itemId (ВАЖНО: передаём itemId)
+        dispatch(purchaseSucceeded({ order_id: data.order_id, itemId: 'donation_3' }));
 
         // 3) Открываем экран с советами
         routeNavigator.push(DEFAULT_VIEW_PANELS.REWARD);
