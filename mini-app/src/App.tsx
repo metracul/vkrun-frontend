@@ -74,7 +74,7 @@ export const App = () => {
         dispatch(purchaseSucceeded({ order_id: data.order_id }));
 
         // 3) Открываем экран с фото
-        routeNavigator.push(DEFAULT_VIEW_PANELS.REWARD); // +++
+        routeNavigator.push(DEFAULT_VIEW_PANELS.REWARD);
       } else if (type === 'VKWebAppShowOrderBoxFailed') {
         const msg =
           data?.error_data?.error_reason ||
