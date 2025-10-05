@@ -62,7 +62,7 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
     (s: RootState) => s.purchase,
   );
 
-  // Флаг наличия покупки (персистентно через VK Storage)
+  // Доступ к контенту по VK Storage
   const [hasDonation3, setHasDonation3] = useState(false);
 
   useEffect(() => {
@@ -79,7 +79,7 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
     dispatch(spendVotes({ itemId: ITEM_ID }));
   };
 
-  const openPhoto = () => {
+  const openReward = () => {
     routeNavigator.push(DEFAULT_VIEW_PANELS.REWARD);
   };
 
@@ -90,7 +90,7 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
       </PanelHeader>
 
       <Group>
-        {/* Строка с селектором города и кнопками */}
+        {/* Селектор и кнопки */}
         <div
           style={{
             display: 'flex',
@@ -103,8 +103,8 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
           <HomeCitySelect value={selectedCity} onChange={setCity} />
           <div style={{ display: 'flex', gap: 8 }}>
             {hasDonation3 && (
-              <Button mode="primary" onClick={openPhoto}>
-                Открыть фото
+              <Button mode="primary" onClick={openReward}>
+                Открыть советы
               </Button>
             )}
             <Button mode="secondary" onClick={handleSpendVotes} loading={inProgress}>

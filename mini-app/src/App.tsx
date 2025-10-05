@@ -6,7 +6,7 @@ import {
   ScreenSpinner,
   ModalRoot,
 } from '@vkontakte/vkui';
-import { useActiveVkuiLocation, useRouteNavigator } from '@vkontakte/vk-mini-apps-router'; // +++
+import { useActiveVkuiLocation, useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import { Home, CreateRun, RunDetails } from './panels';
 import { DEFAULT_VIEW_PANELS } from './routes';
 import { useAppDispatch, useAppSelector } from './store/hooks';
@@ -25,7 +25,7 @@ import {
 import bridge from '@vkontakte/vk-bridge';
 import { purchaseFailed, purchaseSucceeded } from './store/purchaseSlice';
 
-import { RewardPhoto } from './panels/RewardPhoto/RewardPhoto';
+import { RewardTips } from './panels/RewardTips/RewardTips';
 
 type ModalId = 'filters' | 'confirm-delete' | null;
 
@@ -35,6 +35,7 @@ export const App = () => {
   const routeNavigator = useRouteNavigator();
   const dispatch = useAppDispatch();
   const userStatus = useAppSelector((s) => s.user.status);
+
 
   useBannerAds();
 
@@ -65,15 +66,15 @@ export const App = () => {
       const { type, data } = detail;
 
       if (type === 'VKWebAppShowOrderBoxResult' && data?.success) {
-        // 1) Сохраняем флаг покупки в VK Storage (персистентно для аккаунта)
+        // 1) Фиксируем право доступа в VK Storage
         bridge
           .send('VKWebAppStorageSet', { key: 'donation_3', value: '1' })
           .catch(() => {});
 
-        // 2) Диспатчим успех (как и было)
+        // 2) Сохраняем в redux инфо об успешной оплате
         dispatch(purchaseSucceeded({ order_id: data.order_id }));
 
-        // 3) Открываем экран с фото
+        // 3) Открываем экран с советами
         routeNavigator.push(DEFAULT_VIEW_PANELS.REWARD);
       } else if (type === 'VKWebAppShowOrderBoxFailed') {
         const msg =
@@ -144,10 +145,8 @@ export const App = () => {
           />
           <CreateRun id={DEFAULT_VIEW_PANELS.CREATE} />
           <RunDetails id={DEFAULT_VIEW_PANELS.RUN} />
-          <RewardPhoto
-            id={DEFAULT_VIEW_PANELS.REWARD}
-            url="https://runnear.ru/img/donate.png"
-          />
+          {/* Панель с советами, доступ по VK Storage */}
+          <RewardTips id={DEFAULT_VIEW_PANELS.REWARD} />
         </View>
       </SplitCol>
     </SplitLayout>
