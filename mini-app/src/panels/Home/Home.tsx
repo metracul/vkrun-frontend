@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useEffect, useState } from 'react';
 import {
   Panel,
   PanelHeader,
@@ -16,6 +16,8 @@ import {
   useRouteNavigator,
   useActiveVkuiLocation,
 } from '@vkontakte/vk-mini-apps-router';
+import bridge from '@vkontakte/vk-bridge';
+
 import { DEFAULT_VIEW_PANELS } from '../../routes';
 import { HomeCitySelect, HomeRunCardItem } from '../components';
 import { useHomeFilters } from './hooks/useHomeFilters';
@@ -60,8 +62,25 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
     (s: RootState) => s.purchase,
   );
 
+  // Флаг наличия покупки (персистентно через VK Storage)
+  const [hasDonation3, setHasDonation3] = useState(false);
+
+  useEffect(() => {
+    bridge
+      .send('VKWebAppStorageGet', { keys: [ITEM_ID] })
+      .then((res: any) => {
+        const v = res?.keys?.find((k: any) => k.key === ITEM_ID)?.value;
+        setHasDonation3(v === '1');
+      })
+      .catch(() => {});
+  }, []);
+
   const handleSpendVotes = () => {
     dispatch(spendVotes({ itemId: ITEM_ID }));
+  };
+
+  const openPhoto = () => {
+    routeNavigator.push(DEFAULT_VIEW_PANELS.REWARD);
   };
 
   return (
@@ -71,7 +90,7 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
       </PanelHeader>
 
       <Group>
-        {/* Строка с селектором города и кнопкой покупки голосами */}
+        {/* Строка с селектором города и кнопками */}
         <div
           style={{
             display: 'flex',
@@ -82,9 +101,16 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
           }}
         >
           <HomeCitySelect value={selectedCity} onChange={setCity} />
-          <Button mode="secondary" onClick={handleSpendVotes} loading={inProgress}>
-            Потратить голоса
-          </Button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {hasDonation3 && (
+              <Button mode="primary" onClick={openPhoto}>
+                Открыть фото
+              </Button>
+            )}
+            <Button mode="secondary" onClick={handleSpendVotes} loading={inProgress}>
+              Потратить голоса
+            </Button>
+          </div>
         </div>
 
         {lastOrderId && (
@@ -157,7 +183,7 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
           };
           const isMine = myVkId && vkId && myVkId === vkId;
 
-        return (
+          return (
             <HomeRunCardItem
               key={r.id}
               run={r}

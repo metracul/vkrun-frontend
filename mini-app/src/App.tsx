@@ -6,7 +6,7 @@ import {
   ScreenSpinner,
   ModalRoot,
 } from '@vkontakte/vkui';
-import { useActiveVkuiLocation } from '@vkontakte/vk-mini-apps-router';
+import { useActiveVkuiLocation, useRouteNavigator } from '@vkontakte/vk-mini-apps-router'; // +++
 import { Home, CreateRun, RunDetails } from './panels';
 import { DEFAULT_VIEW_PANELS } from './routes';
 import { useAppDispatch, useAppSelector } from './store/hooks';
@@ -16,7 +16,7 @@ import { useBannerAds } from './panels/Home/hooks/useBannerAds';
 import { showOnboardingIfNeeded } from './features/onboarding';
 import { hydrateCityFromStorage } from './store/cityFilterSlice';
 
-// Модальные страницы
+// Модалки
 import {
   HomeFiltersModalPage,
   HomeDeleteConfirmModalPage,
@@ -25,15 +25,17 @@ import {
 import bridge from '@vkontakte/vk-bridge';
 import { purchaseFailed, purchaseSucceeded } from './store/purchaseSlice';
 
+import { RewardPhoto } from './panels/RewardPhoto/RewardPhoto';
+
 type ModalId = 'filters' | 'confirm-delete' | null;
 
 export const App = () => {
   const { panel: activePanel = DEFAULT_VIEW_PANELS.HOME } =
     useActiveVkuiLocation();
+  const routeNavigator = useRouteNavigator();
   const dispatch = useAppDispatch();
   const userStatus = useAppSelector((s) => s.user.status);
 
-  // Подписка на события баннера
   useBannerAds();
 
   useEffect(() => {
@@ -61,8 +63,18 @@ export const App = () => {
       const detail = e?.detail;
       if (!detail) return;
       const { type, data } = detail;
+
       if (type === 'VKWebAppShowOrderBoxResult' && data?.success) {
+        // 1) Сохраняем флаг покупки в VK Storage (персистентно для аккаунта)
+        bridge
+          .send('VKWebAppStorageSet', { key: 'donation_3', value: '1' })
+          .catch(() => {});
+
+        // 2) Диспатчим успех (как и было)
         dispatch(purchaseSucceeded({ order_id: data.order_id }));
+
+        // 3) Открываем экран с фото
+        routeNavigator.push(DEFAULT_VIEW_PANELS.REWARD); // +++
       } else if (type === 'VKWebAppShowOrderBoxFailed') {
         const msg =
           data?.error_data?.error_reason ||
@@ -71,11 +83,12 @@ export const App = () => {
         dispatch(purchaseFailed(msg));
       }
     };
+
     bridge.subscribe(handler);
     return () => {
       bridge.unsubscribe(handler);
     };
-  }, [dispatch]);
+  }, [dispatch, routeNavigator]);
 
   const popoutNode = userStatus === 'loading' ? <ScreenSpinner /> : null;
 
@@ -131,6 +144,10 @@ export const App = () => {
           />
           <CreateRun id={DEFAULT_VIEW_PANELS.CREATE} />
           <RunDetails id={DEFAULT_VIEW_PANELS.RUN} />
+          <RewardPhoto
+            id={DEFAULT_VIEW_PANELS.REWARD}
+            url="https://runnear.ru/img/donate.png"
+          />
         </View>
       </SplitCol>
     </SplitLayout>
