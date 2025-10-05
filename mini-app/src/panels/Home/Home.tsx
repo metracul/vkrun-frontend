@@ -90,27 +90,32 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete }) => {
       </PanelHeader>
 
       <Group>
-        {/* Селектор и кнопки */}
+        {/* Селектор города */}
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 8,
             padding: '8px 12px',
           }}
         >
           <HomeCitySelect value={selectedCity} onChange={setCity} />
-          <div style={{ display: 'flex', gap: 8 }}>
-            {hasDonation3 && (
-              <Button mode="primary" onClick={openReward}>
-                Открыть советы
-              </Button>
-            )}
-            <Button mode="secondary" onClick={handleSpendVotes} loading={inProgress}>
-              Потратить голоса
+        </div>
+
+        {/* Кнопки под селектором */}
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+            padding: '0 12px 8px',
+            flexWrap: 'wrap',
+          }}
+        >
+          {hasDonation3 && (
+            <Button mode="primary" onClick={openReward}>
+              Открыть советы
             </Button>
-          </div>
+          )}
+          <Button mode="secondary" onClick={handleSpendVotes} loading={inProgress}>
+            Потратить голоса
+          </Button>
         </div>
 
         {lastOrderId && (
