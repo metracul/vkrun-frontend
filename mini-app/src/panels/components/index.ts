@@ -1,8 +1,9 @@
-export { HomeCitySelect } from './HomeComponents/HomeCitySelect';
 export { HomeRunCardItem } from './HomeComponents/HomeRunCardItem';
+export {FiltersIconButton} from './HomeComponents/FiltersIconButton';
 
 export { HomeFiltersModalPage } from './HomeComponents/HomeFiltersModalPage';
 export { HomeDeleteConfirmModalPage } from './HomeComponents/HomeDeleteConfirmModalPage';
+export {HomeCitySelectModalPage} from './HomeComponents/HomeCitySelectModalPage';
 
 export {CreateCitySelect} from './CreateRunComponents/CreateCitySelect';
 export {CreateDateField} from './CreateRunComponents/CreateDateField';

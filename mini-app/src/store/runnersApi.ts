@@ -85,6 +85,9 @@ async function buildVkSignedHeaders(bodyJson: string) {
   };
 }
 
+const USE_MOCK_RUNS =
+  String(import.meta.env.VITE_DEV).toLowerCase() === 'true';
+
 // ---- Аргументы списка ----
 export interface GetRunsArgs {
   endpoint?: string;
@@ -101,7 +104,6 @@ export const runnersApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: API_BASE,
     prepareHeaders: (headers, { getState }) => {
-      // Для GET хватает X-VK-Params
       const qs = (getState() as RootState).vkParams.queryString;
       if (qs) headers.set('X-VK-Params', qs);
       headers.set('Accept', 'application/json');
@@ -111,25 +113,35 @@ export const runnersApi = createApi({
   endpoints: (b) => ({
     // Список пробежек
     getRuns: b.query<{ items: RunCard[]; nextCursor?: string }, GetRunsArgs | void>({
-      query: (args) => {
-        const { endpoint = '/api/v1/runs', page, size, filters = {} } = args ?? {};
-        const params = new URLSearchParams();
-        if (page != null) params.set('page', String(page));
-        if (size != null) params.set('size', String(size));
-        Object.entries(filters).forEach(([k, v]) => {
-          if (v === undefined || v === null || v === '') return;
-          if (typeof v === 'number' && !Number.isFinite(v)) return;
-          params.set(k, String(v));
-        });
-        const qs = params.toString();
-        console.log('[getRuns] →', `${API_BASE}${endpoint}${qs ? `?${qs}` : ''}`);
-        return { url: endpoint, method: 'GET', params };
-      },
-      transformResponse: (raw: RunDto[]) => {
-        const items = Array.isArray(raw) ? raw.map(normalize) : [];
-        return { items };
+      async queryFn(args, _api, _extra, fetchWithBQ) {
+        try {
+          if (USE_MOCK_RUNS) {
+            const raw = (await import('../mock/runs.json')).default as RunDto[];
+            const items = raw.map(normalize);
+            return { data: { items } };
+          } else {
+            // prod/API
+            const { endpoint = '/api/v1/runs', page, size, filters = {} } = args ?? {};
+            const params = new URLSearchParams();
+            if (page != null) params.set('page', String(page));
+            if (size != null) params.set('size', String(size));
+            Object.entries(filters).forEach(([k, v]) => {
+              if (v == null || v === '') return;
+              if (typeof v === 'number' && !Number.isFinite(v)) return;
+              params.set(k, String(v));
+            });
+            const res = await fetchWithBQ({ url: endpoint, method: 'GET', params });
+            if (res.error) return { error: res.error as any };
+            const raw = res.data as RunDto[];
+            const items = Array.isArray(raw) ? raw.map(normalize) : [];
+            return { data: { items } };
+          }
+        } catch (e: any) {
+          return { error: { status: 'CUSTOM_ERROR', data: e?.message } as any };
+        }
       },
     }),
+
 
     // Детали по id
     getRunById: b.query<RunCard, string | number>({
