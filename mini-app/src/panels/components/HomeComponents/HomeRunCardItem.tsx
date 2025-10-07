@@ -23,17 +23,25 @@ export const HomeRunCardItem: FC<Props> = ({
   onDeleteClick,
 }) => {
   const baseName = profile?.fullName ?? '';
-  const displayName = profile?.nameSuffix
-    ? `${baseName} · ${profile.nameSuffix}`
-    : baseName;
+  const displayName = profile?.nameSuffix ? `${baseName} · ${profile.nameSuffix}` : baseName;
   const avatar = profile?.avatarUrl;
 
   return (
     <Card
       key={r.id}
       mode="shadow"
-      style={{ marginTop: 8, position: 'relative' }}
       onClick={onOpen}
+      style={{
+        marginTop: 8,
+        position: 'relative',
+        height: 187,
+        boxShadow: '0px 9.18px 27.53px rgba(149,157,165,0.2)',
+        background: 'var(--vkui--color_background_content)',
+        borderRadius: 12,
+        overflow: 'hidden',
+        display: 'flex',
+        border: '1.15px solid rgba(10, 16, 6, 1)',
+      }}
     >
       {isMine && (
         <div
@@ -55,19 +63,24 @@ export const HomeRunCardItem: FC<Props> = ({
           </Button>
         </div>
       )}
+
       <RichCell
         before={<Avatar size={48} src={avatar} fallbackIcon={<Icon24User />} />}
-        subtitle={[r.cityDistrict, formatDate(r.dateISO)]
-          .filter(Boolean)
-          .join(' • ')}
-        extraSubtitle={[
-          r.distanceKm ? `${r.distanceKm} км` : null,
-          r.pace ? `${r.pace}` : null,
-        ]
+        subtitle={[r.cityDistrict, formatDate(r.dateISO)].filter(Boolean).join(' • ')}
+        extraSubtitle={[r.distanceKm ? `${r.distanceKm} км` : null, r.pace ? `${r.pace}` : null]
           .filter(Boolean)
           .join(' • ')}
         multiline
-        style={{ paddingRight: 96, paddingBottom: 44 }}
+        style={{
+          paddingRight: 96,
+          paddingBottom: 44,
+          alignSelf: 'stretch',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          height: '100%',
+          boxSizing: 'border-box',
+        }}
       >
         {r.title} — {displayName || 'Получаю данные…'}
         {r.notes ? <Footnote style={{ marginTop: 4 }}>{r.notes}</Footnote> : null}

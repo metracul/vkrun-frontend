@@ -1,1 +1,0 @@
-System.register([],function(t,e){"use strict";return{execute:function(){t("default",[{id:1,creatorId:777,cityName:"Москва",districtName:"ЦАО",startAt:"2025-10-01T18:00:00Z",durationMinutes:60,distanceKm:10,paceSecPerKm:300,description:"Лёгкая вечерняя пробежка",participants:[{id:1,vkUserId:123}]}])}}});

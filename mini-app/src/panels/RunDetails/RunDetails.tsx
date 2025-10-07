@@ -1,11 +1,8 @@
 import { FC, useState } from 'react';
 import {
   Panel,
-  PanelHeader,
   Group,
   Spacing,
-  Header,
-  PanelHeaderBack,
   Button,
   NavIdProps,
   Placeholder,
@@ -19,6 +16,7 @@ import {
   InfoGroup,
   ParticipantsGroup,
   ActionButton,
+  RunDescription,
 } from '../components';
 
 import { useRunDetails } from './hooks/useRunDetails';
@@ -66,11 +64,34 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
   return (
     <Panel id={id}>
-      <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.push('/')} />}>
-        <Header size="l">Пробежка</Header>
-      </PanelHeader>
-
-      <Group>
+      <Group
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          marginTop: 40,
+          gap: 12,
+          padding: 12,
+          minHeight: '100%',
+          boxSizing: 'border-box',
+          backgroundColor: 'var(--vkui--color_background_content)',
+        }}
+      >
+        <img src="/blackLogo.png" alt="Логотип" style={{ width: 36.56, height: 36.71, opacity: 50 }} />
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            fontFamily: 'Montserrat, sans-serif',
+            fontWeight: 600,
+            fontStyle: 'normal',
+            fontSize: 28,
+            lineHeight: '100%',
+            letterSpacing: 0,
+            marginTop: 24,
+          }}
+        >
+          ТИП ПРОБЕЖКИ
+        </div>
         {isLoading && <CreatorCard.Skeleton />}
 
         {isError && (
@@ -84,31 +105,50 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
         {!isLoading && !isError && !data && <Placeholder>Пробежка не найдена</Placeholder>}
 
         {!isLoading && !isError && data && (
-          <>
-            <CreatorCard {...creatorCard} />
+        <>
+          <Spacing size={24} />
 
-            <Spacing size={16} />
+          <InfoGroup {...info} />
 
-            <InfoGroup {...info} />
+          <Spacing size={12} />
 
-            <Spacing size={12} />
+          <CreatorCard {...creatorCard} />
 
-            <ParticipantsGroup {...participants} />
+          <Spacing size={12} />
 
-            <Spacing size={12} />
+          <RunDescription text={data?.notes ?? ''} />
 
-            <ActionButton
-              mode={actions.buttonMode}
-              label={actions.buttonLabel}
-              disabled={actions.buttonMode === 'join' ? actions.isJoining : actions.isLeaving}
-              onClick={actions.buttonMode === 'join' ? handleJoin : actions.onLeave}
-            />
+          <Spacing size={12} />
 
-            <Spacing size={16} />
-          </>
-        )}
+          <ParticipantsGroup {...participants} />
 
-        <Button mode="secondary" onClick={() => routeNavigator.push('/')}>
+          <Spacing size={12} />
+
+          <ActionButton
+            mode={actions.buttonMode}
+            label={actions.buttonLabel}
+            disabled={actions.buttonMode === 'join' ? actions.isJoining : actions.isLeaving}
+            onClick={actions.buttonMode === 'join' ? handleJoin : actions.onLeave}
+          />
+
+          <Spacing size={12} />
+        </>
+      )}
+        <Button
+          mode="secondary"
+          onClick={() => routeNavigator.push('/')}
+          style={{
+            border: 'none',
+            backgroundColor: 'transparent',
+            fontFamily: 'Montserrat, sans-serif',
+            fontWeight: 600,
+            fontSize: 20,
+            lineHeight: '100%',
+            letterSpacing: '0',
+            textAlign: 'center',
+            color: 'rgba(3, 4, 3, 0.5)',
+          }}
+        >
           Назад
         </Button>
       </Group>

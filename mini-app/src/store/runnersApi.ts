@@ -20,6 +20,7 @@ export type RunCard = {
   title?: string;
   notes?: string;
   participants?: RunParticipant[];
+  startAddress?: string; // <-- добавлено
 };
 
 type RunDto = {
@@ -35,6 +36,7 @@ type RunDto = {
   paceSecPerKm?: number | null;
   description?: string | null;
   participants?: Array<{ id: number; vkUserId: number }>;
+  startAddress?: string | null; // <-- добавлено
 };
 
 // ---- Утилиты нормализации ----
@@ -58,6 +60,7 @@ function normalize(dto: RunDto): RunCard {
     title: 'Пробежка',
     notes: dto.description || '',
     participants: dto.participants?.map(p => ({ id: p.id, vkUserId: p.vkUserId })),
+    startAddress: dto.startAddress ?? undefined,
   };
 }
 
@@ -142,11 +145,23 @@ export const runnersApi = createApi({
       },
     }),
 
-
     // Детали по id
     getRunById: b.query<RunCard, string | number>({
-      query: (id) => ({ url: `/api/v1/runs/${id}`, method: 'GET' }),
-      transformResponse: (raw: RunDto) => normalize(raw),
+      async queryFn(id, _api, _extra, fetchWithBQ) {
+        try {
+          if (USE_MOCK_RUNS) {
+            const raw = (await import('../mock/runs.json')).default as RunDto[];
+            const found = raw.find(r => r.id === Number(id));
+            if (!found) return { error: { status: 404, data: 'not found' } as any };
+            return { data: normalize(found) };
+          }
+          const res = await fetchWithBQ({ url: `/api/v1/runs/${id}`, method: 'GET' });
+          if (res.error) return { error: res.error as any };
+          return { data: normalize(res.data as RunDto) };
+        } catch (e: any) {
+          return { error: { status: 'CUSTOM_ERROR', data: e?.message } as any };
+        }
+      },
     }),
 
     // Записаться: POST /{id}/join  body { runId }
@@ -194,8 +209,6 @@ export const runnersApi = createApi({
         }
       },
     }),
-
-    
 
     // Удалить забег (только автор): DELETE /{id}
     deleteRun: b.mutation<void, string | number>({

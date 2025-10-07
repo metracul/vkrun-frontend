@@ -1,4 +1,4 @@
-import { Group, SimpleCell, Header, Subhead, Avatar } from '@vkontakte/vkui';
+import {SimpleCell, Subhead, Avatar } from '@vkontakte/vkui';
 import { Icon24User } from '@vkontakte/icons';
 
 type Item = {
@@ -13,8 +13,23 @@ type Props = {
   items: Item[];
 };
 
-export const ParticipantsGroup = ({ count, items }: Props) => (
-  <Group header={<Header>Участники ({count})</Header>}>
+export const ParticipantsGroup = ({items }: Props) => (
+  <div
+  style={{
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+  }}> 
+  <div
+    style={{
+      fontFamily: "Montserrat, sans-serif",
+      fontWeight: 500,
+      fontSize: "16px",
+      color: "rgba(3, 4, 3, 1)",
+    }}
+  >
+    БЕГУНЫ
+  </div>
     {items.length === 0 ? (
       <SimpleCell><Subhead>Пока никого</Subhead></SimpleCell>
     ) : (
@@ -33,5 +48,5 @@ export const ParticipantsGroup = ({ count, items }: Props) => (
         </SimpleCell>
       ))
     )}
-  </Group>
+  </div>
 );

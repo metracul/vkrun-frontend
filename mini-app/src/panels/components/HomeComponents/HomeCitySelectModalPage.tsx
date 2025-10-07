@@ -1,56 +1,151 @@
 import { FC, useMemo } from 'react';
-import {
-  ModalPage,
-  Group,
-  Button,
-  Spacing
-} from '@vkontakte/vkui';
+import { ModalPage, Group, Tappable } from '@vkontakte/vkui';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { setSelectedCity } from '../../../store/cityFilterSlice';
 import { CITY_OPTIONS } from '../../../constants/locations';
 
-type Props = {
-  id: string;
-  onClose: () => void;
-};
+type Props = { id: string; onClose: () => void };
 
 export const HomeCitySelectModalPage: FC<Props> = ({ id, onClose }) => {
   const dispatch = useAppDispatch();
   const current = useAppSelector((s) => s.cityFilter.selectedCity) ?? 'Москва';
-
-  const options = useMemo(() => CITY_OPTIONS.map(o => o.value), []);
+  const options = useMemo(() => CITY_OPTIONS.map((o) => o.value), []);
 
   const selectCity = (name: string) => {
     if (name !== current) {
       dispatch(setSelectedCity(name));
-      // остальная логика (пересчёт фильтров) сработает как и раньше
-      // persistCityMiddleware сохранит в localStorage
+      window.dispatchEvent(new Event('runs:updated'));
     }
-    onClose();
+   // onClose(); - закрывать модалку при выборе города
   };
 
   return (
     <ModalPage id={id} settlingHeight={420} dynamicContentHeight onClose={onClose}>
 
-      <Group mode="plain">
-        {options.map((name) => {
-          const isCurrent = name === current;
-          return (
-            <div key={name} style={{ marginBottom: 8 }}>
-              <Button
-                size="l"
-                appearance={isCurrent ? 'accent' : 'neutral'}
-                mode={isCurrent ? 'primary' : 'secondary'}
-                stretched
-                onClick={() => selectCity(name)}
-              >
-                {name.toUpperCase()}
-              </Button>
-            </div>
-          );
-        })}
-        <Spacing size={8} />
-      </Group>
-    </ModalPage>
+      {/* Градиентная полоска */}
+  <div
+    style={{
+      marginTop: 18,               // отступ от верха модалки
+      display: 'flex',
+      justifyContent: 'center',
+    }}
+  >
+    <div
+      style={{
+        width: 79.5,
+        height: 4,
+        borderRadius: 2,
+        background: 'linear-gradient(90deg, #7B46F8 0%, #CEB9FF 33%, #FEAAEE 67%, #7B46F8 100%)',
+      }}
+    />
+    
+  </div>
+
+
+  {/* Заголовок ГОРОД */}
+  <div
+    style={{
+      marginTop: 31, // отступ от верхнего края модалки
+      display: 'flex',
+      justifyContent: 'center',
+      fontFamily: 'Montserrat, sans-serif',
+      fontWeight: 600,
+      fontStyle: 'normal',
+      fontSize: 28,
+      lineHeight: '100%',
+      letterSpacing: 0,
+      color: '#000', // можно подстроить под тему, если нужно
+      textTransform: 'uppercase',
+    }}
+  >
+    ГОРОД
+  </div>
+
+  <Group
+    mode="plain"
+    style={{
+      width: 'calc(100% - 24px)', // ровно 12px от каждого края модалки
+      margin: '0 auto',
+      paddingTop: 24,             // между "ГОРОД" и первой строкой
+      paddingBottom: 40,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      maxWidth: 390,       // ограничивает ширину, чтобы не растягивалось
+      display: 'flex',
+      justifyContent: 'center',
+    }}
+  >
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+        columnGap: 12,
+        rowGap: 10.4,
+      }}
+    >
+      {options.map((name) => {
+        const isCurrent = name === current;
+        return (
+          <Tappable
+            key={name}
+            onClick={() => selectCity(name)}
+            hoverMode="opacity"
+            activeMode="opacity"
+            style={{
+              width: '100%',
+              height: 68,
+              boxSizing: 'border-box',
+              borderRadius: 20,
+              minWidth: 0,
+              padding: 10,
+              background: '#FFFFFF',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontFamily: 'Montserrat, sans-serif',
+              fontWeight: 500,       // Medium
+              fontSize: 18,
+              lineHeight: '100%',
+              letterSpacing: 0,
+              textAlign: 'center',
+              textTransform: 'uppercase',
+              color: '#0A10064D',    // твой цвет
+              wordBreak: 'keep-all',
+              whiteSpace: 'normal',
+              hyphens: 'auto',
+              border: '2px solid transparent',
+              backgroundImage: isCurrent
+                ? 'linear-gradient(#fff, #fff), linear-gradient(90deg, rgba(185,155,255,1) 0%, rgba(123,70,248,1) 100%)'
+                : 'none',
+              backgroundOrigin: 'border-box',
+              backgroundClip: isCurrent ? 'padding-box, border-box' : 'border-box',
+              
+            }}
+          >
+            <span
+              style={
+              isCurrent
+        ? {
+            // градиентный ТЕКСТ
+            background:
+              'linear-gradient(90deg, rgba(185,155,255,1) 0%, rgba(123,70,248,1) 100%)',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            color: 'transparent',
+            WebkitTextFillColor: 'transparent',
+            }
+            : { color: '#0A10064D' }
+            }
+          >
+            {name}
+          </span>
+          </Tappable>
+        );
+      })}
+    </div>
+  </Group>
+</ModalPage>
+
   );
 };

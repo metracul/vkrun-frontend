@@ -4,11 +4,25 @@
     "creatorId": 777,
     "cityName": "Москва",
     "districtName": "ЦАО",
-    "startAt": "2025-10-01T18:00:00Z",
+    "startAt": "2025-11-01T18:00:00Z",
     "durationMinutes": 60,
     "distanceKm": 10,
     "paceSecPerKm": 300,
     "description": "Лёгкая вечерняя пробежка",
-    "participants": [{ "id": 1, "vkUserId": 123 }]
+    "participants": [{ "id": 1, "vkUserId": 777 }],
+    "startAddress": "Москва, Новая площадь, 1"
+  },
+  {
+    "id": 2,
+    "creatorId": 1,
+    "cityName": "Москва",
+    "districtName": "ЦАО",
+    "startAt": "2025-12-01T18:00:00Z",
+    "durationMinutes": 60,
+    "distanceKm": 10,
+    "paceSecPerKm": 300,
+    "description": "Лёгкая вечерняя пробежка",
+    "participants": [{ "id": 2, "vkUserId": 1 }],
+    "startAddress": "Москва, Новая площадь, 1"
   }
 ]

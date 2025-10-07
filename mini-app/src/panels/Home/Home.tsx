@@ -92,11 +92,12 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete, openCi
         style={{
           display: 'flex',
           flexDirection: 'column',
+          marginTop: 40,
           gap: 12,
           padding: 12,
           minHeight: '100%',
           boxSizing: 'border-box',
-          backgroundColor: '#FFFFFF',
+          backgroundColor: 'var(--vkui--color_background_content)',
         }}
       >
         <Group mode="plain" separator="hide">
@@ -134,7 +135,7 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete, openCi
                   border: '1.15px solid transparent',
                   borderRadius: 8,
                   backgroundImage: `
-                    linear-gradient(#FFFFFF, #FFFFFF),
+                    linear-gradient(var(--vkui--color_background_content), var(--vkui--color_background_content)),
                     linear-gradient(90deg,
                       rgba(123,70,248,1) 0%,
                       rgba(206,185,255,1) 33%,
@@ -187,58 +188,60 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete, openCi
             fontSize: 28,
             lineHeight: '100%',
             letterSpacing: 0,
-            marginTop: 12,
+            marginTop: 24,
           }}
         >
           ЛЕНТА ПРОБЕЖЕК
         </div>
 
         {/* Кнопка "Создать пробежку" */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
-          <Button
-            mode="secondary"
-            size="l"
-            onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}>
+        <Button
+          mode="secondary"
+          size="l"
+          onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}
+          style={{
+            width: isDesktop ? 366 : '100%',
+            borderRadius: 12,
+            backgroundColor: 'var(--vkui--color_background_secondary)',
+          }}
+        >
+          <div
             style={{
-              width: isDesktop ? 366 : '100%',  // desktop — 366px, mobile — 100%
-              height: 48,
-              padding: '12px 17px',
-              borderRadius: 12,
-              backgroundColor: 'rgba(242, 242, 242, 1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 5,
+              width: '100%',
             }}
           >
-            <div
+            <Icon24AddOutline
               style={{
-                width: 213,
+                display: 'block',
+                width: 24,
                 height: 24,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 5,
-                opacity: 1,
-                transform: 'rotate(0deg)',
+                color: 'var(--vkui--color_text_primary)',
+              }}
+            />
+            <span
+              style={{
+                fontFamily: 'Montserrat, sans-serif',
+                fontWeight: 500,
+                fontSize: 16,
+                lineHeight: '16px',
+                letterSpacing: 0,
+                textAlign: 'center',
+                textTransform: 'uppercase',
+                color: 'var(--vkui--color_text_primary)',
+                display: 'block',
               }}
             >
-              <Icon24AddOutline style={{ color: 'rgba(17, 25, 12, 1)' }} />
-              <span
-                style={{
-                  fontFamily: 'Montserrat, sans-serif',
-                  fontWeight: 500,
-                  fontSize: 16,
-                  lineHeight: '100%',
-                  letterSpacing: 0,
-                  textAlign: 'center',
-                  textTransform: 'uppercase',
-                  color: 'rgba(17, 25, 12, 1)',
-                  display: 'inline-block',
-                }}
-              >
-                Создать пробежку
-              </span>
-            </div>
-          </Button>
+              Создать пробежку
+            </span>
+          </div>
+        </Button>
         </div>
-
+        
         {/* Кнопки под селектором */}
         <Group mode="plain" separator="hide">
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

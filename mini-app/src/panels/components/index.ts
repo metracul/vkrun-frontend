@@ -20,3 +20,4 @@ export {ActionButton} from './RunDetailsComponents/ActionButton';
 export {CreatorCard} from './RunDetailsComponents/CreatorCard';
 export {InfoGroup} from './RunDetailsComponents/InfoGroup';
 export {ParticipantsGroup} from './RunDetailsComponents/ParticipantsGroup';
+export {RunDescription} from './RunDetailsComponents/RunDescription';
