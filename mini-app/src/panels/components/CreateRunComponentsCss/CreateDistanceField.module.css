@@ -1,0 +1,39 @@
+.wrap { 
+  position: relative; 
+  width: 100%; 
+}
+
+/* смещаем содержимое под иконку */
+.withLeftIcon :global(.vkuiFormField__scrollContainer) {
+  padding-inline-start: 44px !important;
+}
+
+/* иконка по умолчанию — серая */
+.icon {
+  position: absolute;
+  inset-block: 0;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: rgba(181, 183, 180, 0.5); /* серый как плейсхолдер */
+  z-index: 2;
+}
+
+/* плейсхолдер всегда rgba(181,183,180,0.5) */
+.wrap :global(input::placeholder) {
+  color: rgba(181, 183, 180, 0.5) !important;
+  opacity: 1 !important;
+}
+
+/* когда введено значение — перекрасить текст и иконку */
+.hasValue :global(.vkuiInput__el),
+.hasValue :global(input) {
+  color: var(--selector-text-color) !important;
+  -webkit-text-fill-color: var(--selector-text-color) !important; /* iOS/WebKit */
+}
+
+.hasValue .icon {
+  color: var(--selector-text-color) !important;
+}

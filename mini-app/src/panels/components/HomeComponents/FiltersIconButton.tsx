@@ -16,14 +16,14 @@ export const FiltersIconButton: React.FC<Props> = ({ onClick, ariaLabel = 'Фи�
       style={{
         width: 36.7,
         height: 36.7,
-        border: '1.15px solid var(--vkui--color_icon_secondary)',
+        border: '1.15px solid var(--filters-icon-color)',
         borderRadius: 10,
         background: 'var(--city-button-background-color)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         boxSizing: 'border-box',
-         color: 'var(--filters-icon-color)',
+        color: 'var(--filters-icon-color)',
       }}
       aria-label={ariaLabel}
     >

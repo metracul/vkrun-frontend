@@ -9,7 +9,6 @@ type Props = {
 
 export const ActionButton = ({ mode, label, disabled, onClick }: Props) => (
   <Button
-    size="l"
     appearance={mode === 'join' ? 'accent' : 'negative'}
     mode={mode === 'leave' ? 'secondary' : undefined}
     disabled={disabled}
@@ -28,15 +27,13 @@ export const ActionButton = ({ mode, label, disabled, onClick }: Props) => (
         mode === 'join'
           ? 'rgba(3, 4, 3, 1)'
           : 'rgba(255, 0, 0, 1)',
-
-      fontFamily: 'Montserrat, sans-serif',
-      fontWeight: 600,
-      fontSize: 20,
-      lineHeight: '100%',
+      minHeight:62,
       letterSpacing: '0',
       textAlign: 'center',
     }}
   >
-    {label}
+    <span style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 600, fontSize: 20 }}>
+      {label}
+    </span>
   </Button>
 );

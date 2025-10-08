@@ -1,0 +1,98 @@
+.root {
+  width: 100%;
+  box-sizing: border-box;
+
+  /* общий бордер для всех */
+  border: 1.15px solid #B5B7B4;
+  background: transparent;
+
+  font-family: Montserrat, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 100%;
+  letter-spacing: 0;
+}
+
+/* большие поля (город, район, комментарий) */
+.pad16 {
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-radius: 20px;
+}
+
+/* маленькие поля (дата, темп, время, дистанция) */
+.pad10 {
+  padding-top: 1px;
+  padding-bottom: 1px;
+  border-radius: 12px;
+}
+
+/* отключаем бордеры и фон, которые VKUI сам рисует */
+:global(.vkuiFormField__host),
+:global(.vkuiFormField__border) {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Типографика (Montserrat/500/20/100%) */
+.root :global(.vkuiCustomSelectInput__title),
+.root :global(.vkuiCustomSelectInput__el),
+.root :global(.vkuiInput__el),
+.root :global(input),
+.root :global(textarea) {
+  font-family: Montserrat, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 20px !important;
+  line-height: 100% !important;
+  letter-spacing: 0 !important;
+}
+
+/* === ЕДИНЫЕ ЦВЕТА ДЛЯ ВСЕХ ПОЛЕЙ === */
+
+/* placeholder = #B5B7B4 50% */
+.root :global(.vkuiCustomSelectInput__title),
+.root :global(input::placeholder),
+.root :global(textarea::placeholder) {
+  color: rgba(181, 183, 180, 0.5);
+  opacity: 1 !important;
+}
+/* убрать дубль placeholder у CustomSelect */
+.root :global(.vkuiCustomSelectInput__el::placeholder) {
+  color: transparent !important;
+  opacity: 1 !important;
+}
+
+/* значение (текст) = rgba(3,4,3,1) */
+.root :global(.vkuiCustomSelectInput__el),
+.root :global(.vkuiInput__el),
+.root :global(input),
+.root :global(textarea) {
+  color: rgba(3, 4, 3, 1);
+  -webkit-text-fill-color: rgba(3, 4, 3, 1); /* для iOS/WebKit */
+}
+
+/* на всякий: отключаем странные наследования прозрачности */
+.root :global(.vkuiFormField__host) {
+  opacity: 1 !important;
+}
+
+/* если где-то остался градиентный текст — прибьём */
+.root :global(.vkuiCustomSelectInput__title),
+.root :global(.vkuiCustomSelectInput__el) {
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  -webkit-text-fill-color: initial !important;
+}
+
+.input {
+  color: #B5B7B4 !important; /* текст серый для input с классом .input */
+  font-family: Montserrat, sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 100%;
+}
+.input::placeholder {
+  color: #B5B7B4 !important;
+  opacity: 1;
+}

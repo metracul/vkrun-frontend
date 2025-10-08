@@ -9,7 +9,7 @@ export const RunDescription = ({ text }: Props) => {
       style={{
         border: '1.15px solid rgba(224, 224, 224, 1)',
         borderRadius: 20,
-        padding: 12,
+        padding: 15,
         fontFamily: 'Montserrat, sans-serif',
         fontWeight: 400,
         fontSize: 14,

@@ -1,0 +1,20 @@
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 320px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .gutters { padding-left: 12px; padding-right: 12px; }
+}
+
+.gutters {
+  padding-left: 12px;
+  padding-right: 12px;
+  margin-bottom: 10px;
+}

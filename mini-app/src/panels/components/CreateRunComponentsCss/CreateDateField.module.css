@@ -1,0 +1,46 @@
+.wrap {
+  position: relative;
+}
+
+/* Оверлей-плейсхолдер «Дата» */
+.ph {
+  position: absolute;
+  inset-block: 0;
+  left: 16px;
+  display: inline-flex;
+  align-items: center;
+  pointer-events: none;
+  z-index: 1;
+
+  font-family: Montserrat, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 100%;
+  letter-spacing: 0;
+  color: rgba(181, 183, 180, 0.5);
+}
+
+/* По умолчанию маска видима */
+.wrap :global(.vkuiDateInput__input) {
+  opacity: 1;
+  transition: opacity .12s ease;
+}
+
+.vkuiFormField__host {
+  border-radius: 12px !important;
+}
+.vkuiFormField__border {
+  border-radius: 12px !important;
+}
+
+/* Пока поле ПУСТОЕ и НЕ в фокусе — скрываем маску, оставляя кликабельность */
+.wrap:not(.hasValue):not(:focus-within) :global(.vkuiDateInput__input) {
+  opacity: 0;
+}
+
+/* При фокусе или когда значение есть — скрываем оверлей «Дата» */
+.wrap:focus-within .ph,
+.wrap.hasValue .ph {
+  opacity: 0;
+  visibility: hidden;
+}

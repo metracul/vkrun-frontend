@@ -73,7 +73,6 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
           padding: 12,
           minHeight: '100%',
           boxSizing: 'border-box',
-          // ключевое: фон теперь из токена VKUI, который автоматически меняется с темой
           backgroundColor: 'var(--background-panel-color)',
         }}
       >
@@ -82,7 +81,6 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
           style={{
             width: 36.56,
             height: 36.71,
-            opacity: 0.5,
             marginTop: 40,
             backgroundImage: 'var(--run-logo)',
             backgroundRepeat: 'no-repeat',
@@ -100,7 +98,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
             fontSize: 28,
             lineHeight: '100%',
             letterSpacing: 0,
-            marginTop: 24,
+            marginTop: 37,
           }}
         >
           ТИП ПРОБЕЖКИ
@@ -118,7 +116,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
         {!isLoading && !isError && data && (
           <>
-            <Spacing size={24} />
+            <Spacing size={28} />
 
             <InfoGroup {...info} />
 
@@ -126,7 +124,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
             <CreatorCard {...creatorCard} />
 
-            <Spacing size={12} />
+            <Spacing size={10} />
 
             <RunDescription text={data?.notes ?? ''} />
 
@@ -153,18 +151,22 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
           style={{
             border: 'none',
             backgroundColor: 'transparent',
-            fontFamily: 'Montserrat, sans-serif',
-            fontWeight: 600,
-            fontSize: 20,
             lineHeight: '100%',
             letterSpacing: '0',
             textAlign: 'center',
-            color: 'var(--vkui--color_text_secondary)',
+            color: 'var(--back-button-color)',
           }}
         >
+          <span
+          style={{
+            fontFamily: 'Montserrat, sans-serif',
+            fontWeight: 600,
+            fontSize: 20,
+          }}>
           НАЗАД
+          </ span>
         </Button>
-      </Group>
+     </Group>
 
       {snack}
     </Panel>

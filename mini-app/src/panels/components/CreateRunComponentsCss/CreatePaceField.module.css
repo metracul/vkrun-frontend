@@ -1,0 +1,21 @@
+.wrap {
+  position: relative;
+}
+
+/* смещаем содержимое Select вправо под иконку */
+.wrap :global(.vkuiFormField__scrollContainer) {
+  padding-inline-start: 44px !important;
+}
+
+/* иконка слева */
+.icon {
+  position: absolute;
+  inset-block: 0;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: rgba(181, 183, 180, 0.5); /* как placeholder */
+  z-index: 2;
+}

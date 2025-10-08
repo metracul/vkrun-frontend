@@ -1,19 +1,20 @@
 import { FC, useEffect, useState } from 'react';
 import {
-  NavIdProps, Panel, PanelHeader, PanelHeaderBack, Header, Group, Spacing, Snackbar,
+  NavIdProps, Panel, Group, Spacing, Snackbar,
 } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import { createRunSecure } from '../../api/createRunSecure';
 import { HttpError } from '../../api/createRunSecure';
+
 import { useCreateRunForm } from './hooks/useCreateRunForm';
 import {
   CreateCitySelect, CreateDistrictSelect, CreateDateField, CreateTimeField,
-  CreatePaceSelect, CreateDistanceField, CreateDescriptionField,
-  CreateSummaryRow, CreateSubmitButton
+  CreatePaceSelect, CreateDistanceField, CreateDescriptionField, CreateSubmitButton, CreateBackButton
 } from '../components';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setSelectedCity } from '../../store/cityFilterSlice';
-import {Icon12CancelCircleFillRed} from '@vkontakte/icons';
+import { Icon12CancelCircleFillRed } from '@vkontakte/icons';
+import styles from './CreateRun.module.css';
 
 export const CreateRun: FC<NavIdProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
@@ -51,87 +52,135 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
       const fire = () => window.dispatchEvent(new CustomEvent('runs:updated', { detail: { id } }));
       routeNavigator.replace('/');
       setTimeout(fire, 200);
-   } catch (e: any) {
-    // сравнение по наличию поля status (без instanceof, чтобы избежать проблем разных реалмов)
-    const status = (e as HttpError)?.status;
+    } catch (e: any) {
+      // сравнение по наличию поля status (без instanceof, чтобы избежать проблем разных реалмов)
+      const status = (e as HttpError)?.status;
 
-    if (status === 400) {
-      setSnackbar(
-        <Snackbar
-          onClose={() => setSnackbar(null)}
-          duration={4000}
-          before={<Icon12CancelCircleFillRed />}
-        >
-          Невозможно создать пробежку длительностью больше 600 минут
-        </Snackbar>
-      );
-    } else if (status === 409) {
-      setSnackbar(
-        <Snackbar
-          onClose={() => setSnackbar(null)}
-          duration={4000}
-          before={<Icon12CancelCircleFillRed />}
-        >
-          Такая пробежка уже существует
-        </Snackbar>
-      );
-    } else {
-      alert(`Ошибка: ${e?.message ?? 'Неизвестная ошибка'}`);
+      if (status === 400) {
+        setSnackbar(
+          <Snackbar
+            onClose={() => setSnackbar(null)}
+            duration={4000}
+            before={<Icon12CancelCircleFillRed />}
+          >
+            Невозможно создать пробежку длительностью больше 600 минут
+          </Snackbar>
+        );
+      } else if (status === 409) {
+        setSnackbar(
+          <Snackbar
+            onClose={() => setSnackbar(null)}
+            duration={4000}
+            before={<Icon12CancelCircleFillRed />}
+          >
+            Такая пробежка уже существует
+          </Snackbar>
+        );
+      } else {
+        alert(`Ошибка: ${e?.message ?? 'Неизвестная ошибка'}`);
+      }
+    } finally {
+      f.setLoading(false);
     }
-  } finally {
-    f.setLoading(false);
-  }
 
   };
 
+
   return (
-    <Panel id={id}>
-      <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.push('/')} />}>
-        <Header size="l">Создание пробежки</Header>
-      </PanelHeader>
-
-      <Group header={<Header size="s">Настройте свою пробежку</Header>}>
-        <Spacing size="m" />
-
-        <Header size="m">Укажите ваш город</Header>
-        <CreateCitySelect
-          value={selectedCity ?? undefined}
-          onChange={(v) => {
-            dispatch(setSelectedCity(v ?? null));
-            f.setCity(v);
+    <Panel id={id} style={{ background: 'white' }}>
+      <Group
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+          padding: 12,
+          minHeight: '100%',
+          boxSizing: 'border-box',
+          backgroundColor: 'var(--background-panel-color)',
+        }}
+      >
+      <div
+          style={{
+            width: 36.56,
+            height: 36.71,
+            marginTop: 40,
+            backgroundImage: 'var(--create-logo)',
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: 'contain',
           }}
         />
 
-        <Spacing size="s" />
-        <Header>Выберите район</Header>
-        <CreateDistrictSelect city={f.state.city} value={f.state.district} onChange={f.setDistrict} />
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          fontFamily: 'Montserrat, sans-serif',
+          fontWeight: 600,
+          fontSize: 28,
+          lineHeight: '100%',
+          letterSpacing: 0,
+          marginTop: 37,
+        }}
+      >
+        НОВАЯ ПРОБЕЖКА
+      </div>
+      
+      <Group mode="plain">
+        <Spacing size={37} />
 
-        <Spacing size="s" />
-        <Header size="m">Выберите дату забега</Header>
-        <CreateDateField value={f.state.date} onChange={f.setDate} min={f.minDateStr} error={f.dateError} touched={f.dateTouched} />
+        <div className={styles.gutters}>
+          <CreateCitySelect
+            value={selectedCity ?? undefined}
+            onChange={(v: string | undefined) => {
+              dispatch(setSelectedCity(v ?? null));
+              f.setCity(v);
+            }}
+          />
+        </div>
 
-        <Spacing size="s" />
-        <Header size="m">Выберите время начала</Header>
-        <CreateTimeField value={f.state.timeStr} onChange={f.setTimeStr} error={f.timeError} touched={f.timeTouched} />
+        <div className={styles.gutters}>
+          <CreateDistrictSelect city={f.state.city} value={f.state.district} onChange={f.setDistrict} />
+        </div>
 
-        <Spacing size="s" />
-        <Header size="m">Выберите примерный темп бега, мин/км</Header>
-        <CreatePaceSelect value={f.state.pace} onChange={f.setPace} />
+        <div className={styles.gutters}>
+          <div className={styles.grid}>
 
-        <Spacing size="s" />
-        <Header size="m">Укажите дистанцию, км</Header>
-       <CreateDistanceField value={f.state.distanceStr} onChange={f.setDistanceStr} error={f.distanceError} touched={f.distanceTouched} maxNote={f.distanceMaxed} />
+            <CreateDateField
+              value={f.state.date}
+              onChange={f.setDate}
+              min={f.minDateStr}
+              error={f.dateError}
+              touched={f.dateTouched}
+            />
+            <CreatePaceSelect
+              value={f.state.pace}
+              onChange={f.setPace}
+            />
+            <CreateDistanceField
+              value={f.state.distanceStr}
+              onChange={f.setDistanceStr}
+              error={f.distanceError}
+              touched={f.distanceTouched}
+              maxNote={f.distanceMaxed}
+            />
+            <CreateTimeField
+              value={f.state.timeStr}
+              onChange={f.setTimeStr}
+              error={f.timeError}
+              touched={f.timeTouched}
+            />
+          </div>
+        </div>
 
+        <div className={styles.gutters}>
+          <CreateDescriptionField value={f.state.desc} onChange={f.setDesc} error={f.descError} touched={f.descTouched} />
+        </div>
+         <Spacing size={24} />
 
-        <Spacing size="m" />
-        <CreateSummaryRow timeDisplay={f.timeDisplay} />
-
-        <Spacing size="s" />
-        <Header size="m">Описание</Header>
-        <CreateDescriptionField value={f.state.desc} onChange={f.setDesc} error={f.descError} touched={f.descTouched}/>
-
-        <Spacing size="xl" />
         <CreateSubmitButton disabled={!f.isFormValid || f.loading} loading={f.loading} onClick={handleSubmit} />
+        <CreateBackButton onClick={() => routeNavigator.push('/')} />
+        </Group>
+
       </Group>
 
       {snackbar}

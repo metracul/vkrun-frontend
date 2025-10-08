@@ -114,7 +114,6 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete, openCi
               style={{
                 width: 36.56,
                 height: 36.71,
-                opacity: 0.5,
                 backgroundImage: 'var(--home-logo)',
                 backgroundRepeat: 'no-repeat',
                 backgroundSize: 'contain',
@@ -136,9 +135,6 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete, openCi
                 onClick={openCitySelect}
                 style={{
                   minWidth: 126,
-                  fontFamily: 'Montserrat, sans-serif',
-                  fontWeight: 500,
-                  fontSize: 14,
                   lineHeight: '100%',
                   letterSpacing: 0,
                   justifyContent: 'center',
@@ -178,7 +174,10 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete, openCi
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                     display: 'inline-block',
-                  }}
+                    fontFamily: 'Montserrat, sans-serif',
+                    fontWeight: 500,
+                    fontSize: 14,
+                    }}
                 >
                   {selectedCity.toUpperCase()}
                 </span>
@@ -198,22 +197,22 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete, openCi
             fontSize: 28,
             lineHeight: '100%',
             letterSpacing: 0,
-            marginTop: 24,
+            marginTop: 37,
           }}
         >
           ЛЕНТА ПРОБЕЖЕК
         </div>
 
         {/* Кнопка "Создать пробежку" */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
           <Button
             mode="secondary"
-            size="l"
             onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}
             style={{
               width: isDesktop ? 366 : '100%',
               borderRadius: 12,
               backgroundColor: 'var(--create-run-button-color)',
+              minHeight:48,
             }}
           >
             <div
@@ -257,18 +256,48 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete, openCi
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {hasDonation3 ? (
               <Button mode="primary" onClick={openReward}>
+                <span
+                style={{
+                  fontFamily: 'Montserrat, sans-serif',
+                  fontWeight: 500,
+                }}
+                >
                 Открыть советы
+                </span>
               </Button>
             ) : (
               <Button mode="secondary" onClick={handleSpendVotes} loading={inProgress}>
+                <span
+                style={{
+                  fontFamily: 'Montserrat, sans-serif',
+                  fontWeight: 500,
+                }}
+                >
                 Купить советы
+                </span>
               </Button>
             )}
           </div>
-          {lastOrderId && <Caption>Оплачено. Заказ: {lastOrderId}</Caption>}
+          {lastOrderId && <Caption>
+             <span
+                style={{
+                  fontFamily: 'Montserrat, sans-serif',
+                  fontWeight: 500,
+                }}
+                >
+                   Оплачено. Заказ: {lastOrderId} 
+                   </span>
+                   </Caption>}
           {error && (
             <Caption style={{ color: 'var(--vkui--color_text_negative)' }}>
+              <span
+                style={{
+                  fontFamily: 'Montserrat, sans-serif',
+                  fontWeight: 500,
+                }}
+                >
               Ошибка: {error}
+              </span>
             </Caption>
           )}
         </Group>
