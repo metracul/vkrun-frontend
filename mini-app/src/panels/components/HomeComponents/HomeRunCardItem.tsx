@@ -35,12 +35,11 @@ export const HomeRunCardItem: FC<Props> = ({
         marginTop: 8,
         position: 'relative',
         height: 187,
-        boxShadow: '0px 9.18px 27.53px rgba(149,157,165,0.2)',
-        background: 'var(--vkui--color_background_content)',
+        background: 'var(--run-card-color)',
         borderRadius: 12,
         overflow: 'hidden',
         display: 'flex',
-        border: '1.15px solid rgba(10, 16, 6, 1)',
+        border: '1.15px solid var(--run-card-border-color)',
       }}
     >
       {isMine && (

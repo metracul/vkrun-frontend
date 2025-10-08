@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
+
+/* Светлая тема — все платформы */
+.vkui.vkui--vkBase--light,
+.vkui.vkui--vkIOS--light,
+.vkui.vkui--vkCom--light {
+  --home-logo: url('/blackLogo.png');
+  --run-logo: url('/blackLogo.png');
+  --filters-icon-color: rgba(10, 16, 6, 0.3);
+  --background-panel-color: rgba(255, 255, 255, 1);
+  --city-button-background-color: rgba(255, 255, 255, 1);
+  --create-run-button-color: rgba(242, 242, 242, 1);
+  --run-card-color: rgba(246, 246, 246, 1);
+  --run-card-border-color: rgba(3, 4, 3, 1);
+}
+
+/* Тёмная тема — все платформы */
+.vkui.vkui--vkBase--dark,
+.vkui.vkui--vkIOS--dark,
+.vkui.vkui--vkCom--dark {
+  --home-logo: url('/neonLogo.png');
+  --run-logo: url('/neonLogo.png');
+  --filters-icon-color: rgba(246, 246, 246, 1);
+  --background-panel-color: rgba(3, 4, 3, 1);
+  --city-button-background-color: rgba(3, 4, 3, 1);
+  --create-run-button-color: rgba(50, 50, 50, 1);
+  --run-card-color: rgba(3, 4, 3, 1);
+   --run-card-border-color: rgba(246, 246, 246, 1);
+}

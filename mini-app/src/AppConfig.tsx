@@ -3,6 +3,7 @@ import { useAdaptivity, useAppearance, useInsets } from '@vkontakte/vk-bridge-re
 import { AdaptivityProvider, ConfigProvider, AppRoot } from '@vkontakte/vkui';
 import { RouterProvider } from '@vkontakte/vk-mini-apps-router';
 import '@vkontakte/vkui/dist/vkui.css';
+import './main.css'; // <-- ПЕРЕНЕСЕНО СЮДА, ПОСЛЕ vkui.css
 
 import { transformVKBridgeAdaptivity } from './utils';
 import { router } from './routes';

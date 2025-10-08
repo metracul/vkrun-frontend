@@ -1,4 +1,5 @@
-import {SimpleCell, Subhead, Avatar } from '@vkontakte/vkui';
+import React from 'react';
+import { SimpleCell, Subhead, Avatar } from '@vkontakte/vkui';
 import { Icon24User } from '@vkontakte/icons';
 
 type Item = {
@@ -9,29 +10,33 @@ type Item = {
 };
 
 type Props = {
-  count: number;
+  count: number; // оставлен для совместимости
   items: Item[];
 };
 
-export const ParticipantsGroup = ({items }: Props) => (
-  <div
-  style={{
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 10,
-  }}> 
+export const ParticipantsGroup: React.FC<Props> = ({ items }) => (
   <div
     style={{
-      fontFamily: "Montserrat, sans-serif",
-      fontWeight: 500,
-      fontSize: "16px",
-      color: "rgba(3, 4, 3, 1)",
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 10,
     }}
   >
-    БЕГУНЫ
-  </div>
+    <div
+      style={{
+        fontFamily: 'Montserrat, sans-serif',
+        fontWeight: 500,
+        fontSize: '16px',
+        color: 'var(--vkui--color_text_primary)', // адаптивный цвет
+      }}
+    >
+      БЕГУНЫ
+    </div>
+
     {items.length === 0 ? (
-      <SimpleCell><Subhead>Пока никого</Subhead></SimpleCell>
+      <SimpleCell>
+        <Subhead>Пока никого</Subhead>
+      </SimpleCell>
     ) : (
       items.map((it) => (
         <SimpleCell
@@ -40,7 +45,13 @@ export const ParticipantsGroup = ({items }: Props) => (
           href={it.href}
           target="_blank"
           rel="noopener noreferrer"
-          before={<Avatar size={40} src={it.avatarUrl} fallbackIcon={<Icon24User />} />}
+          before={
+            <Avatar
+              size={40}
+              src={it.avatarUrl}
+              fallbackIcon={<Icon24User />}
+            />
+          }
           role="link"
           aria-label={`Открыть профиль: ${it.name}`}
         >

@@ -11,7 +11,12 @@ type Props = {
 
 export const InfoGroup = ({
   startAddress,
-  date, time, cityName, districtName, pace, distance,
+  date,
+  time,
+  cityName,
+  districtName,
+  pace,
+  distance,
 }: Props) => (
   <div
     style={{
@@ -32,7 +37,7 @@ export const InfoGroup = ({
           fontSize: 20,
           lineHeight: '100%',
           letterSpacing: 0,
-          color: 'rgba(10, 16, 6, 1)',
+          color: 'var(--vkui--color_text_primary)',
         }}
       >
         <span
@@ -42,7 +47,7 @@ export const InfoGroup = ({
             height: 10,
             borderRadius: '50%',
             background: 'rgba(225, 255, 0, 1)',
-            border: '1px solid rgba(10, 16, 6, 1)',
+            border: '1px solid var(--vkui--color_text_primary)',
             boxSizing: 'border-box',
             display: 'inline-block',
             flex: '0 0 auto',
@@ -52,7 +57,7 @@ export const InfoGroup = ({
       </div>
     </div>
 
-    {/* Адрес старта */}
+    {/* Адрес старта — теперь адаптивный цвет */}
     <div
       style={{
         fontFamily: 'Montserrat, sans-serif',
@@ -61,7 +66,7 @@ export const InfoGroup = ({
         lineHeight: '100%',
         letterSpacing: 0,
         textAlign: 'center',
-        color: 'rgba(10, 16, 6, 1)',
+        color: 'var(--vkui--color_text_subhead)', // автоматическая адаптация
       }}
     >
       {startAddress || '—'}
@@ -75,7 +80,7 @@ export const InfoGroup = ({
         fontSize: 18,
         lineHeight: '100%',
         letterSpacing: 0,
-        color: 'rgba(10, 16, 6, 1)',
+        color: 'var(--vkui--color_text_primary)',
       }}>Дата пробежки</div>
       <div style={{
         fontFamily: 'Montserrat, sans-serif',
@@ -83,7 +88,7 @@ export const InfoGroup = ({
         fontSize: 18,
         lineHeight: '100%',
         letterSpacing: 0,
-        color: 'rgba(10, 16, 6, 0.5)',
+        color: 'var(--vkui--color_text_secondary)',
       }}>{date}</div>
     </div>
 
@@ -95,7 +100,7 @@ export const InfoGroup = ({
         fontSize: 18,
         lineHeight: '100%',
         letterSpacing: 0,
-        color: 'rgba(10, 16, 6, 1)',
+        color: 'var(--vkui--color_text_primary)',
       }}>Время старта</div>
       <div style={{
         fontFamily: 'Montserrat, sans-serif',
@@ -103,7 +108,7 @@ export const InfoGroup = ({
         fontSize: 18,
         lineHeight: '100%',
         letterSpacing: 0,
-        color: 'rgba(10, 16, 6, 0.5)',
+        color: 'var(--vkui--color_text_secondary)',
       }}>{time}</div>
     </div>
 
@@ -115,7 +120,7 @@ export const InfoGroup = ({
         fontSize: 18,
         lineHeight: '100%',
         letterSpacing: 0,
-        color: 'rgba(10, 16, 6, 1)',
+        color: 'var(--vkui--color_text_primary)',
       }}>Дистанция</div>
       <div style={{
         fontFamily: 'Montserrat, sans-serif',
@@ -123,7 +128,7 @@ export const InfoGroup = ({
         fontSize: 18,
         lineHeight: '100%',
         letterSpacing: 0,
-        color: 'rgba(10, 16, 6, 0.5)',
+        color: 'var(--vkui--color_text_secondary)',
       }}>{distance}</div>
     </div>
 
@@ -135,7 +140,7 @@ export const InfoGroup = ({
         fontSize: 18,
         lineHeight: '100%',
         letterSpacing: 0,
-        color: 'rgba(10, 16, 6, 1)',
+        color: 'var(--vkui--color_text_primary)',
       }}>Средний темп</div>
       <div style={{
         fontFamily: 'Montserrat, sans-serif',
@@ -143,7 +148,7 @@ export const InfoGroup = ({
         fontSize: 18,
         lineHeight: '100%',
         letterSpacing: 0,
-        color: 'rgba(10, 16, 6, 0.5)',
+        color: 'var(--vkui--color_text_secondary)',
       }}>{pace || '—'}</div>
     </div>
   </div>

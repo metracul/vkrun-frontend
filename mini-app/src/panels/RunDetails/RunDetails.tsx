@@ -1,3 +1,4 @@
+// RunDetails.tsx
 import { FC, useState } from 'react';
 import {
   Panel,
@@ -68,15 +69,27 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
         style={{
           display: 'flex',
           flexDirection: 'column',
-          marginTop: 40,
           gap: 12,
           padding: 12,
           minHeight: '100%',
           boxSizing: 'border-box',
-          backgroundColor: 'var(--vkui--color_background_content)',
+          // ключевое: фон теперь из токена VKUI, который автоматически меняется с темой
+          backgroundColor: 'var(--background-panel-color)',
         }}
       >
-        <img src="/blackLogo.png" alt="Логотип" style={{ width: 36.56, height: 36.71, opacity: 50 }} />
+        {/* Логотип через CSS-переменную --run-logo (её значение меняется по теме) */}
+        <div
+          style={{
+            width: 36.56,
+            height: 36.71,
+            opacity: 0.5,
+            marginTop: 40,
+            backgroundImage: 'var(--run-logo)',
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: 'contain',
+          }}
+        />
+
         <div
           style={{
             display: 'flex',
@@ -92,12 +105,11 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
         >
           ТИП ПРОБЕЖКИ
         </div>
+
         {isLoading && <CreatorCard.Skeleton />}
 
         {isError && (
-          <Placeholder
-            action={<Button mode="secondary" onClick={refetch}>Повторить</Button>}
-          >
+          <Placeholder action={<Button mode="secondary" onClick={refetch}>Повторить</Button>}>
             Не удалось получить данные
           </Placeholder>
         )}
@@ -105,35 +117,36 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
         {!isLoading && !isError && !data && <Placeholder>Пробежка не найдена</Placeholder>}
 
         {!isLoading && !isError && data && (
-        <>
-          <Spacing size={24} />
+          <>
+            <Spacing size={24} />
 
-          <InfoGroup {...info} />
+            <InfoGroup {...info} />
 
-          <Spacing size={12} />
+            <Spacing size={12} />
 
-          <CreatorCard {...creatorCard} />
+            <CreatorCard {...creatorCard} />
 
-          <Spacing size={12} />
+            <Spacing size={12} />
 
-          <RunDescription text={data?.notes ?? ''} />
+            <RunDescription text={data?.notes ?? ''} />
 
-          <Spacing size={12} />
+            <Spacing size={12} />
 
-          <ParticipantsGroup {...participants} />
+            <ParticipantsGroup {...participants} />
 
-          <Spacing size={12} />
+            <Spacing size={12} />
 
-          <ActionButton
-            mode={actions.buttonMode}
-            label={actions.buttonLabel}
-            disabled={actions.buttonMode === 'join' ? actions.isJoining : actions.isLeaving}
-            onClick={actions.buttonMode === 'join' ? handleJoin : actions.onLeave}
-          />
+            <ActionButton
+              mode={actions.buttonMode}
+              label={actions.buttonLabel}
+              disabled={actions.buttonMode === 'join' ? actions.isJoining : actions.isLeaving}
+              onClick={actions.buttonMode === 'join' ? handleJoin : actions.onLeave}
+            />
 
-          <Spacing size={12} />
-        </>
-      )}
+            <Spacing size={12} />
+          </>
+        )}
+
         <Button
           mode="secondary"
           onClick={() => routeNavigator.push('/')}
@@ -146,10 +159,10 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
             lineHeight: '100%',
             letterSpacing: '0',
             textAlign: 'center',
-            color: 'rgba(3, 4, 3, 0.5)',
+            color: 'var(--vkui--color_text_secondary)',
           }}
         >
-          Назад
+          НАЗАД
         </Button>
       </Group>
 

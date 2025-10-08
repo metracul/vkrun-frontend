@@ -15,7 +15,7 @@ export const RunDescription = ({ text }: Props) => {
         fontSize: 14,
         lineHeight: '13px',
         letterSpacing: 0,
-        color: 'rgba(10, 16, 6, 0.5)',
+        color: 'var(--vkui--color_text_secondary)',
         whiteSpace: 'pre-wrap',
         wordBreak: 'break-word',
       }}
@@ -24,3 +24,4 @@ export const RunDescription = ({ text }: Props) => {
     </div>
   );
 };
+

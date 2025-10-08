@@ -47,22 +47,25 @@ const CreatorCardBase: React.FC<Props> = ({ creatorName, creatorHref, avatarUrl 
         width: '100%',
       }}
     >
+      {/* Имя — в тёмной теме станет rgba(246, 246, 246, 1) через var(--vkui--color_text_primary) */}
       <div
         style={{
           fontFamily: 'Montserrat, sans-serif',
           fontWeight: 400,
           fontSize: 20,
-          color: 'rgba(10, 16, 6, 1)',
+          color: 'var(--vkui--color_text_primary)',
         }}
       >
         {creatorName}
       </div>
+
+      {/* Лейбл — в тёмной теме станет rgba(246, 246, 246, 0.5) через var(--vkui--color_text_secondary) */}
       <div
         style={{
           fontFamily: 'Montserrat, sans-serif',
           fontWeight: 400,
           fontSize: 14,
-          color: 'rgba(10, 16, 6, 0.5)',
+          color: 'var(--vkui--color_text_secondary)',
           marginTop: 3,
         }}
       >

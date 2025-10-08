@@ -1,3 +1,4 @@
+// Home.tsx
 import { FC, useEffect, useState } from 'react';
 import {
   Panel,
@@ -6,7 +7,7 @@ import {
   Caption,
   Card,
 } from '@vkontakte/vkui';
-import {  Icon24AddOutline  } from '@vkontakte/icons';
+import { Icon24AddOutline } from '@vkontakte/icons';
 import { usePlatform } from '@vkontakte/vkui';
 import {
   useRouteNavigator,
@@ -92,12 +93,11 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete, openCi
         style={{
           display: 'flex',
           flexDirection: 'column',
-          marginTop: 40,
           gap: 12,
           padding: 12,
           minHeight: '100%',
           boxSizing: 'border-box',
-          backgroundColor: 'var(--vkui--color_background_content)',
+          backgroundColor: 'var(--background-panel-color)',
         }}
       >
         <Group mode="plain" separator="hide">
@@ -105,11 +105,21 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete, openCi
             style={{
               display: 'flex',
               alignItems: 'center',
+              marginTop: 40,
               justifyContent: 'space-between',
             }}
           >
-            {/* Логотип слева */}
-            <img src="/blackLogo.png" alt="Логотип" style={{ width: 36.56, height: 36.71, opacity: 50 }} />
+            {/* Логотип слева через CSS-переменную --home-logo */}
+            <div
+              style={{
+                width: 36.56,
+                height: 36.71,
+                opacity: 0.5,
+                backgroundImage: 'var(--home-logo)',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: 'contain',
+              }}
+            />
 
             {/* Справа блок: кнопка города + фильтры */}
             <div
@@ -135,7 +145,7 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete, openCi
                   border: '1.15px solid transparent',
                   borderRadius: 8,
                   backgroundImage: `
-                    linear-gradient(var(--vkui--color_background_content), var(--vkui--color_background_content)),
+                    linear-gradient(var(--city-button-background-color), var(--city-button-background-color)),
                     linear-gradient(90deg,
                       rgba(123,70,248,1) 0%,
                       rgba(206,185,255,1) 33%,
@@ -196,52 +206,52 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete, openCi
 
         {/* Кнопка "Создать пробежку" */}
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}>
-        <Button
-          mode="secondary"
-          size="l"
-          onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}
-          style={{
-            width: isDesktop ? 366 : '100%',
-            borderRadius: 12,
-            backgroundColor: 'var(--vkui--color_background_secondary)',
-          }}
-        >
-          <div
+          <Button
+            mode="secondary"
+            size="l"
+            onClick={() => routeNavigator.push(DEFAULT_VIEW_PANELS.CREATE)}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 5,
-              width: '100%',
+              width: isDesktop ? 366 : '100%',
+              borderRadius: 12,
+              backgroundColor: 'var(--create-run-button-color)',
             }}
           >
-            <Icon24AddOutline
+            <div
               style={{
-                display: 'block',
-                width: 24,
-                height: 24,
-                color: 'var(--vkui--color_text_primary)',
-              }}
-            />
-            <span
-              style={{
-                fontFamily: 'Montserrat, sans-serif',
-                fontWeight: 500,
-                fontSize: 16,
-                lineHeight: '16px',
-                letterSpacing: 0,
-                textAlign: 'center',
-                textTransform: 'uppercase',
-                color: 'var(--vkui--color_text_primary)',
-                display: 'block',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 5,
+                width: '100%',
               }}
             >
-              Создать пробежку
-            </span>
-          </div>
-        </Button>
+              <Icon24AddOutline
+                style={{
+                  display: 'block',
+                  width: 24,
+                  height: 24,
+                  color: 'var(--vkui--color_text_primary)',
+                }}
+              />
+              <span
+                style={{
+                  fontFamily: 'Montserrat, sans-serif',
+                  fontWeight: 500,
+                  fontSize: 16,
+                  lineHeight: '16px',
+                  letterSpacing: 0,
+                  textAlign: 'center',
+                  textTransform: 'uppercase',
+                  color: 'var(--vkui--color_text_primary)',
+                  display: 'block',
+                }}
+              >
+                Создать пробежку
+              </span>
+            </div>
+          </Button>
         </div>
-        
+
         {/* Кнопки под селектором */}
         <Group mode="plain" separator="hide">
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
