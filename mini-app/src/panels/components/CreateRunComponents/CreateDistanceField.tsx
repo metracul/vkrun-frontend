@@ -1,7 +1,6 @@
 import { FC } from 'react';
 import { Footnote, Input } from '@vkontakte/vkui';
 import { Icon24Location } from '@vkontakte/icons';
-import base from '../CreateRunComponentsCss/FieldBase.module.css';
 import styles from '../CreateRunComponentsCss/CreateDistanceField.module.css';
 
 export const CreateDistanceField: FC<{
@@ -12,13 +11,17 @@ export const CreateDistanceField: FC<{
   maxNote?: boolean;
 }> = ({ value, onChange, error, touched, maxNote }) => {
   const hasValue = value?.trim().length > 0;
+  const isInvalid = Boolean(touched && error);
 
   return (
-    <>
+    <div className={styles.field}>
       <div
-        className={`${base.root} ${base.pad10} ${styles.wrap} ${styles.withLeftIcon} ${
-          hasValue ? styles.hasValue : ''
-        }`}
+        className={[
+          styles.wrap,
+          styles.withLeftIcon,
+          hasValue ? styles.hasValue : '',
+          isInvalid ? styles.invalid : '',
+        ].join(' ')}
       >
         {/* иконка слева */}
         <span className={styles.icon} aria-hidden>
@@ -27,25 +30,25 @@ export const CreateDistanceField: FC<{
 
         <Input
           name="distance"
-          placeholder="Дистанция"
+          placeholder="Длина"
           inputMode="decimal"
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          status={error && touched ? 'error' : 'default'}
+          status={isInvalid ? 'error' : 'default'}
         />
       </div>
 
       {touched && error && (
-        <Footnote style={{ color: 'var(--vkui--color_text_negative)' }}>
-          {error} Пожалуйста, измените ввод.
+        <Footnote className={styles.errorNote}>
+          {error}
         </Footnote>
       )}
       {maxNote && !error && (
-        <Footnote style={{ color: 'var(--vkui--color_text_secondary)' }}>
+        <Footnote className={styles.hintNote}>
           Введена максимальная дистанция: 300&nbsp;км.
         </Footnote>
       )}
-    </>
+    </div>
   );
 };

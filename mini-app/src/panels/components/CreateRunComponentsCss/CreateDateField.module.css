@@ -1,3 +1,12 @@
+/* Единый контейнер, чтобы поле и надпись были одним grid-item */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;            /* расстояние между полем и подписью */
+  width: 100%;
+  min-width: 0;        /* чтобы не выламывало колонки грида */
+}
+
 .wrap {
   position: relative;
 }
@@ -18,14 +27,22 @@
   line-height: 100%;
   letter-spacing: 0;
   color: rgba(181, 183, 180, 0.5);
+  transition: opacity 0.12s ease, visibility 0.12s ease;
 }
 
-/* По умолчанию маска видима */
+.phIcon {
+  margin-right: 6px;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+/* По умолчанию инпут маски видим */
 .wrap :global(.vkuiDateInput__input) {
   opacity: 1;
-  transition: opacity .12s ease;
+  transition: opacity 0.12s ease;
 }
 
+/* Радиусы VKUI-обёртки */
 .vkuiFormField__host {
   border-radius: 12px !important;
 }
@@ -33,7 +50,7 @@
   border-radius: 12px !important;
 }
 
-/* Пока поле ПУСТОЕ и НЕ в фокусе — скрываем маску, оставляя кликабельность */
+/* Пока поле ПУСТОЕ и НЕ в фокусе — скрываем маску (инпут) */
 .wrap:not(.hasValue):not(:focus-within) :global(.vkuiDateInput__input) {
   opacity: 0;
 }
@@ -44,3 +61,39 @@
   opacity: 0;
   visibility: hidden;
 }
+
+/* Стили подписи об ошибке */
+.errorNote {
+  color: var(--vkui--color_text_negative);
+  line-height: 1.2;
+}
+
+/* Стиль для текста и маски в DateInput */
+.wrap :global(.vkuiDateInput__input),
+.wrap :global(.vkuiDateInput__input::placeholder) {
+  font-family: Montserrat, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 20px !important;
+  line-height: 100% !important;
+  letter-spacing: 0 !important;
+}
+
+/* Сначала ошибка */
+.invalid {
+  border-color: var(--error-border-color) !important;
+}
+
+/* Только если нет ошибки, но есть значение */
+.hasValue:not(.invalid) {
+  border-color: var(--border-selected-color) !important;
+}
+
+/* Скрыть кнопку очистки у этого поля даты */
+.wrap :global([data-testid="date-clear-hide"]) {
+  display: none !important;
+}
+
+/* Подстраховка, если тест-id/локаль изменятся */
+.wrap :global(.vkuiDateInput__clear) { display: none !important; }
+/* или по aria-label (зависит от языка) */
+/* .wrap :global(button[aria-label="Очистить поле"]) { display: none !important; } */

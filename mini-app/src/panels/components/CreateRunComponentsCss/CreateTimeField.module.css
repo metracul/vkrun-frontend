@@ -71,3 +71,17 @@
     caret-color: auto;
   }
 }
+/* --- текст инпута при наличии значения --- */
+.hasValue :global(input[type="time"]) {
+  color: var(--selector-text-color) !important;
+  -webkit-text-fill-color: var(--selector-text-color) !important; /* для iOS/WebKit */
+}
+
+/* --- иконка при наличии значения --- */
+.hasValue .icon {
+  color: var(--selector-text-color) !important;
+}
+
+.hasValue {
+  border-color: var(--border-selected-color) !important;
+}

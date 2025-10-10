@@ -20,7 +20,8 @@ export type RunCard = {
   title?: string;
   notes?: string;
   participants?: RunParticipant[];
-  startAddress?: string; // <-- добавлено
+  startAddress?: string;
+  runTypeName?: string;
 };
 
 type RunDto = {
@@ -36,8 +37,10 @@ type RunDto = {
   paceSecPerKm?: number | null;
   description?: string | null;
   participants?: Array<{ id: number; vkUserId: number }>;
-  startAddress?: string | null; // <-- добавлено
+  startAddress?: string | null;
+  runTypeName?: string | null;
 };
+
 
 // ---- Утилиты нормализации ----
 function secToPace(sec?: number | null): string {
@@ -61,8 +64,10 @@ function normalize(dto: RunDto): RunCard {
     notes: dto.description || '',
     participants: dto.participants?.map(p => ({ id: p.id, vkUserId: p.vkUserId })),
     startAddress: dto.startAddress ?? undefined,
+    runTypeName: dto.runTypeName ?? undefined,
   };
 }
+
 
 // ---- Подпись (для изменяющих запросов) ----
 /** SHA-256 от строки, hex lower */

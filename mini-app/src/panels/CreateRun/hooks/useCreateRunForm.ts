@@ -38,17 +38,21 @@ export type CreateRunFormState = {
   pace: string;        // MM:SS
   date: Date | null;
   timeStr: string;     // HH:MM
+  startAddress: string; // NEW
+  runType: string;      // NEW
 };
 
 export function useCreateRunForm() {
-  const [state, setState] = useState<CreateRunFormState>({
+    const [state, setState] = useState<CreateRunFormState>({
     city: undefined,
     district: '',
     desc: '',
     distanceStr: '',
-    pace: '05:30',
+    pace: '',
     date: null,
     timeStr: '',
+    startAddress: '', // NEW
+    runType: '',      // NEW
   });
 
   const [loading, setLoading] = useState(false);
@@ -62,6 +66,8 @@ export function useCreateRunForm() {
   const [dateTouched, setDateTouched] = useState(false);
   const [descTouched, setDescTouched] = useState(false);
   const [timeTouched, setTimeTouched] = useState(false);
+  const [startAddressError, setStartAddressError] = useState<string | null>(null);
+  const [startAddressTouched, setStartAddressTouched] = useState(false);
 
   // Флаг: достигнут максимум 300 км
   const [distanceMaxed, setDistanceMaxed] = useState(false);
@@ -90,6 +96,13 @@ export function useCreateRunForm() {
     if (!isFinite(km)) return 'Некорректное число.';
     if (km <= 0) return 'Дистанция должна быть больше 0 км.';
     if (km > 300) return 'Максимальная дистанция — 300 км.'; // страховка, хотя выше клампим
+    return null;
+  }, []);
+
+  const validateStartAddress = useCallback((text: string): string | null => {
+    const v = text.trim();
+    if (!v) return 'Укажите адрес старта.';
+    if (v.length > 40) return 'Не более 40 символов.';
     return null;
   }, []);
 
@@ -127,8 +140,12 @@ export function useCreateRunForm() {
     const hasDistance = validateDistance(state.distanceStr) === null;
     const hasDate = validateDateNotPast(state.date) === null;
     const hasTime = parseTime(state.timeStr) !== null;
+    const hasRunType = state.runType.trim().length > 0;
+    const hasStartAddress = validateStartAddress(state.startAddress) === null;
 
-    if (!(hasCity && hasDistrict && hasPace && hasDistance && hasDate && hasTime)) return false;
+    if (!(hasCity && hasDistrict && hasPace && hasDistance && hasDate && hasTime && hasRunType && hasStartAddress)) {
+      return false;
+    }
 
     const now = new Date();
     const dt = state.date && combineDateTime(state.date, state.timeStr);
@@ -136,7 +153,9 @@ export function useCreateRunForm() {
     if (state.date!.toDateString() === now.toDateString() && dt < now) return false;
 
     return true;
-  }, [state, paceSec, validateDistance, validateDateNotPast]);
+  }, [state, paceSec, validateDistance, validateDateNotPast, validateStartAddress]);
+
+
 
   // Хэндлеры
   const setCity = (city?: string) => setState((s) => ({ ...s, city, district: '' }));
@@ -170,6 +189,15 @@ export function useCreateRunForm() {
 
   const setPace = (pace: string) => setState((s) => ({ ...s, pace }));
 
+  const setStartAddress = (startAddress: string) => {
+    if (!startAddressTouched) setStartAddressTouched(true);
+    setStartAddressError(validateStartAddress(startAddress));
+    setState((s) => ({ ...s, startAddress }));
+  };
+
+  const setRunType = (runType: string) =>
+    setState((s) => ({ ...s, runType }));
+
   const setDate = (value?: Date) => {
     setDateTouched(true);
     const next = value ?? null;
@@ -195,6 +223,8 @@ export function useCreateRunForm() {
     setPace,
     setDate,
     setTimeStr,
+    setStartAddress,
+    setRunType,
 
     // UI
     loading,
@@ -205,10 +235,12 @@ export function useCreateRunForm() {
     dateError,
     descError,
     timeError,
+    startAddressError,
     distanceTouched,
     dateTouched,
     descTouched,
     timeTouched,
+    startAddressTouched,
 
     // computed
     startOfToday,

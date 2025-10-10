@@ -22,6 +22,10 @@
   --background-modal-city-button: rgba(246, 246, 246, 1);
   --modal-city-text-button: rgba(181, 183, 180, 1);
   --selector-text-color: rgba(3, 4, 3, 1);
+  --blocked-district-border-color: rgba(224, 224, 224, 0.5);
+  --blocked-district-placeholder-color: rgba(224, 224, 224, 0.5);
+  --border-selected-color: rgba(225, 255, 0, 1);
+  --error-border-color: rgba(255, 0, 0, 1);
 }
 
 /* Тёмная тема — все платформы */
@@ -45,4 +49,8 @@
    --background-modal-city-button: rgba(50, 50, 50, 1);
    --modal-city-text-button: rgba(212, 213, 211, 1);
    --selector-text-color: rgba(246, 246, 246, 1);
+   --blocked-district-border-color: rgba(50, 50, 50, 1);
+   --blocked-district-placeholder-color: rgba(50, 50, 50, 1);
+   --border-selected-color: rgba(225, 255, 0, 1);
+   --error-border-color: rgba(255, 0, 0, 1);
 }

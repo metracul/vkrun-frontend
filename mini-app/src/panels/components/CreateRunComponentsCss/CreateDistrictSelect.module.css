@@ -1,12 +1,14 @@
-.wrap { position: relative; width: 100%; }
-.withLeftIcon :global(.vkuiFormField__scrollContainer) { padding-inline-start: 44px !important; }
-.icon {
-  position: absolute; inset-block: 0; left: 16px;
-  width: 24px; height: 24px; margin: auto 0; pointer-events: none;
-  background-color: rgba(181,183,180,.5);             /* тот же цвет, что текст */
-  -webkit-mask: url(/icons/place_outline_20.svg) center/contain no-repeat;
-          mask: url(/icons/place_outline_20.svg) center/contain no-repeat;
-          
+.wrap {
+  position: relative;
+  width: 100%;
+}
+
+.wrap :global(.vkuiCustomSelectInput__el) {
+  padding-left: 12px !important;
+}
+
+.withLeftIcon :global(.vkuiFormField__scrollContainer) {
+  padding-inline-start: 44px !important;
 }
 
 /* Когда есть выбранное значение — красим текст селекта переменной */
@@ -19,6 +21,22 @@
   color: var(--selector-text-color) !important;
 }
 
-.hasValue .icon {
-  background-color: var(--selector-text-color) !important;
+
+.blocked {
+  border-color: var(--blocked-district-border-color) !important;
+}
+
+/* меняем плейсхолдер у CustomSelect, если нет города */
+.blocked :global(.vkuiCustomSelectInput__title) {
+  color: var(--blocked-district-placeholder-color) !important;
+}
+
+.blocked :global(input::placeholder),
+.blocked :global(textarea::placeholder) {
+  color: var(--blocked-district-placeholder-color) !important;
+  opacity: 1 !important;
+}
+
+.hasValue {
+  border-color: var(--border-selected-color) !important;
 }

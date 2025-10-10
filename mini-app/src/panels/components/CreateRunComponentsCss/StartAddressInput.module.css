@@ -1,0 +1,27 @@
+.startAddressInput :global(.vkuiFormField__border) {
+  display: none;
+}
+
+.startAddressInput :global(.vkuiInput__el) {
+  border: 1px solid var(--create-border-color);
+  border-radius: 20px;
+
+  font-family: Montserrat, sans-serif;
+  font-weight: 500;
+  font-size: 20px;
+
+  color: var(--selector-text-color);
+
+  padding: 22px 20px;
+}
+
+/* плейсхолдер */
+.startAddressInput :global(.vkuiInput__el::placeholder) {
+  color: rgba(181, 183, 180, 0.5);
+  opacity: 1;
+}
+
+/* === новое правило: если есть введённый текст, рамка — --border-selected-color === */
+.startAddressInput.filled :global(.vkuiInput__el) {
+  border-color: var(--border-selected-color);
+}

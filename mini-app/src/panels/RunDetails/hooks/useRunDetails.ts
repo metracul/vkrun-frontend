@@ -119,6 +119,7 @@ export function useRunDetails() {
     },
 
     info: {
+      runTypeName: data?.runTypeName || '',
       startAddress: data?.startAddress || '',
       date: formatDate(data?.dateISO),
       time: formatTime(data?.dateISO),

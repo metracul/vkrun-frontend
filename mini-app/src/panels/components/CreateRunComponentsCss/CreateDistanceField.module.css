@@ -1,6 +1,20 @@
+/* Единый контейнер — один grid-item */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;          /* расстояние между полем и подписью */
+  width: 100%;
+  min-width: 0;
+  align-self: start; /* чтобы ячейка не растягивала соседние */
+}
+
 .wrap { 
   position: relative; 
   width: 100%; 
+  box-sizing: border-box;
+  border: 1.15px solid #B5B7B4;
+  border-radius: 12px;
+  background: transparent;
 }
 
 /* смещаем содержимое под иконку */
@@ -17,23 +31,62 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  color: rgba(181, 183, 180, 0.5); /* серый как плейсхолдер */
+  color: rgba(181, 183, 180, 0.5);
   z-index: 2;
 }
 
-/* плейсхолдер всегда rgba(181,183,180,0.5) */
-.wrap :global(input::placeholder) {
+/* === СТИЛИ ДЛЯ ТЕКСТА И ПЛЕЙСХОЛДЕРА === */
+.wrap :global(.vkuiInput__el),
+.wrap :global(.vkuiInput__el::placeholder) {
+  font-family: Montserrat, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 20px !important;
+  line-height: 100% !important;
+
+  display: flex;
+  align-items: center; /* вертикальное центрирование */
+}
+
+/* цвет плейсхолдера */
+.wrap :global(.vkuiInput__el::placeholder) {
   color: rgba(181, 183, 180, 0.5) !important;
   opacity: 1 !important;
+}
+
+/* WebKit fix: placeholder */
+.wrap :global(.vkuiInput__el:placeholder-shown) {
+  color: rgba(181, 183, 180, 0.5) !important;
+  -webkit-text-fill-color: rgba(181, 183, 180, 0.5) !important;
 }
 
 /* когда введено значение — перекрасить текст и иконку */
 .hasValue :global(.vkuiInput__el),
 .hasValue :global(input) {
   color: var(--selector-text-color) !important;
-  -webkit-text-fill-color: var(--selector-text-color) !important; /* iOS/WebKit */
+  -webkit-text-fill-color: var(--selector-text-color) !important;
 }
 
 .hasValue .icon {
   color: var(--selector-text-color) !important;
+}
+
+/* бордер при выбранном значении */
+.hasValue {
+  border-color: var(--border-selected-color) !important;
+}
+
+/* бордер при ошибке валидации */
+.invalid {
+  border-color: var(--error-border-color) !important;
+}
+
+/* подписи */
+.errorNote {
+  color: var(--vkui--color_text_negative);
+  line-height: 1.2;
+}
+
+.hintNote {
+  color: var(--vkui--color_text_secondary);
+  line-height: 1.2;
 }

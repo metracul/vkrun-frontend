@@ -15,6 +15,8 @@ export {CreateSubmitButton} from './CreateRunComponents/CreateSubmitButton';
 export {CreateSummaryRow} from './CreateRunComponents/CreateSummaryRow';
 export {CreateTimeField} from './CreateRunComponents/CreateTimeField';
 export {CreateBackButton} from './CreateRunComponents/CreateBackButton';
+export {StartAddressInput} from './CreateRunComponents/StartAddressInput';
+export {RunTypeSelect} from './CreateRunComponents/RunTypeSelect';
 
 
 export {ActionButton} from './RunDetailsComponents/ActionButton';

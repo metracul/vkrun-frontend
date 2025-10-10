@@ -18,8 +18,14 @@ export const CreateDistrictSelect: FC<{
   }, [city]);
 
   return (
-   <div
-  className={`${base.root} ${base.pad16} ${styles.wrap} ${styles.withLeftIcon} ${value ? styles.hasValue : ''}`}
+    <div
+    className={[
+      base.root,
+      base.pad16,
+      styles.wrap,
+      value ? styles.hasValue : '',
+      !city ? styles.blocked : '',
+    ].join(' ')}
   >
     <span className={styles.icon} aria-hidden />
     <CustomSelect
@@ -27,15 +33,13 @@ export const CreateDistrictSelect: FC<{
       options={options}
       value={value ?? ''}
       onChange={(e) => onChange((e.target as HTMLSelectElement).value)}
-      placeholder={city ? 'Начните вводить район' : 'Сначала выберите город'}
+      placeholder="Название района"
       disabled={!city}
       searchable
       filterFn={filterFn}
       allowClearButton
       renderOption={({ option, ...rest }) => <CustomSelectOption {...rest} />}
-    />
+  />
   </div>
-
-
   );
 };

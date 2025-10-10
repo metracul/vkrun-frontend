@@ -1,4 +1,5 @@
 type Props = {
+  runTypeName?: string;
   startAddress?: string;
   date: string;
   time: string;
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export const InfoGroup = ({
+  runTypeName,
   startAddress,
   date,
   time,
@@ -25,19 +27,37 @@ export const InfoGroup = ({
       gap: 10,
     }}
   >
+    {/* Тип пробежки (заголовок) */}
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        fontFamily: 'Montserrat, sans-serif',
+        fontWeight: 600,
+        fontStyle: 'normal',
+        fontSize: 28,
+        lineHeight: '100%',
+        letterSpacing: 0,
+        marginBottom: 28,
+        textTransform: 'uppercase',
+      }}
+    >
+      {runTypeName || 'ТИП ПРОБЕЖКИ'}
+    </div>
+
     {/* Город + район с кружком слева */}
     <div style={{ display: 'flex', justifyContent: 'center' }}>
       <div
         style={{
-          display: 'flex',
+          display: 'inline-flex', 
           alignItems: 'center',
-          gap: 10,
           fontFamily: 'Montserrat, sans-serif',
           fontWeight: 500,
           fontSize: 20,
           lineHeight: '100%',
           letterSpacing: 0,
           color: 'var(--vkui--color_text_primary)',
+          textAlign: 'center',
         }}
       >
         <span
@@ -53,11 +73,13 @@ export const InfoGroup = ({
             flex: '0 0 auto',
           }}
         />
-        <span>{cityName || '—'}, {districtName || '—'}</span>
+        <span style={{ marginLeft: 7 }}>
+          {cityName || '—'}, {districtName || '—'}
+        </span>
       </div>
     </div>
 
-    {/* Адрес старта — теперь адаптивный цвет */}
+    {/* Адрес старта */}
     <div
       style={{
         fontFamily: 'Montserrat, sans-serif',
@@ -66,14 +88,14 @@ export const InfoGroup = ({
         lineHeight: '100%',
         letterSpacing: 0,
         textAlign: 'center',
-        color: 'var(--vkui--color_text_subhead)', // автоматическая адаптация
+        color: 'var(--vkui--color_text_subhead)',
       }}
     >
       {startAddress || '—'}
     </div>
 
     {/* Дата */}
-    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2, }}>
       <div style={{
         fontFamily: 'Montserrat, sans-serif',
         fontWeight: 400,

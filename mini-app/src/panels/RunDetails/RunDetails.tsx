@@ -78,31 +78,17 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
       >
         {/* Логотип через CSS-переменную --run-logo (её значение меняется по теме) */}
         <div
-          style={{
-            width: 36.56,
-            height: 36.71,
-            marginTop: 40,
-            backgroundImage: 'var(--run-logo)',
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: 'contain',
-          }}
-        />
-
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            fontFamily: 'Montserrat, sans-serif',
-            fontWeight: 600,
-            fontStyle: 'normal',
-            fontSize: 28,
-            lineHeight: '100%',
-            letterSpacing: 0,
-            marginTop: 37,
-          }}
-        >
-          ТИП ПРОБЕЖКИ
-        </div>
+        onClick={() => routeNavigator.push('/')}
+        style={{
+          width: 36.56,
+          height: 36.71,
+          marginTop: 40,
+          backgroundImage: 'var(--run-logo)',
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: 'contain',
+          cursor: 'pointer',
+        }}
+      />
 
         {isLoading && <CreatorCard.Skeleton />}
 
@@ -116,7 +102,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
         {!isLoading && !isError && data && (
           <>
-            <Spacing size={28} />
+            <Spacing size={37} />
 
             <InfoGroup {...info} />
 

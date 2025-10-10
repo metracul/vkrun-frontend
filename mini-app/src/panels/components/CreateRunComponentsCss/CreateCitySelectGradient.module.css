@@ -1,5 +1,5 @@
 .wrap { position: relative; width: 100%; }
-.withLeftIcon :global(.vkuiFormField__scrollContainer) { padding-inline-start: 44px !important; }
+.withLeftIcon :global(.vkuiFormField__scrollContainer) { padding-inline-start: 36px !important; }
 .icon {
   position: absolute; inset-block: 0; left: 16px;
   width: 24px; height: 24px; margin: auto 0; pointer-events: none;
@@ -20,5 +20,9 @@
 
 .hasValue .icon {
   background-color: var(--selector-text-color) !important;
+}
+
+.hasValue {
+  border-color: var(--border-selected-color) !important;
 }
 

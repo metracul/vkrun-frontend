@@ -8,17 +8,30 @@ import styles from '../CreateRunComponentsCss/CreatePaceField.module.css';
 export const CreatePaceSelect: FC<{
   value: string;
   onChange: (v: string) => void;
-}> = ({ value, onChange }) => (
-  <div className={`${base.root} ${base.pad10} ${styles.wrap}`}>
-    {/* иконка слева */}
-    <span className={styles.icon}>
-      <Icon28SpeedometerStartOutline />
-    </span>
+}> = ({ value, onChange }) => {
+  const hasValue = Boolean(value);
 
-    <Select
-      value={value}
-      onChange={(e) => onChange((e.target as HTMLSelectElement).value)}
-      options={PACE_OPTIONS}
-    />
-  </div>
-);
+  return (
+    <div
+      className={[
+        base.root,
+        base.pad10,
+        styles.wrap,
+        hasValue ? styles.hasValue : '',
+      ].join(' ')}
+    >
+      {/* иконка слева */}
+      <span className={styles.icon}>
+        <Icon28SpeedometerStartOutline />
+      </span>
+
+      <Select
+        value={value || ''}
+        onChange={(e) => onChange((e.target as HTMLSelectElement).value)}
+        options={PACE_OPTIONS}
+        placeholder="Темп, /км"
+      />
+    </div>
+
+  );
+};

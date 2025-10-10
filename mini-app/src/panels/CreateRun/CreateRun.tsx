@@ -9,12 +9,15 @@ import { HttpError } from '../../api/createRunSecure';
 import { useCreateRunForm } from './hooks/useCreateRunForm';
 import {
   CreateCitySelect, CreateDistrictSelect, CreateDateField, CreateTimeField,
-  CreatePaceSelect, CreateDistanceField, CreateDescriptionField, CreateSubmitButton, CreateBackButton
+  CreatePaceSelect, CreateDistanceField, CreateDescriptionField, CreateSubmitButton, 
+  CreateBackButton, StartAddressInput, RunTypeSelect
 } from '../components';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setSelectedCity } from '../../store/cityFilterSlice';
 import { Icon12CancelCircleFillRed } from '@vkontakte/icons';
 import styles from './CreateRun.module.css';
+import { fetchRunTypes, RunTypeDto } from '../../api/fetchRunTypes';
+
 
 export const CreateRun: FC<NavIdProps> = ({ id }) => {
   const routeNavigator = useRouteNavigator();
@@ -24,6 +27,36 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
   const dispatch = useAppDispatch();
 
   const [snackbar, setSnackbar] = useState<React.ReactNode | null>(null);
+
+
+  const [runTypeOptions, setRunTypeOptions] = useState<RunTypeDto[]>([]);
+  const [runTypeLoading, setRunTypeLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setRunTypeLoading(true);
+        const data = await fetchRunTypes();
+        if (!cancelled) setRunTypeOptions(data);
+      } catch (e: any) {
+        // Покажем Snackbar об ошибке загрузки словаря
+        setSnackbar(
+          <Snackbar
+            onClose={() => setSnackbar(null)}
+            duration={4000}
+            before={<Icon12CancelCircleFillRed />}
+          >
+            Не удалось загрузить типы пробежек
+          </Snackbar>
+        );
+      } finally {
+        if (!cancelled) setRunTypeLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
 
   useEffect(() => {
     f.setCity(selectedCity ?? undefined);
@@ -44,6 +77,8 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
       distanceKm: km,
       paceSecPerKm: f.paceSec,
       description: f.state.desc || undefined,
+      runTypeKey: f.state.runType || undefined, 
+      startAddress: f.state.startAddress || undefined,
     } as const;
 
     try {
@@ -100,15 +135,17 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
         }}
       >
       <div
-          style={{
-            width: 36.56,
-            height: 36.71,
-            marginTop: 40,
-            backgroundImage: 'var(--create-logo)',
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: 'contain',
-          }}
-        />
+        onClick={() => routeNavigator.push('/')}
+        style={{
+          width: 36.56,
+          height: 36.71,
+          marginTop: 40,
+          backgroundImage: 'var(--create-logo)',
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: 'contain',
+          cursor: 'pointer',
+        }}
+      />
 
       <div
         style={{
@@ -143,6 +180,13 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
         </div>
 
         <div className={styles.gutters}>
+          <StartAddressInput
+            value={f.state.startAddress}
+            onChange={f.setStartAddress}
+          />
+        </div>
+
+        <div className={styles.gutters}>
           <div className={styles.grid}>
 
             <CreateDateField
@@ -173,11 +217,21 @@ export const CreateRun: FC<NavIdProps> = ({ id }) => {
         </div>
 
         <div className={styles.gutters}>
+          <RunTypeSelect
+            value={f.state.runType}
+            onChange={(v) => f.setRunType(v ?? '')}
+            options={runTypeOptions.map((x) => ({ label: x.displayName, value: x.key }))}
+            disabled={runTypeLoading}
+          />
+        </div>
+
+        <div className={styles.gutters}>
           <CreateDescriptionField value={f.state.desc} onChange={f.setDesc} error={f.descError} touched={f.descTouched} />
         </div>
          <Spacing size={24} />
 
         <CreateSubmitButton disabled={!f.isFormValid || f.loading} loading={f.loading} onClick={handleSubmit} />
+        <Spacing size={12} />
         <CreateBackButton onClick={() => routeNavigator.push('/')} />
         </Group>
 

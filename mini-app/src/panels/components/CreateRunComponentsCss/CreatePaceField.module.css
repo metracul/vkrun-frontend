@@ -7,7 +7,7 @@
   padding-inline-start: 44px !important;
 }
 
-/* иконка слева */
+/* иконка слева (по умолчанию — как placeholder) */
 .icon {
   position: absolute;
   inset-block: 0;
@@ -16,6 +16,30 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  color: rgba(181, 183, 180, 0.5); /* как placeholder */
+  color: rgba(181, 183, 180, 0.5);
   z-index: 2;
+}
+
+/* типографика текста и плейсхолдера внутри Select */
+.wrap :global(.vkuiCustomSelectInput__el),
+.wrap :global(.vkuiCustomSelectInput__title) {
+  font-family: Montserrat, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 20px !important;
+  line-height: 100% !important;
+  letter-spacing: 0 !important;
+}
+
+/* когда значение выбрано — окрашиваем рамку, текст и иконку */
+.hasValue {
+  border-color: var(--border-selected-color) !important;
+}
+
+.hasValue :global(.vkuiCustomSelectInput__el),
+.hasValue :global(.vkuiCustomSelectInput__title) {
+  color: var(--selector-text-color) !important;
+}
+
+.hasValue .icon {
+  color: var(--selector-text-color) !important;
 }
