@@ -2,12 +2,13 @@ import { FC, useMemo, useState, useEffect } from 'react';
 import { Card, Avatar, Button, Snackbar } from '@vkontakte/vkui';
 import { Icon24User, Icon12ErrorCircleFillYellow } from '@vkontakte/icons';
 import { formatDate } from '../../../utils';
-import { useAppSelector } from '../../../store/hooks';
+import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import {
   useJoinRunMutation,
   useLeaveRunMutation,
   type JoinRunResponse,
 } from '../../../store/runnersApi';
+import { runsUpdated } from '../../../store/runsEventsSlice';
 import '../HomeComponentsCss/HomeRunCardItem.css';
 
 type Profile = { fullName?: string; nameSuffix?: string; avatarUrl?: string };
@@ -42,6 +43,7 @@ export const HomeRunCardItem: FC<Props> = ({
   }, [r?.pace]);
 
   const myVkId = useAppSelector((s) => s.user.data?.id);
+  const dispatch = useAppDispatch();
 
   // участие на основе данных из списка
   const serverParticipant = useMemo(() => {
@@ -83,7 +85,7 @@ export const HomeRunCardItem: FC<Props> = ({
     try {
       const res: JoinRunResponse = await joinRun(r.id).unwrap();
       setLocalParticipant(true);
-      window.dispatchEvent(new Event('runs:updated'));
+      dispatch(runsUpdated()); // синхронизируем ленту через Redux
       if (res && res.warning) {
         showWarning('Вы уже записаны на пробежку в это время!');
       }
@@ -97,7 +99,7 @@ export const HomeRunCardItem: FC<Props> = ({
     try {
       await leaveRun(r.id).unwrap();
       setLocalParticipant(false);
-      window.dispatchEvent(new Event('runs:updated'));
+      dispatch(runsUpdated()); // синхронизируем ленту через Redux
     } catch (e: any) {
       const msg = e?.data || e?.message || 'Не удалось отписаться';
       showError(String(msg));
@@ -191,6 +193,7 @@ export const HomeRunCardItem: FC<Props> = ({
         disabled={actionDisabled}
         onClick={(e) => {
           e.stopPropagation();
+          e.preventDefault();
           if (actionMode === 'join') void handleJoin();
           else void handleLeave();
         }}
