@@ -2,14 +2,13 @@ import { FC, useMemo, useState, useEffect } from 'react';
 import { Card, Avatar, Snackbar } from '@vkontakte/vkui';
 import { Icon24User, Icon12ErrorCircleFillYellow } from '@vkontakte/icons';
 import { formatDate } from '../../../utils';
-import { useAppSelector, useAppDispatch } from '../../../store/hooks';
+import { useAppSelector } from '../../../store/hooks';
 import {
   useJoinRunMutation,
   useLeaveRunMutation,
   useGetRunByIdQuery,
   type JoinRunResponse,
 } from '../../../store/runnersApi';
-import { runsUpdated } from '../../../store/runsEventsSlice';
 import { ActionButton } from '../../../components/ActionButton';
 import '../HomeComponentsCss/HomeRunCardItem.css';
 
@@ -27,49 +26,51 @@ export const HomeRunCardItem: FC<Props> = ({ run: r, profile, onOpen }) => {
   const baseName = profile?.fullName ?? '';
   const avatar = profile?.avatarUrl;
 
-  // район из "Город, Район"
   const districtOnly = useMemo(() => {
     const s = r?.cityDistrict ?? '';
     const i = s.indexOf(',');
     return i >= 0 ? s.slice(i + 1).trim() : s.trim();
   }, [r?.cityDistrict]);
 
-  // pace без " мин"
   const paceText = useMemo(() => {
     if (!r?.pace) return '';
     return r.pace.replace(' мин', '');
   }, [r?.pace]);
 
   const myVkId = useAppSelector((s) => s.user.data?.id);
-  const dispatch = useAppDispatch();
 
-  // ===== 1) Попытка определить участие из данных списка
+  // 1) Участие по данным списка (приведение типов)
   const serverParticipantFromList = useMemo(() => {
-    if (!myVkId) return false;
-    const list: Array<{ vkUserId: number }> = Array.isArray(r?.participants) ? r.participants : [];
-    return list.some((p) => p?.vkUserId === myVkId);
+    if (myVkId == null) return false;
+    const myIdNum = Number(myVkId);
+    if (!Number.isFinite(myIdNum)) return false;
+    const list: Array<{ vkUserId: number | string }> = Array.isArray(r?.participants) ? r.participants : [];
+    return list.some((p) => Number(p?.vkUserId) === myIdNum);
   }, [r?.participants, myVkId]);
 
-  // ===== 2) Если из списка понять нельзя — лениво дотягиваем детали забега
-  const needDetails = !serverParticipantFromList && !(Array.isArray(r?.participants) && r.participants.length > 0);
+  // 2) Если участников в списке нет — лениво тянем детали
+  const needDetails =
+    !serverParticipantFromList && !(Array.isArray(r?.participants) && r.participants.length > 0);
   const { data: runDetails } = useGetRunByIdQuery(r.id, { skip: !needDetails || !r?.id });
 
   const serverParticipantFromDetails = useMemo(() => {
-    if (!myVkId || !runDetails?.participants) return false;
-    return runDetails.participants.some((p) => p?.vkUserId === myVkId);
+    if (myVkId == null || !runDetails?.participants) return false;
+    const myIdNum = Number(myVkId);
+    if (!Number.isFinite(myIdNum)) return false;
+    return runDetails.participants.some((p) => Number(p?.vkUserId) === myIdNum);
   }, [runDetails?.participants, myVkId]);
 
   const serverParticipant = serverParticipantFromList || serverParticipantFromDetails;
 
-  // ===== 3) Локальное состояние + синхронизация
+  // 3) Локальное состояние
   const [localParticipant, setLocalParticipant] = useState<boolean>(serverParticipant);
   useEffect(() => setLocalParticipant(serverParticipant), [serverParticipant]);
 
-  // ===== 4) Мутации
+  // 4) Мутации
   const [joinRun, { isLoading: isJoining }] = useJoinRunMutation();
   const [leaveRun, { isLoading: isLeaving }] = useLeaveRunMutation();
 
-  // ===== 5) Snackbar
+  // 5) Snackbar
   const [snack, setSnack] = useState<React.ReactNode>(null);
   const showError = (msg: string) =>
     setSnack(
@@ -93,8 +94,8 @@ export const HomeRunCardItem: FC<Props> = ({ run: r, profile, onOpen }) => {
   const handleJoin = async () => {
     try {
       const res: JoinRunResponse = await joinRun(r.id).unwrap();
-      setLocalParticipant(true);
-      dispatch(runsUpdated());
+      setLocalParticipant(true); // оптимистично
+      // Инвалидация тегов в runnersApi заставит обновиться и список, и детали
       if (res && res.warning) {
         showWarning('Вы уже записаны на пробежку в это время!');
       }
@@ -107,15 +108,15 @@ export const HomeRunCardItem: FC<Props> = ({ run: r, profile, onOpen }) => {
   const handleLeave = async () => {
     try {
       await leaveRun(r.id).unwrap();
-      setLocalParticipant(false);
-      dispatch(runsUpdated());
+      setLocalParticipant(false); // оптимистично
+      // Инвалидация тегов обновит список и детали
     } catch (e: any) {
       const msg = e?.data || e?.message || 'Не удалось отписаться';
       showError(String(msg));
     }
   };
 
-  // ===== 6) UI
+  // 6) UI
   const actionMode: 'join' | 'leave' = localParticipant ? 'leave' : 'join';
   const actionDisabled = actionMode === 'join' ? isJoining : isLeaving;
   const actionLabel =

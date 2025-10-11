@@ -7,11 +7,10 @@ import {
   type JoinRunResponse,
 } from '../../../store/runnersApi';
 import { useVkUsers } from '../../../hooks/useVkUsers';
-import { useAppSelector, useAppDispatch } from '../../../store/hooks';
+import { useAppSelector } from '../../../store/hooks';
 import { formatDate } from '../../../utils';
 import { parseNumberOrUndefined } from '../../../utils';
 import { tolerantParsePaceToSec, formatTime } from './utils';
-import { runsUpdated } from '../../../store/runsEventsSlice';
 
 type Params = { id: string };
 
@@ -25,7 +24,6 @@ export function useRunDetails() {
   const [leaveRun, { isLoading: isLeaving }] = useLeaveRunMutation();
 
   const myVkId = useAppSelector((s) => s.user.data?.id);
-  const dispatch = useAppDispatch();
 
   const creatorVkId = data?.creatorVkId;
 
@@ -92,18 +90,15 @@ export function useRunDetails() {
 
   const onLeave = async () => {
     await leaveRun(runId!);
-    setLocalParticipant(false);
-    refetch();
-    dispatch(runsUpdated());
+    setLocalParticipant(false); // оптимистично
+    // Инвалидация тегов в runnersApi обновит и детали, и список
   };
 
   const onJoin = async (): Promise<JoinRunResponse | void> => {
     const res = await joinRun(runId!).unwrap(); // { warning?: string | null }
-    // Всегда обновляем UI и рефрешим данные, warning — только для визуального уведомления
-    setLocalParticipant(true);
-    refetch();
-    dispatch(runsUpdated());
-    return res; // Компонент покажет Snackbar, если res.warning есть
+    setLocalParticipant(true); // оптимистично
+    // Инвалидация тегов обновит и детали, и список
+    return res;
   };
 
   return {

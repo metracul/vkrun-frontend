@@ -1,4 +1,3 @@
-// src/store/runnersApi.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from './index';
 import bridge from '@vkontakte/vk-bridge';
@@ -41,7 +40,6 @@ type RunDto = {
   runTypeName?: string | null;
 };
 
-
 // ---- Утилиты нормализации ----
 function secToPace(sec?: number | null): string {
   if (sec == null || sec <= 0) return '';
@@ -67,7 +65,6 @@ function normalize(dto: RunDto): RunCard {
     runTypeName: dto.runTypeName ?? undefined,
   };
 }
-
 
 // ---- Подпись (для изменяющих запросов) ----
 /** SHA-256 от строки, hex lower */
@@ -109,6 +106,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 // ---- API ----
 export const runnersApi = createApi({
   reducerPath: 'runnersApi',
+  tagTypes: ['Runs', 'Run'], // <<< ДОБАВЛЕНО
   baseQuery: fetchBaseQuery({
     baseUrl: API_BASE,
     prepareHeaders: (headers, { getState }) => {
@@ -128,7 +126,6 @@ export const runnersApi = createApi({
             const items = raw.map(normalize);
             return { data: { items } };
           } else {
-            // prod/API
             const { endpoint = '/api/v1/runs', page, size, filters = {} } = args ?? {};
             const params = new URLSearchParams();
             if (page != null) params.set('page', String(page));
@@ -148,6 +145,9 @@ export const runnersApi = createApi({
           return { error: { status: 'CUSTOM_ERROR', data: e?.message } as any };
         }
       },
+      providesTags: (result) =>
+        // один общий тег списка
+        result ? ['Runs'] : ['Runs'],
     }),
 
     // Детали по id
@@ -167,6 +167,9 @@ export const runnersApi = createApi({
           return { error: { status: 'CUSTOM_ERROR', data: e?.message } as any };
         }
       },
+      providesTags: (_result, _err, id) => [
+        { type: 'Run', id: String(id) }, // тег конкретного забега
+      ],
     }),
 
     // Записаться: POST /{id}/join  body { runId }
@@ -192,6 +195,10 @@ export const runnersApi = createApi({
           return { error: { status: 'CUSTOM_ERROR', data: e?.message || 'sign failed' } as any };
         }
       },
+      invalidatesTags: (_res, _err, id) => [
+        'Runs',
+        { type: 'Run', id: String(id) },
+      ],
     }),
 
     // Отписаться: POST /{id}/leave  body { runId }
@@ -213,13 +220,16 @@ export const runnersApi = createApi({
           return { error: { status: 'CUSTOM_ERROR', data: e?.message || 'sign failed' } as any };
         }
       },
+      invalidatesTags: (_res, _err, id) => [
+        'Runs',
+        { type: 'Run', id: String(id) },
+      ],
     }),
 
     // Удалить забег (только автор): DELETE /{id}
     deleteRun: b.mutation<void, string | number>({
       async queryFn(id, _api, _extra, fetchWithBQ) {
         try {
-          // Тело пустое; подпись по пустой строке
           const bodyJson = '';
           const signHeaders = await buildVkSignedHeaders(bodyJson);
           const res = await fetchWithBQ({
@@ -233,6 +243,10 @@ export const runnersApi = createApi({
           return { error: { status: 'CUSTOM_ERROR', data: e?.message || 'sign failed' } as any };
         }
       },
+      invalidatesTags: (_res, _err, id) => [
+        'Runs',
+        { type: 'Run', id: String(id) },
+      ],
     }),
   }),
 });
