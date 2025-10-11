@@ -1,5 +1,5 @@
 import { FC, useMemo, useState, useEffect } from 'react';
-import { Card, Avatar, Button, Snackbar } from '@vkontakte/vkui';
+import { Card, Avatar, Snackbar } from '@vkontakte/vkui';
 import { Icon24User, Icon12ErrorCircleFillYellow } from '@vkontakte/icons';
 import { formatDate } from '../../../utils';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
@@ -9,6 +9,7 @@ import {
   type JoinRunResponse,
 } from '../../../store/runnersApi';
 import { runsUpdated } from '../../../store/runsEventsSlice';
+import { ActionButton } from '../../../components/ActionButton';
 import '../HomeComponentsCss/HomeRunCardItem.css';
 
 type Profile = { fullName?: string; nameSuffix?: string; avatarUrl?: string };
@@ -39,7 +40,7 @@ export const HomeRunCardItem: FC<Props> = ({
   // pace без " мин"
   const paceText = useMemo(() => {
     if (!r?.pace) return '';
-    return r.pace.replace(' мин', ''); // убираем " мин"
+    return r.pace.replace(' мин', '');
   }, [r?.pace]);
 
   const myVkId = useAppSelector((s) => s.user.data?.id);
@@ -52,7 +53,7 @@ export const HomeRunCardItem: FC<Props> = ({
     return list.some((p) => p?.vkUserId === myVkId);
   }, [r?.participants, myVkId]);
 
-  // локальное состояние для мгновенного UI и синхронизация
+  // локальное состояние + синхронизация
   const [localParticipant, setLocalParticipant] = useState<boolean>(serverParticipant);
   useEffect(() => setLocalParticipant(serverParticipant), [serverParticipant]);
 
@@ -85,7 +86,7 @@ export const HomeRunCardItem: FC<Props> = ({
     try {
       const res: JoinRunResponse = await joinRun(r.id).unwrap();
       setLocalParticipant(true);
-      dispatch(runsUpdated()); // синхронизируем ленту через Redux
+      dispatch(runsUpdated());
       if (res && res.warning) {
         showWarning('Вы уже записаны на пробежку в это время!');
       }
@@ -99,7 +100,7 @@ export const HomeRunCardItem: FC<Props> = ({
     try {
       await leaveRun(r.id).unwrap();
       setLocalParticipant(false);
-      dispatch(runsUpdated()); // синхронизируем ленту через Redux
+      dispatch(runsUpdated());
     } catch (e: any) {
       const msg = e?.data || e?.message || 'Не удалось отписаться';
       showError(String(msg));
@@ -110,14 +111,10 @@ export const HomeRunCardItem: FC<Props> = ({
   const actionDisabled = actionMode === 'join' ? isJoining : isLeaving;
   const actionLabel =
     actionMode === 'join'
-      ? isJoining
-        ? 'Записываю…'
-        : 'ПОБЕГУ!'
-      : isLeaving
-      ? 'Отписываю…'
-      : 'ОТПИСАТЬСЯ';
+      ? (isJoining ? 'Записываю…' : 'ПОБЕГУ!')
+      : (isLeaving ? 'Отписываю…' : 'ОТПИСАТЬСЯ');
 
-  // данные для 2x2 блока
+  // данные 2x2
   const dateText = formatDate(r.dateISO);
   const startTime = r?.dateISO
     ? new Date(r.dateISO).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
@@ -146,13 +143,11 @@ export const HomeRunCardItem: FC<Props> = ({
 
           {/* Правый блок */}
           <div className="run-card__right">
-            {/* Строка заголовка */}
             <div className="run-card__title-row">
               <div className="run-card__title">{districtOnly || '—'}</div>
               {r.runTypeName && <div className="run-card__type">{r.runTypeName}</div>}
             </div>
 
-            {/* Информация 2x2 */}
             <div className="run-card__info">
               <div className="run-card__row">
                 <div className="run-card__cell">
@@ -177,7 +172,7 @@ export const HomeRunCardItem: FC<Props> = ({
                 </div>
               </div>
             </div>
-            {/* Блок место старта */}
+
             <div className="run-card__start-row">
               <div className="run-card__label">Место старта</div>
               <div className="run-card__value">{r.startAddress || '—'}</div>
@@ -186,21 +181,20 @@ export const HomeRunCardItem: FC<Props> = ({
         </div>
       </Card>
 
-      {/* Кнопка под карточкой */}
-      <Button
-        type="button" // важно: исключает submit, если выше есть <form>
-        size="m"
-        className={`run-card__pobegu ${actionMode === 'leave' ? 'run-card__pobegu--leave' : ''}`}
+      {/* Кнопка под карточкой: внешний вид целиком из CSS .run-card__pobegu */}
+      <ActionButton
+        unstyled
+        mode={actionMode}
+        label={actionLabel}
         disabled={actionDisabled}
+        className={`run-card__pobegu ${actionMode === 'leave' ? 'run-card__pobegu--leave' : ''}`}
         onClick={(e) => {
-          e.stopPropagation();
-          // e.preventDefault(); // убрано
+          e.stopPropagation(); // не открывать детали
           if (actionMode === 'join') void handleJoin();
           else void handleLeave();
         }}
-      >
-        <span className="run-card__pobegu-text">{actionLabel}</span>
-      </Button>
+      />
+
       {snack}
     </div>
   );

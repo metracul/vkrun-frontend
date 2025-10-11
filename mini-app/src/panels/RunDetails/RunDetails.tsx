@@ -1,4 +1,3 @@
-// RunDetails.tsx
 import { FC, useEffect, useState } from 'react';
 import {
   Panel,
@@ -16,13 +15,15 @@ import {
   CreatorCard,
   InfoGroup,
   ParticipantsGroup,
-  ActionButton,
   RunDescription,
 } from '../components';
 
+// ИСПРАВЛЕНО: используем единый ActionButton
+import { ActionButton } from '../../components/ActionButton';
+
 import { useRunDetails } from './hooks/useRunDetails';
 
-// ДОБАВЛЕНО: для удаления и синхронизации
+// для удаления и синхронизации
 import { useDeleteRunMutation } from '../../store/runnersApi';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { runsUpdated } from '../../store/runsEventsSlice';
@@ -42,7 +43,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
 
   const [snack, setSnack] = useState<React.ReactNode>(null);
 
-  // ДОБАВЛЕНО: состояние и вычисления для удаления
+  // состояние и вычисления для удаления
   const dispatch = useAppDispatch();
   const myVkId = useAppSelector((s) => s.user.data?.id);
   const [deleteRun, { isLoading: isDeleting }] = useDeleteRunMutation();
@@ -76,7 +77,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
     }
   };
 
-  // ДОБАВЛЕНО: запросить подтверждение удаления — открыть существующую модалку через событие
+  // запросить подтверждение удаления
   const askDelete = () => {
     if (!data?.id) return;
     const ev = new CustomEvent('runs:open-confirm-delete', {
@@ -85,7 +86,7 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
     window.dispatchEvent(ev);
   };
 
-  // ДОБАВЛЕНО: обработать подтверждение удаления — выполнить DELETE, обновить ленту и уйти на главную
+  // обработать подтверждение удаления
   useEffect(() => {
     const handler = async (e: Event) => {
       const anyEvt = e as unknown as { detail?: { id?: number } };
@@ -175,38 +176,39 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
               label={actions.buttonLabel}
               disabled={actions.buttonMode === 'join' ? actions.isJoining : actions.isLeaving}
               onClick={actions.buttonMode === 'join' ? handleJoin : actions.onLeave}
+              // В деталях внешний вид задаём inline (как раньше). unstyled не нужен.
             />
 
-            {/* НОВАЯ КНОПКА "Удалить" — СТРОГО между "ОТПИСАТЬСЯ" и "НАЗАД" */}
+            {/* КНОПКА "Удалить" — между "ОТПИСАТЬСЯ" и "НАЗАД" */}
             {isMine && (
-            <>
-              <Spacing size={12} />
-              <Button
-                disabled={isDeleting}
-                onClick={askDelete}
-                style={{
-                  borderRadius: 22.94,
-                  minHeight: 62,
-                  border: '1px solid rgba(3, 4, 3, 1)',
-                  backgroundColor: 'rgba(255, 0, 0, 1)',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}
-              >
-                <span
+              <>
+                <Spacing size={12} />
+                <Button
+                  disabled={isDeleting}
+                  onClick={askDelete}
                   style={{
-                    fontFamily: 'Montserrat, sans-serif',
-                    fontWeight: 600,
-                    fontSize: 20,
-                    color: 'rgba(3, 4, 3, 1)',
+                    borderRadius: 22.94,
+                    minHeight: 62,
+                    border: '1px solid rgba(3, 4, 3, 1)',
+                    backgroundColor: 'rgba(255, 0, 0, 1)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
                   }}
                 >
-                  {isDeleting ? 'Удаляю…' : 'УДАЛИТЬ'}
-                </span>
-              </Button>
-            </>
-          )}
+                  <span
+                    style={{
+                      fontFamily: 'Montserrat, sans-serif',
+                      fontWeight: 600,
+                      fontSize: 20,
+                      color: 'rgba(3, 4, 3, 1)',
+                    }}
+                  >
+                    {isDeleting ? 'Удаляю…' : 'УДАЛИТЬ'}
+                  </span>
+                </Button>
+              </>
+            )}
             <Spacing size={12} />
           </>
         )}
