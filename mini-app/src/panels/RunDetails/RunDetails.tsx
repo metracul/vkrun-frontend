@@ -176,7 +176,6 @@ export const RunDetails: FC<NavIdProps> = ({ id }) => {
               label={actions.buttonLabel}
               disabled={actions.buttonMode === 'join' ? actions.isJoining : actions.isLeaving}
               onClick={actions.buttonMode === 'join' ? handleJoin : actions.onLeave}
-              // В деталях внешний вид задаём inline (как раньше). unstyled не нужен.
             />
 
             {/* КНОПКА "Удалить" — между "ОТПИСАТЬСЯ" и "НАЗАД" */}

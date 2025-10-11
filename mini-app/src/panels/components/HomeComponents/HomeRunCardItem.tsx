@@ -6,6 +6,7 @@ import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import {
   useJoinRunMutation,
   useLeaveRunMutation,
+  useGetRunByIdQuery,
   type JoinRunResponse,
 } from '../../../store/runnersApi';
 import { runsUpdated } from '../../../store/runsEventsSlice';
@@ -22,11 +23,7 @@ type Props = {
   onOpen: () => void;
 };
 
-export const HomeRunCardItem: FC<Props> = ({
-  run: r,
-  profile,
-  onOpen,
-}) => {
+export const HomeRunCardItem: FC<Props> = ({ run: r, profile, onOpen }) => {
   const baseName = profile?.fullName ?? '';
   const avatar = profile?.avatarUrl;
 
@@ -46,22 +43,33 @@ export const HomeRunCardItem: FC<Props> = ({
   const myVkId = useAppSelector((s) => s.user.data?.id);
   const dispatch = useAppDispatch();
 
-  // участие на основе данных из списка
-  const serverParticipant = useMemo(() => {
+  // ===== 1) Попытка определить участие из данных списка
+  const serverParticipantFromList = useMemo(() => {
     if (!myVkId) return false;
     const list: Array<{ vkUserId: number }> = Array.isArray(r?.participants) ? r.participants : [];
     return list.some((p) => p?.vkUserId === myVkId);
   }, [r?.participants, myVkId]);
 
-  // локальное состояние + синхронизация
+  // ===== 2) Если из списка понять нельзя — лениво дотягиваем детали забега
+  const needDetails = !serverParticipantFromList && !(Array.isArray(r?.participants) && r.participants.length > 0);
+  const { data: runDetails } = useGetRunByIdQuery(r.id, { skip: !needDetails || !r?.id });
+
+  const serverParticipantFromDetails = useMemo(() => {
+    if (!myVkId || !runDetails?.participants) return false;
+    return runDetails.participants.some((p) => p?.vkUserId === myVkId);
+  }, [runDetails?.participants, myVkId]);
+
+  const serverParticipant = serverParticipantFromList || serverParticipantFromDetails;
+
+  // ===== 3) Локальное состояние + синхронизация
   const [localParticipant, setLocalParticipant] = useState<boolean>(serverParticipant);
   useEffect(() => setLocalParticipant(serverParticipant), [serverParticipant]);
 
-  // мутации
+  // ===== 4) Мутации
   const [joinRun, { isLoading: isJoining }] = useJoinRunMutation();
   const [leaveRun, { isLoading: isLeaving }] = useLeaveRunMutation();
 
-  // Snackbar
+  // ===== 5) Snackbar
   const [snack, setSnack] = useState<React.ReactNode>(null);
   const showError = (msg: string) =>
     setSnack(
@@ -107,6 +115,7 @@ export const HomeRunCardItem: FC<Props> = ({
     }
   };
 
+  // ===== 6) UI
   const actionMode: 'join' | 'leave' = localParticipant ? 'leave' : 'join';
   const actionDisabled = actionMode === 'join' ? isJoining : isLeaving;
   const actionLabel =
@@ -114,7 +123,6 @@ export const HomeRunCardItem: FC<Props> = ({
       ? (isJoining ? 'Записываю…' : 'ПОБЕГУ!')
       : (isLeaving ? 'Отписываю…' : 'ОТПИСАТЬСЯ');
 
-  // данные 2x2
   const dateText = formatDate(r.dateISO);
   const startTime = r?.dateISO
     ? new Date(r.dateISO).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
@@ -181,7 +189,7 @@ export const HomeRunCardItem: FC<Props> = ({
         </div>
       </Card>
 
-      {/* Кнопка под карточкой: внешний вид целиком из CSS .run-card__pobegu */}
+      {/* Кнопка под карточкой: внешний вид из CSS .run-card__pobegu */}
       <ActionButton
         unstyled
         mode={actionMode}
