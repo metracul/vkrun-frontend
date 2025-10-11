@@ -9,8 +9,8 @@
   --run-logo: url('/blackLogo.png');
   --create-logo: url('/blackLogo.png');
   --filters-icon-color: rgba(10, 16, 6, 0.3);
-  --background-panel-color: rgba(255, 255, 255, 1);
-  --city-button-background-color: rgba(255, 255, 255, 1);
+  --background-panel-color: rgba(246, 246, 246, 1);
+  --city-button-background-color: rgba(246, 246, 246, 1);
   --create-run-button-color: rgba(242, 242, 242, 1);
   --run-card-color: rgba(246, 246, 246, 1);
   --run-card-border-color: rgba(3, 4, 3, 1);
@@ -26,6 +26,9 @@
   --blocked-district-placeholder-color: rgba(224, 224, 224, 0.5);
   --border-selected-color: rgba(225, 255, 0, 1);
   --error-border-color: rgba(255, 0, 0, 1);
+  --pobegy-border-color: rgba(3, 4, 3, 1);
+  --background-card-type-run: rgba(250, 81, 162, 0.3);
+  --value-card-color: rgba(3, 4, 3, 0.5);
 }
 
 /* Тёмная тема — все платформы */
@@ -53,4 +56,7 @@
    --blocked-district-placeholder-color: rgba(50, 50, 50, 1);
    --border-selected-color: rgba(225, 255, 0, 1);
    --error-border-color: rgba(255, 0, 0, 1);
+   --pobegy-border-color: rgba(246, 246, 246, 1);
+   --background-card-type-run: rgba(250, 81, 162, 0.75);
+   --value-card-color: rgba(246, 246, 246, 0.5);
 }

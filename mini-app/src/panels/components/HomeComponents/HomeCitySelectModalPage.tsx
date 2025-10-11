@@ -20,13 +20,18 @@ export const HomeCitySelectModalPage: FC<Props> = ({ id, onClose }) => {
   };
 
   return (
+    <div
+      style={{
+        background: 'var(--modal-background-color)',
+        }}
+        >
     <ModalPage
       id={id}
       settlingHeight={420}
       dynamicContentHeight
       onClose={onClose}
-      style={{ backgroundColor: 'var(--modal-background-color)' }}
     >
+      
       {/* Градиентная полоска */}
       <div
         style={{
@@ -155,6 +160,8 @@ export const HomeCitySelectModalPage: FC<Props> = ({ id, onClose }) => {
           })}
         </div>
       </Group>
+      
     </ModalPage>
+    </div>
   );
 };

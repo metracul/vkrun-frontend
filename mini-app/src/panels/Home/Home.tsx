@@ -6,9 +6,9 @@ import {
   Group,
   Caption,
   Card,
+  usePlatform
 } from '@vkontakte/vkui';
 import { Icon24AddOutline } from '@vkontakte/icons';
-import { usePlatform } from '@vkontakte/vkui';
 import {
   useRouteNavigator,
   useActiveVkuiLocation,
@@ -33,9 +33,10 @@ export interface HomeProps {
   openCitySelect: () => void;
 }
 
-export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete, openCitySelect }) => {
+export const Home: FC<HomeProps> = ({ id, openFilters, openCitySelect }) => {
   const routeNavigator = useRouteNavigator();
   const { panel: activePanel } = useActiveVkuiLocation();
+  
 
   const { selectedCity, filters } = useHomeFilters();
   const {
@@ -51,6 +52,7 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete, openCi
   useBannerAds(activePanel, id);
 
   const platform = usePlatform();
+  const isIOS = platform === 'ios';
   const isDesktop = platform === 'vkcom';
 
   const dispatch = useDispatch<AppDispatch>();
@@ -100,13 +102,14 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete, openCi
           backgroundColor: 'var(--background-panel-color)',
         }}
       >
-        <Group mode="plain" separator="hide">
+        <Group mode="plain" separator="hide">  
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              marginTop: 40,
+              paddingTop: isIOS ? 100 : 40,
               justifyContent: 'space-between',
+              overflow: 'hidden',
             }}
           >
             {/* Логотип слева через CSS-переменную --home-logo */}
@@ -328,10 +331,6 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openConfirmDelete, openCi
                 isMine={!!isMine}
                 isDeleting={isDeleting}
                 onOpen={openDetails}
-                onDeleteClick={(e) => {
-                  e.stopPropagation();
-                  openConfirmDelete(Number(r.id));
-                }}
               />
             );
           })}

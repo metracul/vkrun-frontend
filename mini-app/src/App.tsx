@@ -91,6 +91,18 @@ export const App = () => {
     };
   }, [dispatch, routeNavigator]);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const anyEvt = e as unknown as { detail?: { id?: number } };
+      const id = anyEvt?.detail?.id;
+      if (typeof id === 'number') {
+        openConfirmDelete(id);
+      }
+    };
+    window.addEventListener('runs:open-confirm-delete', handler);
+    return () => window.removeEventListener('runs:open-confirm-delete', handler);
+  }, []);
+
   const popoutNode = userStatus === 'loading' ? <ScreenSpinner /> : null;
 
   // ===== Модалки

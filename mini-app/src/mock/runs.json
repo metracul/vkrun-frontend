@@ -1,7 +1,7 @@
 [
   {
     "id": 1,
-    "creatorId": 777,
+    "creatorId": 574680061,
     "cityName": "Москва",
     "districtName": "ЦАО",
     "startAt": "2025-11-01T18:00:00Z",
@@ -9,7 +9,7 @@
     "distanceKm": 10,
     "paceSecPerKm": 300,
     "description": "Лёгкая вечерняя пробежка",
-    "participants": [{ "id": 1, "vkUserId": 777 }],
+    "participants": [{ "id": 1, "vkUserId": 574680061 }, { "id": 2, "vkUserId": 1 }],
     "startAddress": "ул Красная, 1",
     "runTypeName": "Темповая"
   },
