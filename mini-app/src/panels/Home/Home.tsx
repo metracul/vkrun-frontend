@@ -52,7 +52,6 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openCitySelect }) => {
   useBannerAds(activePanel, id);
 
   const platform = usePlatform();
-  const isIOS = platform === 'ios';
   const isDesktop = platform === 'vkcom';
 
   const dispatch = useDispatch<AppDispatch>();
@@ -107,7 +106,7 @@ export const Home: FC<HomeProps> = ({ id, openFilters, openCitySelect }) => {
             style={{
               display: 'flex',
               alignItems: 'center',
-              paddingTop: isIOS ? 100 : 40,
+              paddingTop: 40,
               justifyContent: 'space-between',
               overflow: 'hidden',
             }}
