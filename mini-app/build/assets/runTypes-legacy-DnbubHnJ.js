@@ -1,1 +1,0 @@
-System.register([],function(e,r){"use strict";return{execute:function(){e("default",[{key:"tempo",displayName:"Темповая",sortOrder:10},{key:"ultra",displayName:"Сверхмарафон",sortOrder:20},{key:"recovery",displayName:"Восстановительная",sortOrder:30},{key:"interval",displayName:"Интервальная",sortOrder:40},{key:"halfmarathon",displayName:"Полумарафон",sortOrder:50}])}}});
