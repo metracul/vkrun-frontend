@@ -19,7 +19,7 @@
 
 /* смещаем содержимое под иконку */
 .withLeftIcon :global(.vkuiFormField__scrollContainer) {
-  padding-inline-start: 44px !important;
+  padding-inline-start: 38px !important;
 }
 
 /* иконка по умолчанию — серая */

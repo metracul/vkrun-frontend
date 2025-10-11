@@ -30,7 +30,7 @@ export const CreateDistanceField: FC<{
 
         <Input
           name="distance"
-          placeholder="Длина"
+          placeholder="Путь, км"
           inputMode="decimal"
           type="text"
           value={value}
