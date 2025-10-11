@@ -1,0 +1,20 @@
+/* Когда есть выбранное значение — красим текст видимого контента в цвет селектора */
+.hasValue :global(.vkuiCustomSelectInput__el) {
+  color: var(--selector-text-color) !important;
+  -webkit-text-fill-color: var(--selector-text-color) !important;
+}
+
+/* Если VKUI рендерит текст в title (режим без ввода) — тоже перекрасим */
+.hasValue :global(.vkuiCustomSelectInput__title) {
+  color: var(--selector-text-color) !important;
+}
+
+/* При выбранном значении меняем цвет рамки контейнера (бордер задан в FieldBase.module.css) */
+.hasValue {
+  border-color: var(--border-selected-color) !important;
+}
+
+.wrapper {
+  padding-left: 12px;
+  padding-right: 12px;
+}

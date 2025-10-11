@@ -1,0 +1,250 @@
+/* ===== Карточка пробежки: общий контейнер ===== */
+.run-card-wrap {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+/* ===== Карточка ===== */
+.run-card {
+  position: relative;
+  background: var(--run-card-color);
+  border-radius: 20px 20px 0 0; /* верхние скруглённые, нижние прямые */
+  overflow: hidden;
+  display: flex;
+  border: 1.15px solid var(--run-card-border-color);
+  border-bottom: none;
+  box-sizing: border-box;
+}
+
+/* Кнопка удаления внутри карточки */
+.run-card__delete {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+}
+
+/* ===== Контент: левый и правый блоки ===== */
+.run-card__content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 8px;
+  gap: 14.54px;
+}
+
+/* Левый блок: аватар + ФИО */
+.run-card__left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Аватар */
+.run-card__avatar {
+  border: 2.54px solid rgba(225, 255, 0, 1);
+  border-radius: 50%;
+  box-sizing: border-box;
+  width: 63.43px !important;
+  height: 63.43px !important;
+}
+
+/* Имя/фамилия под аватаром */
+.run-card__username {
+  margin-top: 4px;
+  text-align: center;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  font-size: 8.61px;
+  line-height: 1.2;
+  white-space: pre-line;
+  text-transform: uppercase;
+  color: var(--vkui--color_text_primary);
+}
+
+/* Правый блок */
+.run-card__right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14.9px;
+}
+
+/* Первая строка: район слева, тип справа */
+.run-card__title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Район */
+.run-card__title {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--vkui--color_text_primary);
+  word-break: break-word;
+}
+
+/* Плашка типа пробежки */
+.run-card__type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background-card-type-run);       /* фон плашки */
+  border: 1px solid var(--background-card-type-run); /* рамка в цвет фона */
+  border-radius: 22.94px;
+  padding: 2px 10px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 400;
+  font-size: 10px;
+  line-height: 1.2;
+  color: var(--vkui--color_text_primary);
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+/* Блок 2x2: (дата | темп) / (старт | дистанция) */
+.run-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2.29px;
+}
+
+.run-card__row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Ячейка = flex-row: слева лейбл, справа значение */
+.run-card__cell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.run-card__label {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--vkui--color_text_primary);
+}
+
+.run-card__value {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--value-card-color);
+}
+
+/* ===== Доп. тексты (на случай использования) ===== */
+.run-card__subtitle {
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--vkui--color_text_secondary);
+  word-break: break-word;
+}
+
+.run-card__extras {
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--vkui--color_text_secondary);
+  word-break: break-word;
+}
+
+/* ===== Кнопка под карточкой (ПОБЕГУ / ОТПИСАТЬСЯ) ===== */
+.run-card__pobegu {
+  border-radius: 0 0 20px 20px !important;
+  background: rgba(225, 255, 0, 1) !important; /* по умолчанию жёлтая */
+  color: rgba(3, 4, 3, 1) !important;
+  border: 1.15px solid var(--pobegy-border-color) !important;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+/* Состояние, когда кнопка = "ОТПИСАТЬСЯ" */
+.run-card__pobegu.run-card__pobegu--leave {
+  background: rgba(246, 246, 246, 1) !important;   /* фон */
+  color: rgba(255, 0, 0, 1) !important;            /* цвет текста кнопки */
+  border: 1.15px solid rgba(255, 0, 0, 1) !important; /* красная рамка */
+}
+
+/* Текст внутри кнопки в состоянии "ОТПИСАТЬСЯ" */
+.run-card__pobegu.run-card__pobegu--leave .run-card__pobegu-text {
+  color: rgba(255, 0, 0, 1) !important;
+}
+
+.run-card__pobegu-text {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  color: rgba(3, 4, 3, 1);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ===== Совместимость: если где-то остался RichCell ===== */
+.run-card__richcell {
+  padding: 12px 16px 12px 0;
+  box-sizing: border-box;
+}
+
+/* ===== Адаптивность ===== */
+@media (max-width: 360px) {
+  .run-card__content {
+    align-items: flex-start;
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .run-card__title {
+    font-size: 13px;
+  }
+
+  .run-card__subtitle,
+  .run-card__extras {
+    font-size: 11px;
+  }
+
+  .run-card__label,
+  .run-card__value {
+    font-size: 12px;
+  }
+}
+
+.run-card__start-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.run-card__start-row .run-card__label {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--vkui--color_text_primary);
+}
+
+.run-card__start-row .run-card__value {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--value-card-color);
+  text-align: right;
+}

@@ -1,0 +1,87 @@
+.wrap { position: relative; }
+
+/* смещение контента вправо под левую иконку */
+.wrap :global(.vkuiFormField__scrollContainer) {
+  padding-inline-start: 44px !important;
+}
+
+/* левая иконка сверху всех внутренних слоёв */
+.icon {
+  position: absolute;
+  inset-block: 0;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  z-index: 2;
+  color: rgba(181,183,180,.5);
+}
+
+/* наш плейсхолдер */
+.ph {
+  position: absolute;
+  inset-block: 0;
+  left: 52px;
+  display: inline-flex;
+  align-items: center;
+  pointer-events: none;
+  z-index: 2;
+  color: rgba(181,183,180,.5);
+  font-family: Montserrat, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 100%;
+  transition: opacity .12s ease, visibility .12s ease;
+}
+
+/* скрыть плейсхолдер при фокусе/значении */
+.wrap:focus-within .ph,
+.hasValue .ph { opacity: 0; visibility: hidden; }
+
+/* ===== убираем правую системную иконку time ===== */
+.wrap :global(input[type="time"])::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+/* Safari/Chromium: отключить нативный рендер часов */
+.wrap :global(input[type="time"]) {
+  -webkit-appearance: none;
+          appearance: none;
+  background: transparent;
+}
+
+/* ===== скрыть «--:--» ДО фокуса и пока нет значения ===== */
+/* WebKit/Chromium */
+.wrap:not(.hasValue):not(:focus-within) :global(input[type="time"])::-webkit-datetime-edit,
+.wrap:not(.hasValue):not(:focus-within) :global(input[type="time"])::-webkit-datetime-edit-fields-wrapper,
+.wrap:not(.hasValue):not(:focus-within) :global(input[type="time"])::-webkit-datetime-edit-hour-field,
+.wrap:not(.hasValue):not(:focus-within) :global(input[type="time"])::-webkit-datetime-edit-minute-field,
+.wrap:not(.hasValue):not(:focus-within) :global(input[type="time"])::-webkit-datetime-edit-text {
+  opacity: 0;           /* прячет «--:--» и двоеточие */
+}
+
+/* Firefox */
+@-moz-document url-prefix() {
+  .wrap:not(.hasValue):not(:focus-within) :global(input[type="time"]) {
+    color: transparent;
+    caret-color: transparent;
+  }
+  .wrap:focus-within :global(input[type="time"]) {
+    color: var(--vkui--color_text_primary);
+    caret-color: auto;
+  }
+}
+/* --- текст инпута при наличии значения --- */
+.hasValue :global(input[type="time"]) {
+  color: var(--selector-text-color) !important;
+  -webkit-text-fill-color: var(--selector-text-color) !important; /* для iOS/WebKit */
+}
+
+/* --- иконка при наличии значения --- */
+.hasValue .icon {
+  color: var(--selector-text-color) !important;
+}
+
+.hasValue {
+  border-color: var(--border-selected-color) !important;
+}

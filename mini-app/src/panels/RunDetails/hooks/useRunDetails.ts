@@ -104,8 +104,8 @@ export function useRunDetails() {
     refetch();
     dispatch(runsUpdated());
     return res; // Компонент покажет Snackbar, если res.warning есть
-    };
-    
+  };
+
   return {
     isLoading,
     isError,
@@ -119,6 +119,8 @@ export function useRunDetails() {
     },
 
     info: {
+      runTypeName: data?.runTypeName || '',
+      startAddress: data?.startAddress || '',
       date: formatDate(data?.dateISO),
       time: formatTime(data?.dateISO),
       notes: data?.notes || '',
@@ -157,8 +159,8 @@ export function useRunDetails() {
       isJoining,
       isLeaving,
       buttonLabel: localParticipant
-        ? (isLeaving ? 'Отписываю…' : 'Отписаться')
-        : (isJoining ? 'Записываю…' : 'Побегу'),
+        ? (isLeaving ? 'Отписываю…' : 'ОТПИСАТЬСЯ')
+        : (isJoining ? 'Записываю…' : 'ПОБЕГУ!'),
       buttonMode: localParticipant ? ('leave' as const) : ('join' as const),
       button: null as any,
       onJoin,

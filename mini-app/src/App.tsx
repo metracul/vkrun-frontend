@@ -20,6 +20,7 @@ import { hydrateCityFromStorage } from './store/cityFilterSlice';
 import {
   HomeFiltersModalPage,
   HomeDeleteConfirmModalPage,
+  HomeCitySelectModalPage,
 } from './panels/components';
 
 import bridge from '@vkontakte/vk-bridge';
@@ -27,7 +28,7 @@ import { purchaseFailed, purchaseSucceeded } from './store/purchaseSlice';
 
 import { RewardTips } from './panels/RewardTips/RewardTips';
 
-type ModalId = 'filters' | 'confirm-delete' | null;
+type ModalId = 'filters' | 'confirm-delete' | 'city-select' | null;
 
 export const App = () => {
   const { panel: activePanel = DEFAULT_VIEW_PANELS.HOME } =
@@ -90,12 +91,25 @@ export const App = () => {
     };
   }, [dispatch, routeNavigator]);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const anyEvt = e as unknown as { detail?: { id?: number } };
+      const id = anyEvt?.detail?.id;
+      if (typeof id === 'number') {
+        openConfirmDelete(id);
+      }
+    };
+    window.addEventListener('runs:open-confirm-delete', handler);
+    return () => window.removeEventListener('runs:open-confirm-delete', handler);
+  }, []);
+
   const popoutNode = userStatus === 'loading' ? <ScreenSpinner /> : null;
 
   // ===== Модалки
   const [activeModal, setActiveModal] = useState<ModalId>(null);
   const [runIdToDelete, setRunIdToDelete] = useState<number | null>(null);
-
+  
+  const openCitySelect = () => setActiveModal('city-select');
   const openFilters = () => setActiveModal('filters');
   const openConfirmDelete = (id: number) => {
     setRunIdToDelete(id);
@@ -132,6 +146,9 @@ export const App = () => {
             onConfirm={onConfirmDelete}
             isDeleting={false}
           />
+          <HomeCitySelectModalPage 
+          id="city-select" 
+          onClose={closeModal} />
         </ModalRoot>
       }
     >
@@ -141,10 +158,10 @@ export const App = () => {
             id={DEFAULT_VIEW_PANELS.HOME}
             openFilters={openFilters}
             openConfirmDelete={openConfirmDelete}
+            openCitySelect={openCitySelect}
           />
           <CreateRun id={DEFAULT_VIEW_PANELS.CREATE} />
           <RunDetails id={DEFAULT_VIEW_PANELS.RUN} />
-          {/* Панель с советами, доступ по VK Storage */}
           <RewardTips id={DEFAULT_VIEW_PANELS.REWARD} />
         </View>
       </SplitCol>

@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
+
+/* Светлая тема — все платформы */
+.vkui.vkui--vkBase--light,
+.vkui.vkui--vkIOS--light,
+.vkui.vkui--vkCom--light {
+  --home-logo: url('/blackLogo.png');
+  --run-logo: url('/blackLogo.png');
+  --create-logo: url('/blackLogo.png');
+  --filters-icon-color: rgba(10, 16, 6, 0.3);
+  --background-panel-color: rgba(246, 246, 246, 1);
+  --city-button-background-color: rgba(246, 246, 246, 1);
+  --create-run-button-color: rgba(242, 242, 242, 1);
+  --run-card-color: rgba(246, 246, 246, 1);
+  --run-card-border-color: rgba(3, 4, 3, 1);
+  --back-button-color: rgba(3, 4, 3, 0.5);
+  --create-text-color: rgba(181, 183, 180, 1);
+  --create-border-color: rgba(181, 183, 180, 1);
+  --gorod-color: rgba(3, 4, 3, 1);
+  --modal-background-color: rgba(246, 246, 246, 1);
+  --background-modal-city-button: rgba(246, 246, 246, 1);
+  --modal-city-text-button: rgba(181, 183, 180, 1);
+  --selector-text-color: rgba(3, 4, 3, 1);
+  --blocked-district-border-color: rgba(224, 224, 224, 0.5);
+  --blocked-district-placeholder-color: rgba(224, 224, 224, 0.5);
+  --border-selected-color: rgba(225, 255, 0, 1);
+  --error-border-color: rgba(255, 0, 0, 1);
+  --pobegy-border-color: rgba(3, 4, 3, 1);
+  --background-card-type-run: rgba(250, 81, 162, 0.3);
+  --value-card-color: rgba(3, 4, 3, 0.5);
+}
+
+/* Тёмная тема — все платформы */
+.vkui.vkui--vkBase--dark,
+.vkui.vkui--vkIOS--dark,
+.vkui.vkui--vkCom--dark {
+  --home-logo: url('/neonLogo.png');
+  --run-logo: url('/neonLogo.png');
+  --create-logo: url('/neonLogo.png');
+  --filters-icon-color: rgba(246, 246, 246, 1);
+  --background-panel-color: rgba(3, 4, 3, 1);
+  --city-button-background-color: rgba(3, 4, 3, 1);
+  --create-run-button-color: rgba(50, 50, 50, 1);
+  --run-card-color: rgba(3, 4, 3, 1);
+   --run-card-border-color: rgba(246, 246, 246, 1);
+   --back-button-color: rgba(246, 246, 246, 0.5);
+   --create-text-color: rgba(246, 246, 246, 0.5);
+   --create-border-color: rgba(212, 213, 211, 1);
+   --gorod-color: rgba(246, 246, 246, 1);
+   --modal-background-color: rgba(3, 4, 3, 1);
+   --background-modal-city-button: rgba(50, 50, 50, 1);
+   --modal-city-text-button: rgba(212, 213, 211, 1);
+   --selector-text-color: rgba(246, 246, 246, 1);
+   --blocked-district-border-color: rgba(50, 50, 50, 1);
+   --blocked-district-placeholder-color: rgba(50, 50, 50, 1);
+   --border-selected-color: rgba(225, 255, 0, 1);
+   --error-border-color: rgba(255, 0, 0, 1);
+   --pobegy-border-color: rgba(246, 246, 246, 1);
+   --background-card-type-run: rgba(250, 81, 162, 0.75);
+   --value-card-color: rgba(246, 246, 246, 0.5);
+}

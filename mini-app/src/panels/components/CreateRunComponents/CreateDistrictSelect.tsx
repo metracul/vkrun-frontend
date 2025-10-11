@@ -1,11 +1,11 @@
 import { FC, useMemo } from 'react';
-import { CustomSelect } from '@vkontakte/vkui';
+import { CustomSelect, CustomSelectOption } from '@vkontakte/vkui';
 import { DISTRICTS_BY_CITY } from '../../../constants/locations';
+import base from '../CreateRunComponentsCss/FieldBase.module.css';
+import styles from '../CreateRunComponentsCss/CreateDistrictSelect.module.css';
 
-const filterFn = (q: string, option: { value: string; label: string }) => {
-  if (!q) return true;
-  return option.label.toLowerCase().startsWith(q.toLowerCase());
-};
+const filterFn = (q: string, option: { value: string; label: string }) =>
+  !q || option.label.toLowerCase().includes(q.toLowerCase());
 
 export const CreateDistrictSelect: FC<{
   city?: string;
@@ -18,16 +18,28 @@ export const CreateDistrictSelect: FC<{
   }, [city]);
 
   return (
+    <div
+    className={[
+      base.root,
+      base.pad16,
+      styles.wrap,
+      value ? styles.hasValue : '',
+      !city ? styles.blocked : '',
+    ].join(' ')}
+  >
+    <span className={styles.icon} aria-hidden />
     <CustomSelect
       key={city || 'no-city'}
       options={options}
-      value={value}
+      value={value ?? ''}
       onChange={(e) => onChange((e.target as HTMLSelectElement).value)}
-      placeholder={city ? 'Начните вводить район' : 'Сначала выберите город'}
+      placeholder="Название района"
       disabled={!city}
       searchable
       filterFn={filterFn}
       allowClearButton
-    />
+      renderOption={({ option, ...rest }) => <CustomSelectOption {...rest} />}
+  />
+  </div>
   );
 };

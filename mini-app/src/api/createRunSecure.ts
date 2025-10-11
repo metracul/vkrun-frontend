@@ -52,6 +52,8 @@ export async function createRunSecure(body: {
   distanceKm: number;        // > 0
   paceSecPerKm?: number;
   description?: string;
+  runTypeKey?: string;
+  startAddress?: string;
 }) {
   const bodyJson = JSON.stringify(body);
   const signHeaders = await buildVkSignedHeaders(bodyJson);
