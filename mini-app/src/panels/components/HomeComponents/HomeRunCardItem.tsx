@@ -188,12 +188,13 @@ export const HomeRunCardItem: FC<Props> = ({
 
       {/* Кнопка под карточкой */}
       <Button
+        type="button" // важно: исключает submit, если выше есть <form>
         size="m"
         className={`run-card__pobegu ${actionMode === 'leave' ? 'run-card__pobegu--leave' : ''}`}
         disabled={actionDisabled}
         onClick={(e) => {
           e.stopPropagation();
-          e.preventDefault();
+          // e.preventDefault(); // убрано
           if (actionMode === 'join') void handleJoin();
           else void handleLeave();
         }}
